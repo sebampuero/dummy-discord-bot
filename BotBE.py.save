@@ -1,0 +1,12 @@
+from BotService import BotService
+
+class BotBE():
+    
+    def __init__(self):
+        self.bot_svc = BotService()
+
+    def select_random_daily_quote(self):
+        return ""
+
+    def subscribe_member(self, subscribee, subscriber):
+        self.bot_svc.subscribe_member(subscribee, subscr
