@@ -43,12 +43,12 @@ class BotDAO():
 		self.db.execute_query(sql)
   
 	def get_all_alerts(self):
-		sql = f"SELECT * FROM alerts where UNIX_TIMESTAMP() - last_checked_at > 3600;" # add filtering
+		sql = f"SELECT * FROM alerts where UNIX_TIMESTAMP() - last_checked_at > 3600" # add filtering
 		#sql = "SELECT * FROM alerts"
 		return self.db.execute_query_with_result(sql)
 
 	def update_last_checked_at_alert(self, alert_id):
-		sql = "UPDATE alerts SET last_checked_at = UNIX_TIMESTAMP() WHERE id = {alert_id}"
+		sql = f"UPDATE alerts SET last_checked_at = UNIX_TIMESTAMP() WHERE id = {alert_id}"
 		self.db.execute_query(sql)
 
 	def delete_alert(self, alert_id):

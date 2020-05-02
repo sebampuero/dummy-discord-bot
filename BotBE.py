@@ -91,7 +91,7 @@ class BotBE():
 				price_range = str(row[2]) 
 				lower_ = float(price_range.split("-")[0])
 				upper_ = float(price_range.split("-")[1])
-				bot_svc.update_last_checked_at_alert(row[0])
+				self.bot_svc.update_last_checked_at_alert(row[0])
 				if current_price > lower_ and current_price < upper_:
 					self.bot_svc.delete_alert(row[0])
 					alerts_with_price_limits_reached.append( (row[4], row[1]) ) # user_id, url

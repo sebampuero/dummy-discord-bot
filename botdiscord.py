@@ -129,7 +129,7 @@ async def showServerStats():
             in_activity, online, idle, offline = getReport(daxo_guild)
             await general_text_chat.send(f"```Online: {online} huevones.\nHaciendo ni mierda: {idle} huevones.\nJugando algo: {in_activity} huevones.\nOffline: {offline} huevones```")
         except Exception as e:
-            print(str(e) + " but no problem")
+            print(str(e) + " but no problem for server stats")
             await asyncio.sleep(5)
 
 async def showDailyQuote():
@@ -142,7 +142,7 @@ async def showDailyQuote():
             if quote != "":
                 await general_text_chat.send(quote)
         except Exception as e:
-            print(str(e) + " but no problem")
+            print(str(e) + " but no problem for daily quote")
             await asyncio.sleep(5)
 
 async def checkAlerts():
@@ -159,7 +159,7 @@ async def checkAlerts():
                     await general_text_chat.send(f"Tu juego bajó de precio!!! {url} <@!{user_id}>")
             await asyncio.sleep(10)
         except Exception as e:
-            print(str(e) + " but no problem")
+            print(str(e) + " but no problem for check alerts")
             await asyncio.sleep(5)
         
 
