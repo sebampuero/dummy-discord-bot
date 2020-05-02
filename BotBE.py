@@ -1,11 +1,14 @@
 from BotService import BotService
+from Soup import Soup
 import random
 import time
+import re
 
 class BotBE():
 
 	def __init__(self):
 		self.bot_svc = BotService()
+		self.soup = Soup()
 
 	def select_random_daily_quote(self):
 		quotes = self.bot_svc.get_all_quotes()
@@ -50,3 +53,49 @@ class BotBE():
 		print(f"List of subscribers: {subscribers}") # tuple in format (id,)
 		# format message containing the quotes
 		return subscribers
+
+	def set_alert(self, url, price_range, currency, user_id):
+		try:
+			prices = price_range.split("-")
+			if len(prices) != 2:
+				return "Debes definir un rango de precios, ejm: 2-5 o 2.5-5.5"
+			if float(prices[0]) > float(prices[1]):
+				return "El rango de precios va de menor a mayor, ejm: 2-5 y no 5-2"
+			if not re.match(r"^(\d{1,2}(\.\d{1,2})?-\d{1,2}(\.\d{1,2})?)$", price_range):
+				return "Has formateado mal el rango de precio. Ejemplo: 12-15 o 12.5-15.5"
+			if not "www.g2a.com" in url:#TODO:better implementation
+				return "Ese no es un link de G2A cojudo"
+			if currency != "USD" and currency != "EUR":
+				return "La moneda debe ser USD o EUR"
+			self.bot_svc.set_alert(url, price_range, currency, user_id)
+			return f"Agregue tu alerta del juego {url} con rango de precios {price_range} {currency}"
+		except Exception as e:
+			print(str(e))
+			return "La cague de alguna manera y no pude setear tu alarma"
+
+	def unset_alert(self, url, user_id):
+		try:
+			self.bot_svc.unset_alert(url, user_id)
+			return f"Listo mande a la mierda tu alarma con link {url}"
+		except Exception as e:
+			print(str(e))
+			return "La cague, intenta despues"
+
+	def check_alerts(self):
+		try: #TODO: add last_checked_at in DB!!
+			print("Checking alerts")
+			alerts = self.bot_svc.get_all_alerts()
+			alerts_with_price_limits_reached = []
+			for row in alerts:
+				current_price = self.soup.get_price(row[1], row[5]) # url, currency
+				price_range = str(row[2]) 
+				lower_ = float(price_range.split("-")[0])
+				upper_ = float(price_range.split("-")[1])
+				bot_svc.update_last_checked_at_alert(row[0])
+				if current_price > lower_ and current_price < upper_:
+					self.bot_svc.delete_alert(row[0])
+					alerts_with_price_limits_reached.append( (row[4], row[1]) ) # user_id, url
+			return alerts_with_price_limits_reached
+		except Exception as e:
+			print(str(e))
+			return []

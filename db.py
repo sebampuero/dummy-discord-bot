@@ -10,14 +10,17 @@ class DB():
 		if DB.__instance == None:
 			DB()
 		return DB.__instance
-	
+
 	def __init__(self):
 		if DB.__instance != None:
 			raise Exception("A DB instance is already running")
 		else:
-			password = open("password.txt", "r").read()
-			self.db = pymysql.connect("localhost", "root", password, "discordb")
-			self.cursor = self.db.cursor()
+			try:
+				password = open("password.txt", "r").read()
+				self.db = pymysql.connect("localhost", "root", password, "discordb")
+				self.cursor = self.db.cursor()
+			except Exception as e:
+				print(str(e))
 			
 	def execute_query(self, query):
 		try:

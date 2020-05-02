@@ -33,3 +33,24 @@ class BotDAO():
 	def get_all_quotes(self):
 		sql = "SELECT * FROM quotes"
 		return self.db.execute_query_with_result(sql)
+
+	def set_alert(self, url, price_range, currency, user_id):
+		sql = f"INSERT INTO alerts(url, price_limit, last_checked_at, discord_user_id, currency) VALUES('{url}', '{price_range}', UNIX_TIMESTAMP(), '{user_id}', '{currency}')"
+		self.db.execute_query(sql)
+  
+	def unset_alert(self, url, user_id):
+		sql = f"DELETE FROM alerts WHERE discord_user_id = '{user_id}' AND url = '{url}'"
+		self.db.execute_query(sql)
+  
+	def get_all_alerts(self):
+		sql = f"SELECT * FROM alerts where UNIX_TIMESTAMP() - last_checked_at > 3600;" # add filtering
+		#sql = "SELECT * FROM alerts"
+		return self.db.execute_query_with_result(sql)
+
+	def update_last_checked_at_alert(self, alert_id):
+		sql = "UPDATE alerts SET last_checked_at = UNIX_TIMESTAMP() WHERE id = {alert_id}"
+		self.db.execute_query(sql)
+
+	def delete_alert(self, alert_id):
+		sql = f"DELETE FROM alerts WHERE id = {alert_id}"
+		self.db.execute_query(sql)

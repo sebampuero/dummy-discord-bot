@@ -3,7 +3,14 @@ import random
 from debounce import debounce
 from BotBE import BotBE
 import asyncio
+import re
 #print(discord.__version__)  # check to make sure at least once you're on the right version!
+
+"""
+To rol in next update:
+    - Activity when starting bot (showing version [major][minor])
+    - Alert updates
+"""
 
 token = open("token.txt", "r").read()
 
@@ -19,7 +26,7 @@ async def handleSubscribe(message):
         ack = bot_be.subscribe_member(subscribees, subscriber)
         await general_text_chat.send(ack)
     else:
-        await general_text_chat.send("Debes taguear a alguien, animal")
+        await general_text_chat.send("Debes taguear a alguien, animal. Escribe --help")
 
 async def handleUnsubscribe(message):
     subscriber = str(message.author.id)
@@ -29,32 +36,50 @@ async def handleUnsubscribe(message):
         ack = bot_be.unsubscribe_member(subscribees, subscriber)
         await general_text_chat.send(ack)
     else:
-        await general_text_chat.send("Debes taguear a alguien, animal")
+        await general_text_chat.send("Debes taguear a alguien, animal. Escribe --help")
     
 async def handleQuoteSave(message):
     quote = message.content.split("-dailyquote ")[1]
     ack = bot_be.save_quote(quote)
     await general_text_chat.send(ack)
 
-async def handleCustomMessage(message): #TODO: refactor to a better approach
+async def handleCustomMessage(message):
     if len(message.split(" ")) >= 2:
-        options = ["si", "no", "tal vez", "quizas"]
+        options = ["si", "no", "tal vez", "quizas", "deja de preguntar huevadas conchadetumadre", "anda chambea"]
         random_idx = random.randint(0, len(options) - 1)
         await general_text_chat.send(f"{options[random_idx]}")
     else:
         await general_text_chat.send("Formula bien tu pregunta cojudo")
+        
+async def handleAlertSet(message):
+    alert_msg = message.content.split(" ")
+    if len(alert_msg) == 4:
+        url = alert_msg[1].strip()
+        price_range = alert_msg[2].strip()
+        currency = alert_msg[3].strip()
+        ack = bot_be.set_alert(str(url), str(price_range), str(currency), str(message.author.id))
+        await general_text_chat.send(ack)
+    else:
+        await general_text_chat.send(f"Mal formato huevon, tienes que incluir el link, rango de precios y la moneda (USD o EUR). Escribe --help")
+    
+async def handleUnsetAlert(message):
+    alert_msg = message.content.split(" ")
+    if len(alert_msg) == 2:
+        url = alert_msg[1].strip()
+        ack = bot_be.unset_alert(str(url), str(message.author.id))
+        await general_text_chat.send(ack)
+    else:
+        await general_text_chat.send(f"Mal formateo huevon, pones -unset-alert [Link del juego en G2A]")
 
 @client.event  # event decorator/wrapper. More on decorators here: https://pythonprogramming.net/decorators-intermediate-python-tutorial/
 async def on_ready():  # method expected by client. This runs once when connected
     print(f'We have logged in as {client.user}')  # notification of login.
     global general_text_chat
     global daxo_guild
-    daxo_guild = client.get_guild(451813158290587649)
+    daxo_guild = client.get_guild(451813158290587649) #689198522930823271
     for channel in client.get_all_channels():
-        if str(channel) == "chat":
+        if str(channel) == "chat": #test
             general_text_chat = channel
-            if bot_be.select_random_daily_quote() != "":
-                await channel.send(bot_be.select_random_daily_quote())
 
 
 @client.event
@@ -71,8 +96,12 @@ async def on_message(message):  # event that happens per any message.
         await handleQuoteSave(message)
     elif "quieres" in the_message:
         await handleCustomMessage(the_message)
+    elif the_message.startswith("-set-alert"):
+        await handleAlertSet(message)
+    elif the_message.startswith("-unset-alert"):
+        await handleUnsetAlert(message)
     elif the_message.startswith("--help"):
-        await general_text_chat.send(f"```-subscribe [tag] \n-unsubscribe [tag] \n-dailyquote [quote diario]```")
+        await general_text_chat.send(f"```-subscribe [tag] \n-unsubscribe [tag] \n-dailyquote [quote diario] \n-set-alert [Link de juego G2A] [rango de precios objetivo] [Moneda(USD o EUR)]\n-unset-alert [Link de juego G2A]```")
 
 @client.event
 async def on_voice_state_update(member, before, after):
@@ -96,12 +125,43 @@ async def showServerStats():
     
     while not client.is_closed():
         try:
+            await asyncio.sleep(7200)
             in_activity, online, idle, offline = getReport(daxo_guild)
             await general_text_chat.send(f"```Online: {online} huevones.\nHaciendo ni mierda: {idle} huevones.\nJugando algo: {in_activity} huevones.\nOffline: {offline} huevones```")
-            await asyncio.sleep(3600)
         except Exception as e:
             print(str(e) + " but no problem")
             await asyncio.sleep(5)
+
+async def showDailyQuote():
+    await client.wait_until_ready()
+    global general_text_chat
+    while not client.is_closed():
+        try:
+            await asyncio.sleep(43200)
+            quote = bot_be.select_random_daily_quote()
+            if quote != "":
+                await general_text_chat.send(quote)
+        except Exception as e:
+            print(str(e) + " but no problem")
+            await asyncio.sleep(5)
+
+async def checkAlerts():
+    await client.wait_until_ready()
+    global general_text_chat
+    while not client.is_closed():
+        try:
+            alerts_list = bot_be.check_alerts()
+            if len(alerts_list) > 0:
+                print(f"Alerts: {alerts_list}")
+                for alert in alerts_list:
+                    user_id = alert[0]
+                    url = alert[1]
+                    await general_text_chat.send(f"Tu juego bajó de precio!!! {url} <@!{user_id}>")
+            await asyncio.sleep(10)
+        except Exception as e:
+            print(str(e) + " but no problem")
+            await asyncio.sleep(5)
+        
 
 def getReport(guild):
     online = 0
@@ -111,7 +171,7 @@ def getReport(guild):
     for m in guild.members:
         if len(m.activities) > 0:
             for activity in m.activities:
-                if str(activity.type) == "playing":
+                if str(activity.type) == "ActivityType.playing":
                     in_activity += 1 
         elif len(m.activities) == 0 and str(m.status) != "offline":
             idle += 1
@@ -122,4 +182,6 @@ def getReport(guild):
     return in_activity, online, idle, offline
 
 client.loop.create_task(showServerStats())
+client.loop.create_task(showDailyQuote())
+client.loop.create_task(checkAlerts())
 client.run(token)  # recall my token was saved!

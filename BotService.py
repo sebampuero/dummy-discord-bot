@@ -19,3 +19,18 @@ class BotService():
 
 	def get_all_quotes(self):
 		return self.dao.get_all_quotes()
+
+	def set_alert(self, url, price_range, currency, user_id):
+		self.dao.set_alert(url, price_range, currency, user_id)
+  
+	def unset_alert(self, url, user_id):
+		self.dao.unset_alert(url, user_id)
+  
+	def get_all_alerts(self):
+		return self.dao.get_all_alerts()
+
+	def update_last_checked_at_alert(self, alert_id):
+		self.dao.update_last_checked_at_alert(alert_id)
+  
+	def delete_alert(self, alert_id):
+		self.dao.delete_alert(alert_id)
