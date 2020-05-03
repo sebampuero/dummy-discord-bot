@@ -3,7 +3,7 @@ import random
 from debounce import debounce
 from BotBE import BotBE
 import asyncio
-import re
+import json
 #print(discord.__version__)  # check to make sure at least once you're on the right version!
 
 """
@@ -17,6 +17,8 @@ token = open("token.txt", "r").read()
 client = discord.Client()  # starts the discord client.
 
 bot_be = BotBE()
+
+OPUS_LIBS = ['libopus-0.x86.dll', 'libopus-0.x64.dll', 'libopus-0.dll', 'libopus.so.0', 'libopus.0.dylib']
 
 async def handleSubscribe(message):
     subscriber = str(message.author.id)
@@ -81,6 +83,10 @@ async def on_ready():  # method expected by client. This runs once when connecte
         if str(channel) == "chat": #test
             general_text_chat = channel
 
+@client.event
+async def on_member_join(member):
+    global general_text_chat
+    await general_text_chat.send(f"Hola {member.display_name}")
 
 @client.event
 async def on_message(message):  # event that happens per any message.
@@ -105,15 +111,45 @@ async def on_message(message):  # event that happens per any message.
 
 @client.event
 async def on_voice_state_update(member, before, after):
-    print(f'{member} ---------    {before} {after}')
-    global general_text_chat
     if isVoiceStateValid(before, after):
-        members_to_notify = bot_be.retrieve_subscribers_from_subscribee(str(member.id))
-        for member_id in members_to_notify:
-            a_member = await client.fetch_user(member_id)
-            if a_member != None:
-                dm_channel = await a_member.create_dm()
-                await dm_channel.send(f"{member.display_name} ha entrado al canal {after.channel.name}")
+        await notifySubscribersUserJoinedVoiceChat(member, after)
+        await playWelcomeAudio(member, after)
+        
+async def notifySubscribersUserJoinedVoiceChat(member, after):
+    members_to_notify = bot_be.retrieve_subscribers_from_subscribee(str(member.id))
+    for member_id in members_to_notify:
+        a_member = await client.fetch_user(member_id)
+        if a_member != None:
+            dm_channel = await a_member.create_dm()
+            await dm_channel.send(f"{member.display_name} ha entrado al canal {after.channel.name}")
+            
+async def playWelcomeAudio(member, after):
+    try:
+        user_ids_to_audio_map = json.loads(open("users_audio_map.json", "r").read())
+        audio_file_name = user_ids_to_audio_map[str(member.id)]
+        load_opus_libs()
+        if discord.opus.is_loaded():
+            if not voice_client.is_connected():
+                voice_client = await after.channel.connect()
+            await asyncio.sleep(2)
+            voice_client.play(discord.FFmpegPCMAudio(audio_file_name), after = None)
+            while True:
+                if not voice_client.is_playing():
+                    await voice_client.disconnect()
+                await asyncio.sleep(5)
+    except Exception as e:
+        print(f"{e} while welcoming user with audio")    
+        
+def load_opus_libs(opus_libs=OPUS_LIBS):
+    if discord.opus.is_loaded():
+        return True
+    for opus_lib in opus_libs:
+        try:
+            discord.opus.load_opus(opus_lib)
+            return
+        except OSError:
+            pass
+        
 
 def isVoiceStateValid(before, after):
     return after.channel != None and not before.self_deaf and not before.self_mute and not before.self_stream and not after.self_deaf and not after.self_mute and not after.self_stream

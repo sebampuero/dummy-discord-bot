@@ -83,7 +83,7 @@ class BotBE():
 
 	def check_alerts(self):
 		try: #TODO: add last_checked_at in DB!!
-			print("Checking alerts")
+			print(f"{time.localtime()} Checking alerts")
 			alerts = self.bot_svc.get_all_alerts()
 			alerts_with_price_limits_reached = []
 			print(alerts)
