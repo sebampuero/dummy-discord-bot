@@ -63,12 +63,12 @@ class BotBE():
 				return "El rango de precios va de menor a mayor, ejm: 2-5 y no 5-2"
 			if not re.match(r"^(\d{1,2}(\.\d{1,2})?-\d{1,2}(\.\d{1,2})?)$", price_range):
 				return "Has formateado mal el rango de precio. Ejemplo: 12-15 o 12.5-15.5"
-			if not "www.g2a.com" in url:#TODO:better implementation
-				return "Ese no es un link de G2A cojudo"
+			if not "www.g2a.com" in url and not "www.amazon." in url:
+				return "Ese no es un link de G2A o Amazon cojudo"
 			if currency != "USD" and currency != "EUR":
 				return "La moneda debe ser USD o EUR"
 			self.bot_svc.set_alert(url, price_range, currency, user_id)
-			return f"Agregue tu alerta del juego {url} con rango de precios {price_range} {currency}"
+			return f"Agregue tu alerta del item en {url} con rango de precios {price_range} y moneda {currency}"
 		except Exception as e:
 			print(str(e))
 			return "La cague de alguna manera y no pude setear tu alarma"
@@ -86,8 +86,9 @@ class BotBE():
 			print("Checking alerts")
 			alerts = self.bot_svc.get_all_alerts()
 			alerts_with_price_limits_reached = []
+			print(alerts)
 			for row in alerts:
-				current_price = self.soup.get_price(row[1], row[5]) # url, currency
+				current_price = self.get_store_price_for_prefix(row[1], row[5]) # url, currency
 				price_range = str(row[2]) 
 				lower_ = float(price_range.split("-")[0])
 				upper_ = float(price_range.split("-")[1])
@@ -99,3 +100,9 @@ class BotBE():
 		except Exception as e:
 			print(str(e))
 			return []
+
+	def get_store_price_for_prefix(self, url, currency):
+		if "www.g2a.com" in url:
+			return self.soup.get_price_g2a(url, currency)
+		else:
+			return self.soup.get_price_amazon(url, currency)
