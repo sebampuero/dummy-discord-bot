@@ -229,16 +229,17 @@ def getReport(guild):
     offline = 0
     in_activity = 0
     for m in guild.members:
-        if len(m.activities) > 0:
-            for activity in m.activities:
-                if str(activity.type) == "ActivityType.playing":
-                    in_activity += 1 
-        elif len(m.activities) == 0 and str(m.status) != "offline":
-            idle += 1
-        if str(m.status) == "online":
-            online += 1
-        if str(m.status) == "offline":
-            offline += 1
+        if not m.bot:
+            if len(m.activities) > 0:
+                for activity in m.activities:
+                    if str(activity.type) == "ActivityType.playing":
+                        in_activity += 1 
+            elif len(m.activities) == 0 and str(m.status) != "offline":
+                idle += 1
+            if str(m.status) == "online":
+                online += 1
+            if str(m.status) == "offline":
+                offline += 1
     return in_activity, online, idle, offline
 
 client.loop.create_task(showServerStats())
