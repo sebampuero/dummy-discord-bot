@@ -4,6 +4,7 @@ from debounce import debounce
 from BotBE import BotBE
 import asyncio
 import json
+import datetime
 #print(discord.__version__)  # check to make sure at least once you're on the right version!
 
 """
@@ -20,11 +21,13 @@ bot_be = BotBE()
 
 OPUS_LIBS = ['libopus-0.x86.dll', 'libopus-0.x64.dll', 'libopus-0.dll', 'libopus.so.0', 'libopus.0.dylib']
 
+current_voice_client = None
+welcome_audios_queue = []
+
 async def handleSubscribe(message):
     subscriber = str(message.author.id)
     subscribees = message.mentions
     if len(subscribees) > 0:
-        print(f"Subscribing {message.author} to {message.mentions}")
         ack = bot_be.subscribe_member(subscribees, subscriber)
         await general_text_chat.send(ack)
     else:
@@ -34,7 +37,6 @@ async def handleUnsubscribe(message):
     subscriber = str(message.author.id)
     subscribees = message.mentions
     if len(subscribees) > 0:
-        print(f"Unsubscribing {message.author} to {message.mentions}")
         ack = bot_be.unsubscribe_member(subscribees, subscriber)
         await general_text_chat.send(ack)
     else:
@@ -114,6 +116,7 @@ async def on_voice_state_update(member, before, after):
     if isVoiceStateValid(before, after):
         await notifySubscribersUserJoinedVoiceChat(member, after)
         await playWelcomeAudio(member, after)
+        await disconnectVoiceClientOnIdle()
         
 async def notifySubscribersUserJoinedVoiceChat(member, after):
     members_to_notify = bot_be.retrieve_subscribers_from_subscribee(str(member.id))
@@ -125,20 +128,41 @@ async def notifySubscribersUserJoinedVoiceChat(member, after):
             
 async def playWelcomeAudio(member, after):
     try:
+        global current_voice_client
         user_ids_to_audio_map = json.loads(open("users_audio_map.json", "r").read())
+        if not str(member.id) in user_ids_to_audio_map:
+            return
         audio_file_name = user_ids_to_audio_map[str(member.id)]
         load_opus_libs()
         if discord.opus.is_loaded():
-            if not voice_client.is_connected():
-                voice_client = await after.channel.connect()
-            await asyncio.sleep(2)
-            voice_client.play(discord.FFmpegPCMAudio(audio_file_name), after = None)
-            while True:
-                if not voice_client.is_playing():
-                    await voice_client.disconnect()
-                await asyncio.sleep(5)
+            if current_voice_client == None:
+                current_voice_client = await after.channel.connect()
+            if current_voice_client.channel != after.channel:
+                await current_voice_client.move_to(after.channel)
+            if not current_voice_client.is_connected():
+                current_voice_client = await after.channel.connect()
+            first_audio_source = discord.FFmpegPCMAudio(audio_file_name)
+            if current_voice_client.is_playing():
+                welcome_audios_queue.append(first_audio_source)
+                while True:
+                    if not current_voice_client.is_playing():
+                        audio_source = welcome_audios_queue.pop()
+                        current_voice_client.play(audio_source)
+                        if len(welcome_audios_queue) == 0:
+                            break
+            else:
+                current_voice_client.play(first_audio_source)
     except Exception as e:
-        print(f"{e} while welcoming user with audio")    
+        print(f"{datetime.datetime.now()} {e} while welcoming user with audio")
+        
+async def disconnectVoiceClientOnIdle():
+    global current_voice_client
+    while True:
+        await asyncio.sleep(30)
+        if current_voice_client != None:
+            if not current_voice_client.is_playing():
+                await current_voice_client.disconnect()
+                break
         
 def load_opus_libs(opus_libs=OPUS_LIBS):
     if discord.opus.is_loaded():

@@ -3,6 +3,7 @@ from Soup import Soup
 import random
 import time
 import re
+import datetime
 
 class BotBE():
 
@@ -50,7 +51,7 @@ class BotBE():
 
 	def retrieve_subscribers_from_subscribee(self, subscribee):
 		subscribers = [s[0] for s in self.bot_svc.get_subscribers_from_subscribee(subscribee) ]
-		print(f"List of subscribers: {subscribers}") # tuple in format (id,)
+		print(f"List of subscribers: {subscribers} {subscribee}") # tuple in format (id,)
 		# format message containing the quotes
 		return subscribers
 
@@ -83,13 +84,12 @@ class BotBE():
 
 	def check_alerts(self):
 		try: #TODO: add last_checked_at in DB!!
-			print(f"{time.localtime()} Checking alerts")
 			alerts = self.bot_svc.get_all_alerts()
 			alerts_with_price_limits_reached = []
-			print(alerts)
 			for row in alerts:
 				current_price = self.get_store_price_for_prefix(row[1], row[5]) # url, currency
-				price_range = str(row[2]) 
+				price_range = str(row[2])
+				print(f"{datetime.datetime.now()} Current price {current_price} for {row} with range {price_range}")
 				lower_ = float(price_range.split("-")[0])
 				upper_ = float(price_range.split("-")[1])
 				self.bot_svc.update_last_checked_at_alert(row[0])

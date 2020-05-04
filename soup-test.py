@@ -1,27 +1,8 @@
-from bs4 import BeautifulSoup
-import requests
-import re
-from fake_useragent import UserAgent
+from Soup import Soup
 
-ua = UserAgent()
+soup = Soup()
 
-url = "https://www.amazon.de/KabelDirekt-Kabel-kompatibel-Highspeed-Ethernet/dp/B004BEMD5Q/ref=sr_1_4?__mk_de_DE=%C3%85M%C3%85%C5%BD%C3%95%C3%91&crid=D1IPQMUDFCRJ&dchild=1&keywords=hdmi+kabel&qid=1588469685&sprefix=hdmi%2Caps%2C174&sr=8-4"
-currency = "EUR"
+price = soup.get_price_g2a("https://www.g2a.com/call-of-duty-black-ops-iii-steam-key-global-i10000007206010", "EUR")
+price1 = soup.get_price_amazon("https://www.amazon.de/Beleuchtungs-Modi-Schreibtischunterlage-Wasserdicht-Computer-Professionelle/dp/B07L5ZX4Y4/ref=sr_1_9?__mk_de_DE=%C3%85M%C3%85%C5%BD%C3%95%C3%91&dchild=1&keywords=mousepad&qid=1588471288&sr=8-9&swrs=F9CF0D21AF2D29C9D930C1740701B03A")
 
-headers = {
-    'user-agent': ua.random
-}
-
-tag = "span"
-id = "priceblock_ourprice"
-        
-response = requests.get(url, headers=headers)
-soup = BeautifulSoup(response.content,  "html.parser")
-element = soup.find_all(tag, id = id)
-if len(element) > 0:
-    the_price = element[0].text.strip()
-    pattern = re.compile("(\d+)[,|\.](\d{2,})")
-    match = pattern.search(the_price)
-    print(float(match.group().replace(",", ".")))  # price
-else:
-    print(0.0)
+print(price, price1)
