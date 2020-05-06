@@ -1,14 +1,1 @@
-{
-    "629788607745622036": "john-caquillon.mp3",
-    "603292764435775499": "john-caquillon.mp3",
-    "320244614512640001": "pastruti.mp3",
-    "320244975235235840": "pastruti.mp3",
-    "285255506401165312": "malvino.mp3",
-    "496255394767962132": "edu.mp3",
-    "283077679270330369": "dani.mp3",
-    "304793510551486465": "kuripo.mp3",
-    "289599656143618049": "urday.mp3",
-    "283081721367494666": "calitos_1.mp3",
-    "312010935105486851": "suspiron_1.mp3",
-    "279796600308498434": "papu.mp3"
-}
+{"629788607745622036": {"active": "true", "audio_files": ["./assets/audio/john-caquillon.mp3"]}, "603292764435775499": {"active": "true", "audio_files": ["./assets/audio/john-caquillon.mp3"]}, "320244614512640001": {"active": "true", "audio_files": ["./assets/audio/pastruti.mp3"]}, "320244975235235840": {"active": "true", "audio_files": ["./assets/audio/pastruti.mp3"]}, "285255506401165312": {"active": "true", "audio_files": ["./assets/audio/malvino.mp3"]}, "496255394767962132": {"active": "true", "audio_files": ["./assets/audio/edu.mp3"]}, "283077679270330369": {"active": false, "audio_files": ["./assets/audio/dani.mp3"]}, "304793510551486465": {"active": "true", "audio_files": ["./assets/audio/kuripo.mp3", "./assets/audio/kuripo2.mp3"]}, "289599656143618049": {"active": "true", "audio_files": ["./assets/audio/urday.mp3", "./assets/audio/urday2.mp3"]}, "283081721367494666": {"active": "true", "audio_files": ["./assets/audio/calitos_1.mp3", "./assets/audio/calos.mp3"]}, "312010935105486851": {"active": "true", "audio_files": ["./assets/audio/suspiron_1.mp3"]}, "279796600308498434": {"active": true, "audio_files": ["./assets/audio/papu.mp3"]}, "307665795767336962": {"active": true, "audio_files": ["./assets/audio/tavo.mp3"]}}
