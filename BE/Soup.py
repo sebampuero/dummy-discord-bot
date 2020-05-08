@@ -2,6 +2,10 @@ from bs4 import BeautifulSoup
 import requests
 import re
 
+"""
+Soup is responsible for parsing and processing all HTML/XML input data
+"""
+
 class Soup():
     
     def __init__(self):
@@ -29,7 +33,7 @@ class Soup():
         tag = "span"
         class_ = "offer__price price"
         
-        response = requests.get(url, headers=headers)
+        response = requests.get(url, headers=headers) #TODO: move to Networkutils class
         soup = BeautifulSoup(response.content,  "html.parser")
         element = soup.find_all(tag, class_= class_, limit=2)
         if len(element) > 0:

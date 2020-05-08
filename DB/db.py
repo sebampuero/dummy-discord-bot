@@ -1,6 +1,10 @@
 import pymysql
 import os
 
+"""
+Data Persistence class for MySQL DB
+"""
+
 class DB():
 	
 	__instance = None

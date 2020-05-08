@@ -1,5 +1,9 @@
 import asyncio
 
+"""
+ServerManager is responsible for managing server stats
+"""
+
 class ServerManager():
     
     def __init__(self):
@@ -23,7 +27,7 @@ class ServerManager():
         in_activity = 0
         for m in guild.members:
             if not m.bot:
-                if str(m.status) == "online" or str(m.status) == "idle" or str(m.status) == "do_not_disturb" and not str(m.status) == "offline":
+                if (str(m.status) == "online" or str(m.status) == "idle" or str(m.status) == "do_not_disturb") and str(m.status) != "offline":
                     online += 1
                 if str(m.status) == "offline":
                     offline += 1

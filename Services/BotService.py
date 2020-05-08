@@ -1,5 +1,9 @@
 from DAO.BotDAO import BotDAO
 
+"""
+Service Layer for connecting to a DAO
+"""
+
 class BotService():
 	
 	def __init__(self):

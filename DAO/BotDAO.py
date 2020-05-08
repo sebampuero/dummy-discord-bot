@@ -1,5 +1,9 @@
 from DB.db import DB
 
+"""
+The Bot Data Access Object is responsible for accessing the data stored in the DB Mysql
+"""
+
 class BotDAO():
 	
 	def __init__(self):

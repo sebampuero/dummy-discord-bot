@@ -1,6 +1,10 @@
 import random
 from Utils.NetworkUtils import NetworkUtils
 
+"""
+MessageProcessor is responsible for processing all incoming (relevant) messages from a Discord text channel
+"""
+
 class MessageProcessor():
     
     def __init__(self, voice, subscription, quote, alert, server_manager):
@@ -9,10 +13,6 @@ class MessageProcessor():
         self.quote = quote
         self.alert = alert
         self.server_manager = server_manager
-        self.current_guild = None
-        
-    def set_guild(self, guild):
-        self.guild = guild
         
     async def handleAllMessages(self, message, text_channel):
         the_message = message.content.lower()
@@ -38,13 +38,19 @@ class MessageProcessor():
             await self.handleCustomMessages(message, text_channel)
             
     async def handleTextToVoiceTranslation(self, message, text_channel):
+        if message.author.voice == None:
+            await text_channel.send("Metete a un canal de voz webonaso")    
+            return
         the_input = message.content.lower().split("-say ")
         if len(the_input) > 1:
+            if len(the_input[1]) > 250:
+                await text_channel.send("El texto es muy grande")
+                return
             network_utils = NetworkUtils()
             audio_filename = network_utils.getAndSaveTtsLoquendoVoice(the_input[1])
             if audio_filename != "":
-                await text_channel.send(f"Reproduciendo audio en el canal de voz de {message.author.name}")
-                await self.voice.reproduceFromFile(message.author, self.guild, audio_filename)
+                await text_channel.send(f"Reproduciendo '{the_input[1]}' en el canal de voz de {message.author.name}")
+                await self.voice.reproduceFromFile(message.author, audio_filename)
             else:
                 await text_channel.send("Algo salio mal")    
         else:
@@ -53,7 +59,9 @@ class MessageProcessor():
     async def handleCustomMessages(self, message, text_channel):
         the_message = message.content.lower()
         if the_message == "buenas noches":
-            await self.voice.sayGoodNight(message.author, self.guild)
+            if message.author.voice == None:
+                return
+            await self.voice.sayGoodNight(message.author)
         elif "quieres" in the_message:
             await self.handleWant(the_message, text_channel)
     

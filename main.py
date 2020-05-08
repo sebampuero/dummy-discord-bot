@@ -32,10 +32,9 @@ async def on_ready():
     for channel in client.get_all_channels():
         if str(channel) == "chat": #test
             general_text_chat = channel
-    client.loop.create_task(server_manager.showServerStats(client, daxo_guild, general_text_chat))
+    #client.loop.create_task(server_manager.showServerStats(client, daxo_guild, general_text_chat))
     client.loop.create_task(quote.showDailyQuote(client, general_text_chat))
     client.loop.create_task(alert.checkAlerts(client, general_text_chat))
-    message_processor.set_guild(daxo_guild)
 
 @client.event
 async def on_member_join(member):

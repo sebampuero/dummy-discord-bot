@@ -1,6 +1,10 @@
 import requests
 import hashlib
 
+"""
+NetworkUtils is responsible for managing and processing all network related requests
+"""
+
 class NetworkUtils():
     
     def __init__(self):

@@ -51,27 +51,25 @@ class Voice():
                 dm_channel = await a_member.create_dm()
                 await dm_channel.send(f"{member.display_name} ha entrado al canal {after.channel.name}")
                 
-    async def sayGoodNight(self, member, guild):
+    async def sayGoodNight(self, member):
         try:
-            await self.reproduceFromFile(member, guild, "./assets/audio/vladimir.mp3")
+            await self.reproduceFromFile(member, "./assets/audio/vladimir.mp3")
         except Exception as e:
             print(f"{datetime.datetime.now()} {e} while saying good night")
             
-    async def reproduceFromFile(self, member, guild, audio_filename):
+    async def reproduceFromFile(self, member, audio_filename):
         try:
+            vc = member.voice.channel
             self.load_opus_libs()
             if discord.opus.is_loaded():
-                voice_channels = guild.voice_channels
-                for vc in voice_channels:
-                    if member in vc.members:
-                        if self.current_voice_client == None:
-                            self.current_voice_client = await vc.connect()
-                        if not self.current_voice_client.is_connected():
-                            self.current_voice_client = await vc.connect()
-                        audio_source = discord.FFmpegPCMAudio(audio_filename)
-                        if not self.current_voice_client.is_playing():
-                            self.current_voice_client.play(audio_source)
-                            await self.disconnectVoiceClientOnIdle()
+                if self.current_voice_client == None:
+                    self.current_voice_client = await vc.connect()
+                if not self.current_voice_client.is_connected():
+                    self.current_voice_client = await vc.connect()
+                audio_source = discord.FFmpegPCMAudio(audio_filename)
+                if not self.current_voice_client.is_playing():
+                    self.current_voice_client.play(audio_source)
+                    await self.disconnectVoiceClientOnIdle()
         except Exception as e:
             print(f"{datetime.datetime.now()} {e} while reproducing audio file")
             

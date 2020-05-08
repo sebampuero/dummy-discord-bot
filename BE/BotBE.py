@@ -5,6 +5,11 @@ import time
 import re
 import datetime
 
+"""
+The Bot Business Entity is responsible for the business logic of the Bot regarding tasks with the persistent storage of some functions
+like Quotes, Subscriptions and Alerts. Acts as a Facade to all subsequent layers
+"""
+
 class BotBE():
 
 	def __init__(self):
