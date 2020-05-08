@@ -11,7 +11,7 @@ class ServerManager():
             try:
                 await asyncio.sleep(7200)
                 in_activity, online, idle, offline = self.getReport(guild)
-                await text_channel.send(f"```Online: {online} huevones.\nHaciendo ni mierda: {idle} huevones.\nJugando algo: {in_activity} huevones.\nOffline: {offline} huevones```")
+                await text_channel.send(f"```En discord: {online} huevones.\nHaciendo ni mierda: {idle} huevones.\nJugando algo: {in_activity} huevones.\nOffline: {offline} huevones```")
             except Exception as e:
                 print(str(e) + " but no problem for server stats")
                 await asyncio.sleep(5)
@@ -23,7 +23,7 @@ class ServerManager():
         in_activity = 0
         for m in guild.members:
             if not m.bot:
-                if str(m.status) == "online":
+                if str(m.status) == "online" or str(m.status) == "idle" or str(m.status) == "do_not_disturb" and not str(m.status) == "offline":
                     online += 1
                 if str(m.status) == "offline":
                     offline += 1
@@ -31,6 +31,6 @@ class ServerManager():
                     for activity in m.activities:
                         if str(activity.type) == "ActivityType.playing":
                             in_activity += 1 
-                if len(m.activities) == 0 and str(m.status) == "online":
+                if len(m.activities) == 0:
                     idle += 1
         return in_activity, online, idle, offline

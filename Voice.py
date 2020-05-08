@@ -50,6 +50,30 @@ class Voice():
             if a_member != None:
                 dm_channel = await a_member.create_dm()
                 await dm_channel.send(f"{member.display_name} ha entrado al canal {after.channel.name}")
+                
+    async def sayGoodNight(self, member, guild):
+        try:
+            await self.reproduceFromFile(member, guild, "./assets/audio/vladimir.mp3")
+        except Exception as e:
+            print(f"{datetime.datetime.now()} {e} while saying good night")
+            
+    async def reproduceFromFile(self, member, guild, audio_filename):
+        try:
+            self.load_opus_libs()
+            if discord.opus.is_loaded():
+                voice_channels = guild.voice_channels
+                for vc in voice_channels:
+                    if member in vc.members:
+                        if self.current_voice_client == None:
+                            self.current_voice_client = await vc.connect()
+                        if not self.current_voice_client.is_connected():
+                            self.current_voice_client = await vc.connect()
+                        audio_source = discord.FFmpegPCMAudio(audio_filename)
+                        if not self.current_voice_client.is_playing():
+                            self.current_voice_client.play(audio_source)
+                            await self.disconnectVoiceClientOnIdle()
+        except Exception as e:
+            print(f"{datetime.datetime.now()} {e} while reproducing audio file")
             
     async def playWelcomeAudio(self, member, after):
         try:
@@ -87,7 +111,7 @@ class Voice():
             
     async def disconnectVoiceClientOnIdle(self):
         while True:
-            await asyncio.sleep(30)
+            await asyncio.sleep(20)
             if self.current_voice_client != None:
                 if not self.current_voice_client.is_playing():
                     await self.current_voice_client.disconnect()

@@ -20,8 +20,8 @@ voice = Voice()
 subscription = Subscription()
 quote = Quote()
 alert = Alert()
-message_processor = MessageProcessor()
 server_manager = ServerManager()
+message_processor = MessageProcessor(voice, subscription, quote, alert, server_manager)
 
 @client.event  
 async def on_ready():  
@@ -35,6 +35,7 @@ async def on_ready():
     client.loop.create_task(server_manager.showServerStats(client, daxo_guild, general_text_chat))
     client.loop.create_task(quote.showDailyQuote(client, general_text_chat))
     client.loop.create_task(alert.checkAlerts(client, general_text_chat))
+    message_processor.set_guild(daxo_guild)
 
 @client.event
 async def on_member_join(member):
@@ -44,28 +45,7 @@ async def on_member_join(member):
 async def on_message(message):  # event that happens per any message.
     if message.author == client.user:
         return
-    await handleMessages(message)
-    
-async def handleMessages(message):
-    the_message = message.content.lower()
-    if the_message.startswith("-subscribe"):
-        await subscription.handleSubscribe(message, general_text_chat)
-    elif the_message.startswith("-unsubscribe"):
-        await subscription.handleUnsubscribe(message, general_text_chat)
-    elif the_message.startswith("-dailyquote"):
-        await quote.handleQuoteSave(message, general_text_chat)
-    elif "quieres" in the_message:
-        await message_processor.handleCustomMessage(the_message, general_text_chat)
-    elif the_message.startswith("-set-alert"):
-        await alert.handleAlertSet(message, general_text_chat)
-    elif the_message.startswith("-unset-alert"):
-        await alert.handleUnsetAlert(message, general_text_chat)
-    elif the_message.startswith("--help"):
-        await message_processor.formatHelpMessage(the_message, general_text_chat)
-    elif the_message.startswith("-audio-off"):
-        await voice.deactivateWelcomeAudio(message, general_text_chat)
-    elif the_message.startswith("-audio-on"):
-        await voice.activateWelcomeAudio(message, general_text_chat)
+    await message_processor.handleAllMessages(message, general_text_chat)
 
 @client.event
 async def on_voice_state_update(member, before, after):
