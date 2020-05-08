@@ -23,7 +23,6 @@ class NetworkUtils():
             'cache-control': 'max-age=0',
             'referer': 'http://nuancevocalizerexpressive.sodels.com/',
             'origin': 'http://nuancevocalizerexpressive.sodels.com',
-            'cookie': '_ga=GA1.2.1310227732.1588589777; _gid=GA1.2.1602425444.1588891018; _gat_gtag_UA_161011357_1=1',
             'content-type': 'application/x-www-form-urlencoded',
             'connection': 'keep-alive',
         }
