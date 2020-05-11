@@ -39,6 +39,7 @@ class BotDAO():
 		return self.db.execute_query_with_result(sql)
 
 	def set_alert(self, url, price_range, currency, user_id):
+		self.db.execute_query(f"DELETE FROM alerts WHERE url = '{url}' AND discord_user_id = '{user_id}'")
 		sql = f"INSERT INTO alerts(url, price_limit, last_checked_at, discord_user_id, currency) VALUES('{url}', '{price_range}', UNIX_TIMESTAMP(), '{user_id}', '{currency}')"
 		self.db.execute_query(sql)
   
@@ -47,7 +48,7 @@ class BotDAO():
 		self.db.execute_query(sql)
   
 	def get_all_alerts(self):
-		sql = f"SELECT * FROM alerts where UNIX_TIMESTAMP() - last_checked_at > 3600" # add filtering
+		sql = f"SELECT * FROM alerts where UNIX_TIMESTAMP() - last_checked_at > 3600"
 		#sql = "SELECT * FROM alerts"
 		return self.db.execute_query_with_result(sql)
 

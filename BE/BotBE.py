@@ -87,12 +87,12 @@ class BotBE():
 			print(str(e))
 			return "La cague, intenta despues"
 
-	def check_alerts(self):
-		try: #TODO: add last_checked_at in DB!!
+	async def check_alerts(self):
+		try: 
 			alerts = self.bot_svc.get_all_alerts()
 			alerts_with_price_limits_reached = []
 			for row in alerts:
-				current_price = self.get_store_price_for_prefix(row[1], row[5]) # url, currency
+				current_price = await self.get_store_price_for_prefix(row[1], row[5]) # url, currency
 				price_range = str(row[2])
 				print(f"{datetime.datetime.now()} Current price {current_price} for {row} with range {price_range}")
 				lower_ = float(price_range.split("-")[0])
@@ -106,8 +106,8 @@ class BotBE():
 			print(str(e))
 			return []
 
-	def get_store_price_for_prefix(self, url, currency):
+	async def get_store_price_for_prefix(self, url, currency):
 		if "www.g2a.com" in url:
-			return self.soup.get_price_g2a(url, currency)
+			return await self.soup.get_price_g2a(url, currency)
 		else:
-			return self.soup.get_price_amazon(url, currency)
+			return await self.soup.get_price_amazon(url, currency)

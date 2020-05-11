@@ -19,7 +19,7 @@ class Quote():
         await client.wait_until_ready()
         while not client.is_closed():
             try:
-                await asyncio.sleep(43200)
+                await asyncio.sleep(12000)
                 quote = self.bot_be.select_random_daily_quote()
                 if quote != "":
                     await text_channel.send(quote)

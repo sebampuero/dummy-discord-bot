@@ -12,13 +12,30 @@ from BE.BotBE import BotBE
 class Voice():
     
     OPUS_LIBS = ['libopus-0.x86.dll', 'libopus-0.x64.dll', 'libopus-0.dll', 'libopus.so.0', 'libopus.0.dylib']
+    COUNTER_IDLE_TIMEOUT = 600
     
     def __init__(self):
         self.current_voice_client = None
         self.welcome_audios_queue = []
         self.bot_be = BotBE()
+        self.load_opus_libs()
+        self.idle_counter = 0
+        self.started_counter_flag = False
         
-        
+    async def initCounterIdleTimeout(self, counter_idle_timeout=COUNTER_IDLE_TIMEOUT):
+        if not self.started_counter_flag:
+            self.started_counter_flag = True
+            while True:
+                self.idle_counter = self.idle_counter + 1
+                await asyncio.sleep(1)
+                if self.idle_counter == counter_idle_timeout:
+                    self.started_counter_flag = False
+                    await self.disconnect()
+                    break
+
+    def restartCounterIdleTimeout(self):
+        self.idle_counter = 0
+            
     async def deactivateWelcomeAudio(self, message, chat_channel):
         f = open("users_audio_map.json", "r") #TODO: add consistent atomic access for this file
         user_ids_to_audio_map = json.load(f)
@@ -60,18 +77,24 @@ class Voice():
     async def reproduceFromFile(self, member, audio_filename):
         try:
             vc = member.voice.channel
-            self.load_opus_libs()
             if discord.opus.is_loaded():
+                self.restartCounterIdleTimeout()
                 if self.current_voice_client == None:
+                    print("vc is None")
                     self.current_voice_client = await vc.connect()
-                if not self.current_voice_client.is_connected():
-                    self.current_voice_client = await vc.connect()
+                if self.current_voice_client.channel != vc:
+                    await self.current_voice_client.move_to(vc)
                 audio_source = discord.FFmpegPCMAudio(audio_filename)
                 if not self.current_voice_client.is_playing():
+                    if not self.current_voice_client.is_connected():
+                        print("vc is not connected")
+                        self.current_voice_client = await vc.connect()
                     self.current_voice_client.play(audio_source)
-                    await self.disconnectVoiceClientOnIdle()
+                    await self.initCounterIdleTimeout()
         except Exception as e:
             print(f"{datetime.datetime.now()} {e} while reproducing audio file")
+            if self.current_voice_client != None:
+                await self.current_voice_client.disconnect()
             
     async def playWelcomeAudio(self, member, after):
         try:
@@ -85,14 +108,13 @@ class Voice():
             audio_files_list = user_ids_to_audio_map[str(member.id)]["audio_files"]
             random_idx = random.randint(0, len(audio_files_list) - 1)
             audio_file_name = audio_files_list[random_idx]
-            self.load_opus_libs()
             if discord.opus.is_loaded():
+                self.restartCounterIdleTimeout()
                 if self.current_voice_client == None:
+                    print("vc is None")
                     self.current_voice_client = await after.channel.connect()
                 if self.current_voice_client.channel != after.channel:
                     await self.current_voice_client.move_to(after.channel)
-                if not self.current_voice_client.is_connected():
-                    self.current_voice_client = await after.channel.connect()
                 first_audio_source = discord.FFmpegPCMAudio(audio_file_name)
                 if self.current_voice_client.is_playing():
                     self.welcome_audios_queue.append(first_audio_source)
@@ -103,17 +125,25 @@ class Voice():
                             if len(self.welcome_audios_queue) == 0:
                                 break
                 else:
+                    if not self.current_voice_client.is_connected():
+                        print("vc is not connected")
+                        self.current_voice_client = await after.channel.connect()
                     self.current_voice_client.play(first_audio_source)
+                    await self.initCounterIdleTimeout()
         except Exception as e:
+            if self.current_voice_client != None:
+                await self.current_voice_client.disconnect()
             print(f"{datetime.datetime.now()} {e} while welcoming user with audio") 
             
-    async def disconnectVoiceClientOnIdle(self):
-        while True:
-            await asyncio.sleep(20)
-            if self.current_voice_client != None:
-                if not self.current_voice_client.is_playing():
-                    await self.current_voice_client.disconnect()
-                    break
+    async def disconnect(self):
+        if self.current_voice_client != None:
+            if not self.current_voice_client.is_playing() and self.current_voice_client.is_connected():
+                print(f"{datetime.datetime.now()} Disconnected from channel") 
+                await self.current_voice_client.disconnect()
+                
+    def isVoiceClientPlaying(self):
+        if self.current_voice_client != None:
+            return self.current_voice_client.is_playing()    
             
     def load_opus_libs(self, opus_libs=OPUS_LIBS):
         if discord.opus.is_loaded():
@@ -123,8 +153,7 @@ class Voice():
                 discord.opus.load_opus(opus_lib)
                 return
             except OSError:
-                pass
-            
+                pass         
 
     def isVoiceStateValid(self, before, after):
         return after.channel != None and not before.self_deaf and not before.self_mute and not before.self_stream and not after.self_deaf and not after.self_mute and not after.self_stream

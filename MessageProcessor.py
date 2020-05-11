@@ -41,20 +41,28 @@ class MessageProcessor():
         if message.author.voice == None:
             await text_channel.send("Metete a un canal de voz webonaso")    
             return
+        if self.voice.isVoiceClientPlaying():
+            await text_channel.send("Estoy ocupado huevon")    
+            return
         the_input = message.content.lower().split("-say ")
         if len(the_input) > 1:
             if len(the_input[1]) > 250:
                 await text_channel.send("El texto es muy grande")
                 return
             network_utils = NetworkUtils()
-            audio_filename = network_utils.getAndSaveTtsLoquendoVoice(the_input[1])
-            if audio_filename != "":
-                await text_channel.send(f"Reproduciendo '{the_input[1]}' en el canal de voz de {message.author.name}")
-                await self.voice.reproduceFromFile(message.author, audio_filename)
+            audio_filename =  ""
+            if "/f/" in the_input[1]: #to make female voice 1
+                the_input[1] = the_input[1].replace("/f/", "")
+                audio_filename = await network_utils.getAndSaveTtsLoquendoVoice(the_input[1], voice="Monica")
+            elif "/f2/" in the_input[1]: #to make female voice 2
+                the_input[1] = the_input[1].replace("/f2/", "")
+                audio_filename = await network_utils.getAndSaveTtsLoquendoVoice(the_input[1], voice="Marisol")
             else:
-                await text_channel.send("Algo salio mal")    
+                audio_filename = await network_utils.getAndSaveTtsLoquendoVoice(the_input[1])
+            if audio_filename != "":
+                await self.voice.reproduceFromFile(message.author, audio_filename)
         else:
-            await text_channel.send("Formatea bien tu texto, pon `-say [texto a decir en voz]`")
+            await text_channel.send("Formatea bien tu texto, pon `-say [texto a decir en voz] [voz](opcional)`")
             
     async def handleCustomMessages(self, message, text_channel):
         the_message = message.content.lower()
@@ -77,7 +85,7 @@ class MessageProcessor():
         await text_channel.send(f"Hola {member.display_name}, bienvenido a este canal de mierda")
         
     async def formatHelpMessage(self, text_channel):
-        await text_channel.send(f"""```
+        await text_channel.send(f"""`
                                 \n-subscribe [tag] 
                                 \n-unsubscribe [tag] 
                                 \n-dailyquote [quote diario] 
@@ -86,4 +94,4 @@ class MessageProcessor():
                                 \n-audio-off -> Desactiva tu saludo
                                 \n-audio-on -> Activa tu saludo
                                 \n-say [texto a decir por voz]
-                                ```""")
+                                `""")

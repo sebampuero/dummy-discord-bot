@@ -1,5 +1,7 @@
 import requests
 import hashlib
+import aiohttp
+import asyncio
 
 """
 NetworkUtils is responsible for managing and processing all network related requests
@@ -16,7 +18,7 @@ class NetworkUtils():
             'Accept-Encoding': 'gzip, deflate'
         }
     
-    def getAndSaveTtsLoquendoVoice(self, text):
+    async def getAndSaveTtsLoquendoVoice(self, text, voice="Jorge", language="Spanish (Spain)"):
         url = "http://nuancevocalizerexpressive.sodels.com/"
         headers = {
             'pragma': 'no-cache',
@@ -36,20 +38,40 @@ class NetworkUtils():
             "__VIEWSTATEGENERATOR": "CA0B0334",
             "__EVENTVALIDATION": "/wEdABW8yIECg1BKZ4qISfIfPZPCRPan6xhbSS1PIg8K/UsVxrD/pNmS0s/A+w1rah2YhRHmgnMQl6mB6aTs5vI0wULx2pCX7+6ls6ZQ2VZGfpG9HQgGLKsowKGYG4FmVOUaoVcXneTsG2OF5bzQKdS4g9XiFxg1dXUnHsrzIrmimT+yELAr2rxOIJnuZsrHTu1hW+mrkzyi5tkymvZYx/M5Md1C5SMB1MSZA/tGqMAodrsZzFv5ze0cj5cKYRZFvXcf3p7lOmlE2cSJ/kHxsbhxNFLUF+769Rjp/EV2/GPmqEAycD4MN2nwyyNcmyw7ddC2nK8nTT2UUbR6syEoqjmLHEGjcegFrjno3zsMIHCkNe3TEIwVINbc3XvGc3I0CbnlX1OR5fDOo3rr2jqR3fgcE+pB4cML+Qld+5Jalgh0n+901PS6a+/VoxzUcWico14GexqcJoon/nkkJJrE7nvKH3vpK7+jIuEnB/6SYtVfDVbtoA==",
             "tbTexto": text,
-            "ddlIdioma": "Spanish (Spain)",
-            "ddlVoz": "Vocalizer Expressive Jorge Premium High 22kHz",
+            "ddlIdioma": language,
+            "ddlVoz": f"Vocalizer Expressive {voice} Premium High 22kHz",
             "bEscuchar": "Escuchar"
         }
-        response = requests.post(url, data = form_data)
-        if response.status_code == 200:
-            try:
-                file_name = hashlib.md5(text.encode("utf-8")).hexdigest()
-                f = open(f"./assets/audio/{file_name}.mp3", "wb")
-                f.write(response.content)
-                f.close()
-                return f"./assets/audio/{file_name}.mp3" # hash
-            except Exception as e:
-                print(f"{str(e)} while downloading audio file")
-                return ""
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, data=form_data, headers=self.base_headers) as response:
+                if response.status == 200:
+                    try:
+                        file_name = hashlib.md5(text.encode("utf-8")).hexdigest()
+                        f = open(f"./assets/audio/loquendo/{file_name}.mp3", "wb")
+                        content = await response.read()
+                        f.write(content)
+                        f.close()
+                        return f"./assets/audio/loquendo/{file_name}.mp3" # hash
+                    except Exception as e:
+                        print(f"{str(e)} while downloading audio file")
+                        return ""
+                else:
+                    return ""
+                
+    async def getContentFromPage(self, url, headers=None):
+        if headers == None:
+            headers = self.base_headers
         else:
-            return ""
+            headers = dict(self.base_headers, **headers)
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, headers=headers) as response:
+                if response.status == 200:
+                    try:
+                        content = await response.text()
+                        return content
+                    except Exception as e:
+                        print(f"{str(e)} while fetching page content from {url}")
+                        return ""
+                else:
+                    return ""

@@ -33,7 +33,7 @@ class Alert():
         await client.wait_until_ready()
         while not client.is_closed():
             try:
-                alerts_list = self.bot_be.check_alerts()
+                alerts_list = await self.bot_be.check_alerts()
                 if len(alerts_list) > 0:
                     print(f"Alerts: {alerts_list}")
                     for alert in alerts_list:
