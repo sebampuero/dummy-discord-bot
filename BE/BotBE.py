@@ -32,7 +32,7 @@ class BotBE():
 			self.bot_svc.add_quote(quote)
 			return "Agregado"
 		except Exception as e:
-			print(str(e))
+			print(str(e) + " saving quote")
 			return "No pude hacerlo"
 
 
@@ -42,7 +42,7 @@ class BotBE():
 			self.bot_svc.subscribe_member(subscribees_formatted, subscriber)
 			return "Listo ctm!"
 		except Exception as e:
-			print(str(e))
+			print(str(e) + " subscribing member")
 			return "No pude hacerlo"
 
 	def unsubscribe_member(self, subscribees, subscriber):
@@ -51,7 +51,7 @@ class BotBE():
 			self.bot_svc.unsubscribe_member(subscribees_formatted, subscriber)
 			return "ya"
 		except Exception as e:
-			print(str(e))
+			print(str(e) + " unsubscribing member")
 			return "Se fue de culo la operacion"
 
 	def retrieve_subscribers_from_subscribee(self, subscribee):
@@ -103,7 +103,7 @@ class BotBE():
 					alerts_with_price_limits_reached.append( (row[4], row[1]) ) # user_id, url
 			return alerts_with_price_limits_reached
 		except Exception as e:
-			print(str(e))
+			print(str(e) + " cheking alerts")
 			return []
 
 	async def get_store_price_for_prefix(self, url, currency):

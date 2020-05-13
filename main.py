@@ -17,7 +17,7 @@ Main bot class
 
 token = open("token.txt", "r").read()
 
-client = discord.Client()  # starts the discord client.
+client = discord.Client(activity=discord.Activity(type=discord.ActivityType.watching, name="potos ricos como el Dani"))  # starts the discord client.
 voice = Voice()
 subscription = Subscription()
 quote = Quote()

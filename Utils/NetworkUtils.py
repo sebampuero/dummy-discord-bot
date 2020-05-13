@@ -46,6 +46,7 @@ class NetworkUtils():
         async with aiohttp.ClientSession() as session:
             async with session.post(url, data=form_data, headers=self.base_headers) as response:
                 if response.status == 200:
+                    print("Saving file")
                     try:
                         file_name = hashlib.md5(text.encode("utf-8")).hexdigest()
                         f = open(f"./assets/audio/loquendo/{file_name}.mp3", "wb")
@@ -57,6 +58,7 @@ class NetworkUtils():
                         print(f"{str(e)} while downloading audio file")
                         return ""
                 else:
+                    print("Failed downloading with status 500")
                     return ""
                 
     async def getContentFromPage(self, url, headers=None):
