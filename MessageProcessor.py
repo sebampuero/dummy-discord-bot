@@ -1,5 +1,6 @@
 import random
 from Utils.NetworkUtils import NetworkUtils
+import Constants.StringConstants as Constants
 
 """
 MessageProcessor is responsible for processing all incoming (relevant) messages from a Discord text channel
@@ -39,7 +40,7 @@ class MessageProcessor():
             
     async def handleTextToVoiceTranslation(self, message, text_channel):
         if message.author.voice == None:
-            await text_channel.send("Metete a un canal de voz webonaso")    
+            await text_channel.send(Constants.NOT_IN_VOICE_CHANNEL_MSG)    
             return
         if self.voice.isVoiceClientPlaying():
             await text_channel.send("Estoy ocupado huevon")    
@@ -61,6 +62,8 @@ class MessageProcessor():
                 audio_filename = await network_utils.getAndSaveTtsLoquendoVoice(the_input[1])
             if audio_filename != "":
                 await self.voice.reproduceFromFile(message.author, audio_filename)
+            else:
+                text_channel.send("Algo se jodio")
         else:
             await text_channel.send("Formatea bien tu texto, pon `-say [texto a decir en voz] [voz](opcional)`")
             
@@ -83,6 +86,9 @@ class MessageProcessor():
             
     async def saluteNewMember(self, member, text_channel):
         await text_channel.send(f"Hola {member.display_name}, bienvenido a este canal de mierda")
+        
+    async def handleOnResumed(self, text_channel):
+        await text_channel.send("Se fue el internet, pero volví cojudos") 
         
     async def formatHelpMessage(self, text_channel):
         await text_channel.send(f"""`

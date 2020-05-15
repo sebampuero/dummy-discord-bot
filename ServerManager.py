@@ -13,7 +13,7 @@ class ServerManager():
         await client.wait_until_ready()
         while not client.is_closed():
             try:
-                await asyncio.sleep(7200)
+                await asyncio.sleep(100000)
                 in_activity, online, idle, offline = self.getReport(guild)
                 await text_channel.send(f"```En discord: {online} huevones.\nHaciendo ni mierda: {idle} huevones.\nJugando algo: {in_activity} huevones.\nOffline: {offline} huevones```")
             except Exception as e:
