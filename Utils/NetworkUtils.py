@@ -2,7 +2,7 @@ import requests
 import hashlib
 import aiohttp
 import asyncio
-
+import logging
 """
 NetworkUtils is responsible for managing and processing all network related requests
 """
@@ -43,10 +43,11 @@ class NetworkUtils():
             "bEscuchar": "Escuchar"
         }
         
+        timeout = aiohttp.ClientTimeout(total=20)
         async with aiohttp.ClientSession() as session:
-            async with session.post(url, data=form_data, headers=self.base_headers) as response:
+            async with session.post(url, data=form_data, headers=self.base_headers, timeout=timeout) as response:
                 if response.status == 200:
-                    print("Saving file")
+                    logging.warning("Saving file loquendo voice")
                     try:
                         file_name = hashlib.md5(text.encode("utf-8")).hexdigest()
                         f = open(f"./assets/audio/loquendo/{file_name}.mp3", "wb")
@@ -55,10 +56,10 @@ class NetworkUtils():
                         f.close()
                         return f"./assets/audio/loquendo/{file_name}.mp3" # hash
                     except Exception as e:
-                        print(f"{str(e)} while downloading audio file")
+                        logging.error("While downloading audio file", exc_info=True)
                         return ""
                 else:
-                    print("Failed downloading with status 500")
+                    logging.error("Failed downloading with status 500", exc_info=True)
                     return ""
                 
     async def getContentFromPage(self, url, headers=None):
@@ -73,7 +74,7 @@ class NetworkUtils():
                         content = await response.text()
                         return content
                     except Exception as e:
-                        print(f"{str(e)} while fetching page content from {url}")
+                        logging.error(f"While fetching page content from {url}", exc_info=True)
                         return ""
                 else:
                     return ""

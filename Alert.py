@@ -1,5 +1,6 @@
 from BE.BotBE import BotBE
 import asyncio
+import Constants.StringConstants as Constants
 """
  This class is responsible for managing alert commands
 """
@@ -18,7 +19,7 @@ class Alert():
             ack = self.bot_be.set_alert(str(url), str(price_range), str(currency), str(message.author.id))
             await text_channel.send(ack)
         else:
-            await text_channel.send(f"Mal formato huevon, tienes que incluir el link, rango de precios y la moneda (USD o EUR). Escribe --help")
+            await text_channel.send(Constants.BAD_FORMATTED_ALERT)
         
     async def handleUnsetAlert(self, message, text_channel):
         alert_msg = message.content.split(" ")
@@ -27,7 +28,7 @@ class Alert():
             ack = self.bot_be.unset_alert(str(url), str(message.author.id))
             await text_channel.send(ack)
         else:
-            await text_channel.send(f"Mal formateo huevon, pones -unset-alert [Link del juego en G2A]")
+            await text_channel.send(Constants.BAD_FORMATTED_UNSET_ALERT)
             
     async def checkAlerts(self, client, text_channel):
         await client.wait_until_ready()
@@ -39,7 +40,7 @@ class Alert():
                     for alert in alerts_list:
                         user_id = alert[0]
                         url = alert[1]
-                        await text_channel.send(f"Tu juego bajó de precio!!! {url} <@!{user_id}>")
+                        await text_channel.send(f"{Constants.PRICE_ALERT_REACHED} {url} <@!{user_id}>")
                 await asyncio.sleep(10)
             except Exception as e:
                 print(str(e) + " but no problem for check alerts")

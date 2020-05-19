@@ -1,10 +1,11 @@
 from Services.BotService import BotService
 from BE.Soup import Soup
+import Constants.StringConstants as Constants
 import random
 import time
 import re
 import datetime
-
+import logging
 """
 The Bot Business Entity is responsible for the business logic of the Bot regarding tasks with the persistent storage of some functions
 like Quotes, Subscriptions and Alerts. Acts as a Facade to all subsequent layers
@@ -30,29 +31,29 @@ class BotBE():
 	def save_quote(self, quote):
 		try:
 			self.bot_svc.add_quote(quote)
-			return "Agregado"
+			return Constants.ADDED
 		except Exception as e:
-			print(str(e) + " saving quote")
-			return "No pude hacerlo"
+			logging.error(f"{str(e)} while saving quote", exc_info=True)
+			return Constants.COULD_NOT_DO_IT
 
 
 	def subscribe_member(self, subscribees, subscriber):
 		try:
 			subscribees_formatted = [str(s.id) for s in subscribees]
 			self.bot_svc.subscribe_member(subscribees_formatted, subscriber)
-			return "Listo ctm!"
+			return Constants.DONE
 		except Exception as e:
-			print(str(e) + " subscribing member")
-			return "No pude hacerlo"
+			logging.error(f"{str(e)} while subscribing member", exc_info=True)
+			return Constants.COULD_NOT_DO_IT
 
 	def unsubscribe_member(self, subscribees, subscriber):
 		try:
 			subscribees_formatted = [str(s.id) for s in subscribees]
 			self.bot_svc.unsubscribe_member(subscribees_formatted, subscriber)
-			return "ya"
+			return Constants.DONE
 		except Exception as e:
-			print(str(e) + " unsubscribing member")
-			return "Se fue de culo la operacion"
+			logging.error(f"{str(e)} while unsubscribing member", exc_info=True)
+			return Constants.COULD_NOT_DO_IT
 
 	def retrieve_subscribers_from_subscribee(self, subscribee):
 		subscribers = [s[0] for s in self.bot_svc.get_subscribers_from_subscribee(subscribee) ]
@@ -76,8 +77,8 @@ class BotBE():
 			self.bot_svc.set_alert(url, price_range, currency, user_id)
 			return f"Agregue tu alerta del item en {url} con rango de precios {price_range} y moneda {currency}"
 		except Exception as e:
-			print(str(e))
-			return "La cague de alguna manera y no pude setear tu alarma"
+			logging.error(f"{str(e)}", exc_info=True)
+			return Constants.COULD_NOT_DO_IT
 
 	def unset_alert(self, url, user_id):
 		try:
@@ -85,7 +86,7 @@ class BotBE():
 			return f"Listo mande a la mierda tu alarma con link {url}"
 		except Exception as e:
 			print(str(e))
-			return "La cague, intenta despues"
+			return Constants.COULD_NOT_DO_IT
 
 	async def check_alerts(self):
 		try: 
@@ -103,7 +104,7 @@ class BotBE():
 					alerts_with_price_limits_reached.append( (row[4], row[1]) ) # user_id, url
 			return alerts_with_price_limits_reached
 		except Exception as e:
-			print(str(e) + " cheking alerts")
+			logging.error(f"{str(e)}", exc_info=True)
 			return []
 
 	async def get_store_price_for_prefix(self, url, currency):

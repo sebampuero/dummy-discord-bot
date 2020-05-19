@@ -146,7 +146,7 @@
 <body>
     <div class="container">
         {% if members|length > 0 %}
-        <form class="form-signin" id="send-form" action="/" method="POST">
+        <form class="form-signin" id="send-form" action="/say" method="POST">
             <div class="text-center mb-4">
                 <h1 class="h3 mb-3 font-weight-normal">Panel de voz de Chismosito Bot</h1>
             </div>
@@ -225,15 +225,11 @@
                     type: frm.attr('method'),
                     url: frm.attr('action'),
                     data: JSON.stringify(obj),
-                    dataType: "json",
                     contentType: "application/json",
-                    complete: function (xhr) {
+                    success: function (data, textStatus, xhr) {
                         $("input#text").val("")
                         $("input#member_name").val("")
-                        alert("Intentando reproducir audio")
-                        if (xhr.status == 500) {
-                            alert("Algo se jodio papu")
-                        }
+                        alert(data.message)
                     }
                 });
             });

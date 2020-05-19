@@ -43,12 +43,12 @@ class MessageProcessor():
             await text_channel.send(Constants.NOT_IN_VOICE_CHANNEL_MSG)    
             return
         if self.voice.isVoiceClientPlaying():
-            await text_channel.send("Estoy ocupado huevon")    
+            await text_channel.send(Constants.BOT_BUSY)    
             return
         the_input = message.content.lower().split("-say ")
         if len(the_input) > 1:
             if len(the_input[1]) > 250:
-                await text_channel.send("El texto es muy grande")
+                await text_channel.send(Constants.TEXT_TOO_BIG)
                 return
             network_utils = NetworkUtils()
             audio_filename =  ""
@@ -63,9 +63,9 @@ class MessageProcessor():
             if audio_filename != "":
                 await self.voice.reproduceFromFile(message.author, audio_filename)
             else:
-                text_channel.send("Algo se jodio")
+                text_channel.send(Constants.SMTH_FUCKED_UP)
         else:
-            await text_channel.send("Formatea bien tu texto, pon `-say [texto a decir en voz] [voz](opcional)`")
+            await text_channel.send(Constants.BAD_FORMATTED_SAY)
             
     async def handleCustomMessages(self, message, text_channel):
         the_message = message.content.lower()
@@ -82,13 +82,13 @@ class MessageProcessor():
             random_idx = random.randint(0, len(options) - 1)
             await text_channel.send(f"{options[random_idx]}")
         else:
-            await text_channel.send("Formula bien tu pregunta cojudo")
+            await text_channel.send(Constants.BAD_FORMATTED_QUESTION)
             
     async def saluteNewMember(self, member, text_channel):
         await text_channel.send(f"Hola {member.display_name}, bienvenido a este canal de mierda")
         
     async def handleOnResumed(self, text_channel):
-        await text_channel.send("Se fue el internet, pero volví cojudos") 
+        await text_channel.send(Constants.INT_GONE_BUT_BACK) 
         
     async def formatHelpMessage(self, text_channel):
         await text_channel.send(f"""`

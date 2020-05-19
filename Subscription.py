@@ -1,5 +1,5 @@
 from BE.BotBE import BotBE
-
+import Constants.StringConstants as Constants
 """
  This class is responsible for managing subscriptions commands 
 """
@@ -16,7 +16,7 @@ class Subscription():
             ack = self.bot_be.subscribe_member(subscribees, subscriber)
             await text_channel.send(ack)
         else:
-            await text_channel.send("Debes taguear a alguien, animal. Escribe --help")
+            await text_channel.send(Constants.BAD_FORMATTED_SUB_UNSUB)
 
     async def handleUnsubscribe(self, message, text_channel):
         subscriber = str(message.author.id)
@@ -25,4 +25,4 @@ class Subscription():
             ack = self.bot_be.unsubscribe_member(subscribees, subscriber)
             await text_channel.send(ack)
         else:
-            await text_channel.send("Debes taguear a alguien, animal. Escribe --help")
+            await text_channel.send(Constants.BAD_FORMATTED_SUB_UNSUB)

@@ -18,10 +18,11 @@ class Server(OurThread):
     
     def setGuild(self, guild):
         self.guild = guild
+        
+    def setChatChannel(self, text_channel):
+        self.text_channel = text_channel
     
     def run(self):
         app = Flask(__name__, template_folder='../templates/')
-        guild = self.guild
-        voice = self.voice
-        app.register_blueprint(get_bot_blueprint(guild, voice, self.loop), url_prefix="/")  
+        app.register_blueprint(get_bot_blueprint(self.guild, self.voice, self.text_channel, self.loop), url_prefix="/")  
         app.run(host="0.0.0.0", port=3000, debug=True, use_reloader=False)
