@@ -3,6 +3,8 @@ import hashlib
 import aiohttp
 import asyncio
 import logging
+import discord
+import io
 """
 NetworkUtils is responsible for managing and processing all network related requests
 """
@@ -17,6 +19,9 @@ class NetworkUtils():
             'accept-language': 'de-DE,de;q=0.9,es-DE;q=0.8,es;q=0.7,en-US;q=0.6,en;q=0.5',
             'Accept-Encoding': 'gzip, deflate'
         }
+        
+    def setStreamingFlag(self, stream):
+        self.stream = stream
     
     async def getAndSaveTtsLoquendoVoice(self, text, voice="Jorge", language="Spanish (Spain)"):
         url = "http://nuancevocalizerexpressive.sodels.com/"
@@ -63,10 +68,7 @@ class NetworkUtils():
                     return ""
                 
     async def getContentFromPage(self, url, headers=None):
-        if headers == None:
-            headers = self.base_headers
-        else:
-            headers = dict(self.base_headers, **headers)
+        headers = dict(self.base_headers, **headers) if headers else self.base_headers
         async with aiohttp.ClientSession() as session:
             async with session.get(url, headers=headers) as response:
                 if response.status == 200:
@@ -78,3 +80,34 @@ class NetworkUtils():
                         return ""
                 else:
                     return ""
+                
+    def playStreaming(self, url):
+        headers = {
+            'Accept-Encoding': 'identity;q=1, *;q=0',
+            'accept': "*/*",
+            "Connection": "keep-alive",
+            "host": "s3.radio.co",
+            "Range": "bytes=0-",
+            "Referer": "http://radio.garden/visit/freetown/LPlUvV8C",
+            "Sec-Fetch-Dest": "audio",
+            "Sec-Fetch-Mode": "no-cors",
+            "Sec-Fetch-Site": "cross-site"
+        }
+        headers = dict(self.base_headers, **headers)
+        loop = 1
+        file_counter = 0
+        audio_data = b""
+        r = requests.get(url, stream=True)
+        for data in r.iter_content(1024):
+            #a_data = io.BytesIO(data)
+            #source = discord.FFmpegPCMAudio(a_data)
+            audio_data += data
+            if loop % 40 == 0:
+                f = open(f"./assets/audio/streamings/{file_counter}.mp3", "wb")
+                f.write(audio_data)
+                f.close()
+                file_counter += 1
+                audio_data = b''
+            loop += 1
+            if not self.stream:
+                break

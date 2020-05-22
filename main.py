@@ -25,7 +25,6 @@ quote = Quote()
 alert = Alert()
 server_manager = ServerManager()
 message_processor = MessageProcessor(voice, subscription, quote, alert, server_manager)
-file_deleter_thread = FileDeleterThread("FileDeleterThread")
 server_thread = Server("FlaskServerThread")
 
 is_first_connection = True
@@ -47,16 +46,25 @@ async def on_ready():
     client.loop.create_task(alert.checkAlerts(client, general_text_chat))
     client.loop.create_task(server_manager.showServerStats(client, daxo_guild, general_text_chat))
     client.loop.create_task(measureHeartBeat())
+    client.loop.create_task(deleteMp3FilesPeriodically())
+
+async def deleteMp3FilesPeriodically():
+    while True:
+        if not voice.isVoiceClientPlaying():
+            deleter_thread = FileDeleterThread("LoquendoDeleter", "./assets/audio/loquendo", "^\w+\.mp3$")
+            deleter_thread2 = FileDeleterThread("RadioMp3Deleter", "./assets/audio/streamings", "^\w+\.mp3$")
+            deleter_thread.start()
+            deleter_thread2.start()
+        await asyncio.sleep(600)
 
 async def measureHeartBeat():
     while True:
         latency = client.latency * 1000
-        await asyncio.sleep(30)
-        if latency > 500:
+        await asyncio.sleep(60)
+        if latency > 2000:
             await general_text_chat.send(f"{StringConstants.BAD_PING} {round(latency, 2)} ms")
 
 def init_threads():
-    file_deleter_thread.start()
     server_thread.setVoice(voice)
     server_thread.setGuild(daxo_guild)
     server_thread.setChatChannel(general_text_chat)
@@ -78,7 +86,7 @@ async def on_voice_state_update(member, before, after):
         return
     if voice.isVoiceStateValid(before, after):
         await voice.notifySubscribersUserJoinedVoiceChat(member, after, client)
-        await voice.playWelcomeAudio(member, after)
+        await voice.playWelcomeAudio(member, after, general_text_chat)
         
 @client.event
 async def on_disconnect():

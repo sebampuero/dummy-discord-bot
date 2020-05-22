@@ -4,15 +4,16 @@ import time
 
 class FileDeleterThread(OurThread):
     
-    def __init__(self, name):
+    def __init__(self, name, path, pattern):
         super(FileDeleterThread, self).__init__()
         self.file_utils = FileUtils()
         self.name = name
+        self.path = path
+        self.pattern = pattern
         print(f"Init {self.name} thread")
     
     def run(self):
-        while True:
-            path = "./assets/audio/loquendo"
-            pattern = "^\w+\.mp3$"
-            self.file_utils.removeFilesInDir(path, pattern)
-            time.sleep(86400)
+       # paths = ["./assets/audio/loquendo", "./assets/audio/streamings"]
+        # pattern = "^\w+\.mp3$"
+        self.file_utils.removeFilesInDir(self.path, self.pattern)
+            

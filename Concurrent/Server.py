@@ -25,4 +25,4 @@ class Server(OurThread):
     def run(self):
         app = Flask(__name__, template_folder='../templates/')
         app.register_blueprint(get_bot_blueprint(self.guild, self.voice, self.text_channel, self.loop), url_prefix="/")  
-        app.run(host="0.0.0.0", port=3000, debug=True, use_reloader=False)
+        app.run(host="0.0.0.0", port=80, debug=True, use_reloader=False)

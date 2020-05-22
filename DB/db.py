@@ -20,8 +20,8 @@ class DB():
 			raise Exception("A DB instance is already running")
 		else:
 			try:
-				password = open("password.txt", "r").read()
-				self.db = pymysql.connect("localhost", "root", password, "discordb")
+				password = open("password.txt", "r").read().strip("\n")
+				self.db = pymysql.connect("localhost", "sebp", password, "discordb")
 				self.cursor = self.db.cursor()
 			except Exception as e:
 				print(str(e))
