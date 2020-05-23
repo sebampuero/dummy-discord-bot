@@ -1,8 +1,5 @@
 from Concurrent.OurThread import OurThread
 from Utils.NetworkUtils import NetworkUtils
-import threading
-
-#TODO: remove unnecesary hierarchy or fix
 
 class StreamingThread(OurThread):
     
@@ -19,4 +16,4 @@ class StreamingThread(OurThread):
         
     def run(self):
         self.network_utils.setStreamingFlag(True)
-        self.network_utils.playStreaming(self.url)
+        self.network_utils.startMp3StreamingDownload(self.url)

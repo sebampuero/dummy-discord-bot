@@ -81,7 +81,7 @@ class NetworkUtils():
                 else:
                     return ""
                 
-    def playStreaming(self, url):
+    def startMp3StreamingDownload(self, url):
         headers = {
             'Accept-Encoding': 'identity;q=1, *;q=0',
             'accept': "*/*",
@@ -99,8 +99,6 @@ class NetworkUtils():
         audio_data = b""
         r = requests.get(url, stream=True)
         for data in r.iter_content(1024):
-            #a_data = io.BytesIO(data)
-            #source = discord.FFmpegPCMAudio(a_data)
             audio_data += data
             if loop % 40 == 0:
                 f = open(f"./assets/audio/streamings/{file_counter}.mp3", "wb")

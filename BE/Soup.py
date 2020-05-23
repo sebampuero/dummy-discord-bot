@@ -42,7 +42,6 @@ class Soup():
         
         response = await self.network_utils.getContentFromPage(url)
         soup = BeautifulSoup(response, features = "lxml")
-        soup.smooth()
         element = soup.find(tag, id = id)
         if element != None:
             the_price = element.text.strip()

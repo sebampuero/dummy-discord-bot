@@ -1,7 +1,4 @@
-import discord
-import requests
-import io
+from bs4 import BeautifulSoup
 
-r = requests.get("http://s1.vvtelecom.net:8000/kebuenaptv?listening-from-radio-garden", stream=True)
-for data in r.iter_content(2048):
-    discord.FFmpegPCMAudio(io.StringIO("Hello hello hello"), pipe=True)
+soup = BeautifulSoup("<html><body><span>hello</span></body></html>",  "html.parser")
+print(soup.find("span"))

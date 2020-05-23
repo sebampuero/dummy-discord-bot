@@ -52,11 +52,11 @@ class MessageProcessor():
         f.close()
         msg = ""
         for key, value in radios.items():
-            msg = msg + "Ciudad: " + str(key) + "\n"
+            msg = msg + f"Ciudad: `{str(key)}` \n"
             loop = 0
             for radio in value["items"]:
                 loop += 1
-                msg = msg + f"{loop} " + radio["name"] + "\n"
+                msg = msg + f" `{loop}` " + radio["name"] + "\n"
         await text_channel.send(msg)
             
             
@@ -97,6 +97,7 @@ class MessageProcessor():
             return
         if not self.voice.isVoiceClientPlaying():
             await text_channel.send("El bot no esta reproduciendo radio")
+            return
         the_input = message.content.lower().split("-change-radio ")
         if self._inputValid(the_input):
             self.voice.stopPlayer()
@@ -168,16 +169,16 @@ class MessageProcessor():
         await text_channel.send(Constants.INT_GONE_BUT_BACK) 
         
     async def formatHelpMessage(self, text_channel):
-        await text_channel.send("``-subscribe [tag] 'Subscribirse a un webon para cuando entre a discord'``\n" + 
-                                "``-unsubscribe [tag] 'Desuscribirse'``\n" +
-                                "``-dailyquote [quote diario] 'Mensaje diario del bot'``\n" +
-                                "``-set-alert [Link de juego G2A o item de amazon] [rango de precios objetivo] [Moneda(USD o EUR)] 'Alerta de precios en amazon o G2A'``\n" +
-                                "``-unset-alert [Link de juego G2A o item de amazon]``\n" +
-                                "``-audio-off  'Desactiva tu saludo'``\n" +
-                                "``-audio-on 'Activa tu saludo'``\n" +
-                                "``-say [texto a decir]``\n" +
-                                "``-start-radio [ciudad] [id de radio]``\n" +
-                                "``-change-radio [ciudad] [id de radio]``\n" +
-                                "``-show-radios 'Muestra las radios disponibles'``\n" +
-                                "``-stop-radio``\n"
+        await text_channel.send("`-subscribe [tag]` 'Subscribirse a un webon para cuando entre a discord'\n" + 
+                                "`-unsubscribe [tag]` 'Desuscribirse'\n" +
+                                "`-dailyquote [quote diario]` 'Mensaje diario del bot'\n" +
+                                "`-set-alert [Link de juego G2A o item de amazon] [rango de precios objetivo] [Moneda(USD o EUR)]` 'Alerta de precios en amazon o G2A'\n" +
+                                "`-unset-alert [Link de juego G2A o item de amazon]`\n" +
+                                "`-audio-off`  'Desactiva tu saludo'\n" +
+                                "`-audio-on` 'Activa tu saludo'\n" +
+                                "`-say [texto a decir]`\n" +
+                                "`-start-radio [ciudad] [id de radio]`\n" +
+                                "`-change-radio [ciudad] [id de radio]`\n" +
+                                "`-show-radios` 'Muestra las radios disponibles'\n" +
+                                "`-stop-radio`\n"
                                 )

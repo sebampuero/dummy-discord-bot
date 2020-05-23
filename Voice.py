@@ -150,7 +150,7 @@ class Voice():
                     self.is_streaming = True
                     tries = 0
                     while self.is_streaming:
-                        if not self.client.voice_clients[0].is_playing():
+                        if not self.client.voice_clients[0].is_playing() :
                             if os.path.isfile(f"./assets/audio/streamings/{counter}.mp3"):
                                 audio_source = discord.FFmpegPCMAudio(f"./assets/audio/streamings/{counter}.mp3")
                                 self.client.voice_clients[0].play(audio_source)
@@ -163,12 +163,12 @@ class Voice():
                                     await self.stopStreaming()
                                     break
                                 await asyncio.sleep(5)
-                        await asyncio.sleep(0.001)
+                        await asyncio.sleep(0.0001)
                     streaming_thread.stop()
-                    self.cleanupAudioFiles()
+                    self._cleanupAudioFiles()
         except Exception as e:
             if len(self.client.voice_clients) > 0:
-                await self.client.voice_clients[0].disconnect()
+                await self.stopStreaming()
             logging.error("While streaming audio", exc_info=True)
             
     async def stopStreaming(self):
@@ -177,7 +177,7 @@ class Voice():
             self.client.voice_clients[0].stop()
             await self.disconnect()
             
-    def cleanupAudioFiles(self):
+    def _cleanupAudioFiles(self):
         deleter_thread = FileDeleterThread("RadioMp3Deleter", "./assets/audio/streamings", "^\w+\.mp3$")
         deleter_thread.start()
         
