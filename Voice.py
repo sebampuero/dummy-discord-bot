@@ -7,7 +7,6 @@ import logging
 import time
 from BE.BotBE import BotBE
 import Constants.StringConstants as Constants
-from Concurrent.StreamingThread import StreamingThread
 from Concurrent.FileDeleter import FileDeleterThread
 from Utils.NetworkUtils import NetworkUtils
 """
@@ -20,7 +19,8 @@ class Voice():
     OPUS_LIBS = ['libopus-0.x86.dll', 'libopus-0.x64.dll', 'libopus-0.dll', 'libopus.so.0', 'libopus.0.dylib']
     COUNTER_IDLE_TIMEOUT = 1
     
-    def __init__(self, client):
+    def __init__(self, client): #TODO: Add constant variables for volume
+        #TODO: prevent changing of voice channel
         self.client = client
         self.welcome_audios_queue = []
         self.bot_be = BotBE()
@@ -28,9 +28,12 @@ class Voice():
         self.idle_counter = 0
         self.started_counter_flag = False
         self.is_streaming = False
-        self.streaming_thread = None
+        self.is_speaking = False
+        self.current_streaming_ = None
         
     async def initCounterIdleTimeout(self, counter_idle_timeout=COUNTER_IDLE_TIMEOUT):
+        if self.is_streaming: # dont disconnect if we are streaming radio
+            return
         if not self.started_counter_flag:
             self.started_counter_flag = True
             while True:
@@ -75,6 +78,15 @@ class Voice():
         except Exception as e:
             logging.error("While saying good night", exc_info=True)
             
+    def afterTalking(self, error):
+        self.is_speaking = False
+        if self.is_streaming:
+            self.resumeStreaming()
+
+    def resumeStreaming(self):
+        if self.current_streaming_url:
+            self.client.voice_clients[0].play(discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(self.current_streaming_url), volume=0.5))
+
     async def reproduceFromFile(self, member, audio_filename):
         try:
             vc = member.voice.channel
@@ -82,23 +94,23 @@ class Voice():
                 self.restartCounterIdleTimeout()
                 if len(self.client.voice_clients) == 0:
                     await vc.connect()
-                audio_source = discord.FFmpegPCMAudio(audio_filename)
+                audio_source = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(audio_filename), volume=1.0)
+                if self.is_streaming:
+                    self.stopPlayer()
                 if not self.client.voice_clients[0].is_playing():
-                    self.client.voice_clients[0].play(audio_source)
+                    self.is_speaking = True
+                    self.client.voice_clients[0].play(audio_source, after=self.afterTalking)
                     await self.initCounterIdleTimeout()
         except Exception as e:
             logging.error("While reproducing from file", exc_info=True)
             await self.disconnect()
             
-    async def playWelcomeAudio(self, member, after, text_channel):
+    async def playWelcomeAudio(self, member, after):
         try:
             user_ids_to_audio_map = self.bot_be.load_users_welcome_audios()
             if not str(member.id) in user_ids_to_audio_map:
                 return
             if not user_ids_to_audio_map[str(member.id)]["active"]:
-                return
-            if self.is_streaming:
-                await text_channel.send(f"{Constants.RADIO_ON_CANT_SALUTE} {member.display_name}")
                 return
             audio_files_list = user_ids_to_audio_map[str(member.id)]["audio_files"]
             random_idx = random.randint(0, len(audio_files_list) - 1)
@@ -107,17 +119,20 @@ class Voice():
                 self.restartCounterIdleTimeout()
                 if len(self.client.voice_clients) == 0:
                     await after.channel.connect()
-                first_audio_source = discord.FFmpegPCMAudio(audio_file_name)
+                first_audio_source = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(audio_file_name), volume=1.0)
+                self.is_speaking = True
+                if self.is_streaming:
+                    self.stopPlayer()
                 if self.client.voice_clients[0].is_playing():
                     self.welcome_audios_queue.append(first_audio_source)
                     while True:
                         if not self.client.voice_clients[0].is_playing():
                             audio_source = self.welcome_audios_queue.pop()
-                            self.client.voice_clients[0].play(audio_source)
+                            self.client.voice_clients[0].play(audio_source, after=self.afterTalking)
                             if len(self.welcome_audios_queue) == 0:
                                 break
                 else:
-                    self.client.voice_clients[0].play(first_audio_source)
+                    self.client.voice_clients[0].play(first_audio_source, after=self.afterTalking)
                     await self.initCounterIdleTimeout()
         except Exception as e:
             await self.disconnect()
@@ -133,45 +148,39 @@ class Voice():
                     await self.client.voice_clients[0].move_to(voice_channel)
                 if not self.client.voice_clients[0].is_playing():
                     net_utils = NetworkUtils()
-                    if await net_utils.checkConnectionStatusForSite(url) == 200:
-                        self.is_streaming = True
-                        self.streaming_thread = StreamingThread("Streaming Thread")
-                        self.streaming_thread.setUrl(url)
-                        self.streaming_thread.setClient(self.client.voice_clients[0])
-                        self.streaming_thread.start()
-                    else:
-                        await text_channel.send(f"No se pudo establecer la conexion con {url}")
-                        await self.disconnect()
+                    if await net_utils.checkConnectionStatusForSite(url) != 200:
+                        await text_channel.send(f"Se jodio esta radio {url}")
+                        return
+                    player = discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(url), volume=0.5)
+                    self.current_streaming_url = url
+                    self.is_streaming = True
+                    self.client.voice_clients[0].play(player)
         except Exception as e:
-            await self.stopStreaming()
-            logging.error("While streaming audio", exc_info=True)
-            
-    async def stopStreaming(self):
-        if len(self.client.voice_clients) > 0:
-            self.streaming_thread.stop()
-            self.streaming_thread = None
-            self.is_streaming = False
-            self.client.voice_clients[0].stop()
             await self.disconnect()
+            logging.error("While streaming audio", exc_info=True)
     
     async def disconnect(self):
         if len(self.client.voice_clients) > 0:
-            if not self.client.voice_clients[0].is_playing() and self.client.voice_clients[0].is_connected():
+            if self.client.voice_clients[0].is_connected():
                 logging.warning(f"Disconnected from channel {self.client.voice_clients[0].channel}")
                 await self.client.voice_clients[0].disconnect()
+                self.current_streaming_url = None
+                self.is_streaming = False
+                self.is_speaking = False
                 
     def isVoiceClientPlaying(self):
         if len(self.client.voice_clients) > 0:
-            return self.client.voice_clients[0].is_playing() or self.is_streaming
+            return self.client.voice_clients[0].is_playing()
+
+    def isVoiceClientSpeaking(self):
+        return self.is_speaking
+
+    def isVoiceClientStreaming(self):
+        return self.is_streaming
         
     def stopPlayer(self):
         if len(self.client.voice_clients) > 0:
             self.client.voice_clients[0].stop()
-            
-    def interruptStreaming(self):
-        self.is_streaming = False
-        self.streaming_thread.stop()
-        self.streaming_thread = None
             
     def load_opus_libs(self, opus_libs=OPUS_LIBS):
         if discord.opus.is_loaded():

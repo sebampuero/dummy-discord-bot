@@ -84,7 +84,7 @@ async def on_voice_state_update(member, before, after):
         return
     if voice.isVoiceStateValid(before, after):
         await voice.notifySubscribersUserJoinedVoiceChat(member, after, client)
-        await voice.playWelcomeAudio(member, after, general_text_chat)
+        await voice.playWelcomeAudio(member, after)
         
 @client.event
 async def on_disconnect():

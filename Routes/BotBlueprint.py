@@ -46,7 +46,7 @@ def get_bot_blueprint(guild, voice, text_channel, event_loop):
     @bot_blueprint.route("/say", methods=["POST"])
     def reproduceFromText():
         try:
-            if voice.isVoiceClientPlaying():
+            if voice.isVoiceClientSpeaking():
                 return jsonify({'message': Constants.BOT_BUSY_RESPONSE}), 200
             data = request.json
             event_loop.create_task(say(data, guild, text_channel, voice))

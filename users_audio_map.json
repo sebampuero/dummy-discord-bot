@@ -77,7 +77,7 @@
         ]
     },
     "279796600308498434": {
-        "active": false,
+        "active": true,
         "audio_files": [
             "./assets/audio/papu.mp3",
             "./assets/audio/papu2.mp3"

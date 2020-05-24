@@ -66,11 +66,17 @@ class MessageProcessor():
             return True
         return False
 
-    async def _isBotBusy(self, text_channel):
-        if self.voice.isVoiceClientPlaying():
+    async def _isBotSpeaking(self, text_channel):
+        if self.voice.isVoiceClientSpeaking():
             await text_channel.send(Constants.BOT_BUSY)    
             return True
         return False
+
+    async def _isBotStreaming(self):
+        if not self.voice.isVoiceClientStreaming():
+            await text_channel.send("Primero inicia la radio")    
+            return False
+        return True
             
     def _inputValid(self, the_input):
         the_input2 = the_input[1].split(" ") if len(the_input) > 1 else ""
@@ -92,22 +98,18 @@ class MessageProcessor():
             await text_channel.send("El numero de radio o la ciudad no existen")    
     
     async def handleChangeRadio(self, message, text_channel):
-        if await self._isUserInVoiceChannel(message.author.voice, text_channel):
-            return
-        if not self.voice.isVoiceClientPlaying():
-            await text_channel.send("El bot no esta stremeando radio")
+        if await self._isUserInVoiceChannel(message.author.voice, text_channel) or not await self._isBotStreaming():
             return
         the_input = message.content.lower().split("-change-radio ")
         if self._inputValid(the_input):
             self.voice.stopPlayer()
-            self.voice.interruptStreaming()
             await self._startRadioStreaming(the_input[1].split(" "), message.author, text_channel)
         else:
             await text_channel.send("-change-radio [ciudad] [numero de radio]")
             await self.handleShowRadios(text_channel)  
     
     async def handleStreamingRadio(self, message, text_channel):
-        if await self._isUserInVoiceChannel(message.author.voice, text_channel) or await self._isBotBusy(text_channel):
+        if await self._isUserInVoiceChannel(message.author.voice, text_channel) or await self._isBotSpeaking(text_channel):
             return
         the_input = message.content.lower().split("-start-radio ")
         if self._inputValid(the_input):
@@ -117,10 +119,10 @@ class MessageProcessor():
             await self.handleShowRadios(text_channel)    
     
     async def handleStopStreamingRadio(self, message, text_channel):
-        await self.voice.stopStreaming()
+        await self.voice.disconnect()
             
     async def handleTextToVoiceTranslation(self, message, text_channel):
-        if await self._isUserInVoiceChannel(message.author.voice, text_channel) or await self._isBotBusy(text_channel):
+        if await self._isUserInVoiceChannel(message.author.voice, text_channel) or await self._isBotSpeaking(text_channel):
             return
         the_input = message.content.lower().split("-say ")
         if len(the_input) > 1:

@@ -13,8 +13,6 @@ NetworkUtils is responsible for managing and processing all network related requ
 """
 
 class NetworkUtils():
-    
-    STREAM_BUFFER_SIZE = 80000
 
     def __init__(self):
         self.base_headers = {
@@ -24,9 +22,6 @@ class NetworkUtils():
             'accept-language': 'de-DE,de;q=0.9,es-DE;q=0.8,es;q=0.7,en-US;q=0.6,en;q=0.5',
             'Accept-Encoding': 'gzip, deflate'
         }
-        
-    def setStreamingFlag(self, stream):
-        self.stream = stream
     
     async def checkConnectionStatusForSite(self, url, headers=None):
         headers = dict(self.base_headers, **headers) if headers else self.base_headers
@@ -92,34 +87,3 @@ class NetworkUtils():
                         return ""
                 else:
                     return ""
-
-    def streaming(self, url, client, buffer_size=STREAM_BUFFER_SIZE):
-        headers = {
-            'Accept-Encoding': 'identity;q=1, *;q=0',
-            'accept': "*/*",
-            "Connection": "keep-alive",
-            "host": "s3.radio.co",
-            "Range": "bytes=0-",
-            "Referer": "http://radio.garden/visit/freetown/LPlUvV8C",
-            "Sec-Fetch-Dest": "audio",
-            "Sec-Fetch-Mode": "no-cors",
-            "Sec-Fetch-Site": "cross-site"
-        }
-        headers = dict(self.base_headers, **headers)
-        r = requests.get(url, stream=True)
-        if r.status_code == 200:
-            for data in r.iter_content(buffer_size):
-                if not self.stream or not client.is_connected():
-                    r.connection.close()
-                    break
-                args = []
-                args.extend(('ffmpeg','-i','-','-f', 's16le', '-ar', '48000', '-ac', '2', '-loglevel', 'warning', 'pipe:1'))
-                process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=None, stdin=subprocess.PIPE)
-                process.stdin.write(data)
-                process.stdin.close()
-                audio_source = discord.PCMAudio(process.stdout)
-                client.play(audio_source)
-                while client.is_playing():
-                    time.sleep(0.001)
-                    pass
-                process.kill()
