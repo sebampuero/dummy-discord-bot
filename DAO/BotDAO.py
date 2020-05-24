@@ -1,4 +1,5 @@
 from DB.db import DB
+import json
 
 """
 The Bot Data Access Object is responsible for accessing the data stored in the DB Mysql

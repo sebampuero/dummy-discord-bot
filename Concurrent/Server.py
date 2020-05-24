@@ -3,7 +3,6 @@ from Concurrent.OurThread import OurThread
 from Utils.NetworkUtils import NetworkUtils
 from Routes.BotBlueprint import get_bot_blueprint
 import asyncio
-#from Routes.Main import main_routes
 
 class Server(OurThread):
     
@@ -25,4 +24,4 @@ class Server(OurThread):
     def run(self):
         app = Flask(__name__, template_folder='../templates/')
         app.register_blueprint(get_bot_blueprint(self.guild, self.voice, self.text_channel, self.loop), url_prefix="/")  
-        app.run(host="0.0.0.0", port=80, debug=True, use_reloader=False)
+        app.run(host="0.0.0.0", port=80, debug=True, use_reloader=False) #TODO: change api endpoint port to 3000 and let nginx handle static data

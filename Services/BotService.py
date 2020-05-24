@@ -1,4 +1,5 @@
 from DAO.BotDAO import BotDAO
+from DAO.BotDAOFile import BotDAOFile
 
 """
 Service Layer for connecting to a DAO
@@ -8,6 +9,7 @@ class BotService():
 	
 	def __init__(self):
 		self.dao = BotDAO()
+		self.dao_file = BotDAOFile()
 		
 	def subscribe_member(self, subscribees, subscriber):
 		self.dao.subscribe_member(subscribees, subscriber)
@@ -38,3 +40,15 @@ class BotService():
   
 	def delete_alert(self, alert_id):
 		self.dao.delete_alert(alert_id)
+
+	def get_radios(self):
+		return self.dao_file.get_radios()
+
+	def get_users_welcome_audios(self):
+		return self.dao_file.get_users_welcome_audios()
+
+	def save_radios(self, radios_new):
+		self.dao_file.save_radios(radios_new)
+
+	def save_users_welcome_audios(self, new_):
+		self.dao_file.save_users_welcome_audios(new_)

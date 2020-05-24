@@ -1,5 +1,6 @@
 import random
 from Utils.NetworkUtils import NetworkUtils
+from BE.BotBE import BotBE
 import Constants.StringConstants as Constants
 import json
 """
@@ -14,6 +15,7 @@ class MessageProcessor():
         self.quote = quote
         self.alert = alert
         self.server_manager = server_manager
+        self.bot_be = BotBE()
         
     async def handleAllMessages(self, message, text_channel):
         the_message = message.content.lower()
@@ -47,9 +49,7 @@ class MessageProcessor():
             await self.handleCustomMessages(message, text_channel)
             
     async def handleShowRadios(self, text_channel):
-        f = open("radio_stations.json", "r")
-        radios = json.loads(f.read())
-        f.close()
+        radios = self.bot_be.load_radios_config()
         msg = ""
         for key, value in radios.items():
             msg = msg + f"Ciudad: `{str(key)}` \n"
@@ -76,18 +76,17 @@ class MessageProcessor():
         the_input2 = the_input[1].split(" ") if len(the_input) > 1 else ""
         if not len(the_input2) == 2:
             return False
-        return True
-    
+        return True   
+
     async def _startRadioStreaming(self, the_input, member, text_channel):
         try:
-            city = the_input[0]
+            city = the_input[0] #TODO: this should happen in BE, form of data retrieval in DAO
             radio_id = int(the_input[1]) - 1
-            f = open("radio_stations.json", "r")
-            radios = json.loads(f.read())
-            f.close()
+            radios = self.bot_be.load_radios_config()
             selected_city = radios[city]
             selected_radio_url = selected_city["items"][radio_id]["link"]
-            await self.voice.playStreamingRadio(selected_radio_url, member, text_channel)
+            await text_channel.send(f"Cargando {selected_city['items'][radio_id]['name']}")
+            await self.voice.playStreamingRadio(selected_radio_url, member.voice.channel, text_channel)
         except Exception as e:
             print(str(e))
             await text_channel.send("El numero de radio o la ciudad no existen")    
@@ -96,7 +95,7 @@ class MessageProcessor():
         if await self._isUserInVoiceChannel(message.author.voice, text_channel):
             return
         if not self.voice.isVoiceClientPlaying():
-            await text_channel.send("El bot no esta reproduciendo radio")
+            await text_channel.send("El bot no esta stremeando radio")
             return
         the_input = message.content.lower().split("-change-radio ")
         if self._inputValid(the_input):
@@ -108,20 +107,20 @@ class MessageProcessor():
             await self.handleShowRadios(text_channel)  
     
     async def handleStreamingRadio(self, message, text_channel):
-        if await self._isUserInVoiceChannel(message.author.voice, text_channel) and await self._isBotBusy(text_channel):
+        if await self._isUserInVoiceChannel(message.author.voice, text_channel) or await self._isBotBusy(text_channel):
             return
         the_input = message.content.lower().split("-start-radio ")
         if self._inputValid(the_input):
             await self._startRadioStreaming(the_input[1].split(" "), message.author, text_channel)
         else:
             await text_channel.send("-start-radio [ciudad] [numero de radio]")
-            await self.handleShowRadios(text_channel)  
-        
+            await self.handleShowRadios(text_channel)    
+    
     async def handleStopStreamingRadio(self, message, text_channel):
         await self.voice.stopStreaming()
             
     async def handleTextToVoiceTranslation(self, message, text_channel):
-        if await self._isUserInVoiceChannel(message.author.voice, text_channel) and await self._isBotBusy(text_channel):
+        if await self._isUserInVoiceChannel(message.author.voice, text_channel) or await self._isBotBusy(text_channel):
             return
         the_input = message.content.lower().split("-say ")
         if len(the_input) > 1:
@@ -156,7 +155,7 @@ class MessageProcessor():
     
     async def handleWant(self, message, text_channel):
         if len(message.split(" ")) >= 2:
-            options = ["si", "no", "tal vez", "deja de preguntar huevadas conchadetumadre", "anda chambea", "estas cagado del cerebro"]
+            options = ["si", "no", "tal vez", "deja de preguntar huevadas conchadetumadre", "anda chambea", "estas cagado del cerebro", "obvio", "si pe webon"]
             random_idx = random.randint(0, len(options) - 1)
             await text_channel.send(f"{options[random_idx]}")
         else:

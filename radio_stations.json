@@ -92,6 +92,24 @@
             }
         ]
     },
+    "berlin": {
+        "city": "Berlin",
+        "items": [
+            {
+                "name": "Energy Berlin",
+                "link": "http://185.52.127.162/de/33001/mp3_128.mp3?awparams=radio:NRJ-Berlin&listening-from-radio-garden"
+            }
+        ]
+    },
+    "valencia": {
+        "city": "Valencia",
+        "items": [
+            {
+                "name": "Popular FM",
+                "link": "https://streamingv2.shoutcast.com/popular-fm?listening-from-radio-garden"
+            }
+        ]
+    },
     "pvallarta": {
         "city": "Puerto Vallarta",
         "items": [

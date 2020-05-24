@@ -88,6 +88,32 @@ class BotBE():
 			print(str(e))
 			return Constants.COULD_NOT_DO_IT
 
+	def load_radios_config(self):
+		try:
+			return self.bot_svc.get_radios()
+		except Exception as e:
+			print(str(e))
+			return {}
+
+	def load_users_welcome_audios(self):
+		try:
+			return self.bot_svc.get_users_welcome_audios()
+		except Exception as e:
+			print(str(e))
+			return {}
+
+	def save_radios(self, radios_new):
+		try:
+			self.bot_svc.save_radios(radios_new)
+		except Exception as e:
+			print(str(e))
+
+	def save_users_welcome_audios(self, new_):
+		try:
+			self.bot_svc.save_users_welcome_audios(new_)
+		except Exception as e:
+			print(str(e))
+
 	async def check_alerts(self):
 		try: 
 			alerts = self.bot_svc.get_all_alerts()

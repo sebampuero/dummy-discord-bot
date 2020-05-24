@@ -5,12 +5,17 @@ import asyncio
 import logging
 import discord
 import io
+from . import opus
+import subprocess
+import time
 """
 NetworkUtils is responsible for managing and processing all network related requests
 """
 
 class NetworkUtils():
     
+    STREAM_BUFFER_SIZE = 80000
+
     def __init__(self):
         self.base_headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3',
@@ -23,6 +28,13 @@ class NetworkUtils():
     def setStreamingFlag(self, stream):
         self.stream = stream
     
+    async def checkConnectionStatusForSite(self, url, headers=None):
+        headers = dict(self.base_headers, **headers) if headers else self.base_headers
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, headers=headers) as response:
+                return response.status
+        
+
     async def getAndSaveTtsLoquendoVoice(self, text, voice="Jorge", language="Spanish (Spain)"):
         url = "http://nuancevocalizerexpressive.sodels.com/"
         headers = {
@@ -80,8 +92,11 @@ class NetworkUtils():
                         return ""
                 else:
                     return ""
-                
-    def startMp3StreamingDownload(self, url):
+
+    def streaming(self, url, client, buffer_size=STREAM_BUFFER_SIZE):
+        encoder = opus.Encoder()
+        DELAY = encoder.FRAME_LENGTH / 1000.0
+        play_audio = client.send_audio_packet
         headers = {
             'Accept-Encoding': 'identity;q=1, *;q=0',
             'accept': "*/*",
@@ -94,18 +109,26 @@ class NetworkUtils():
             "Sec-Fetch-Site": "cross-site"
         }
         headers = dict(self.base_headers, **headers)
-        loop = 1
-        file_counter = 0
-        audio_data = b""
         r = requests.get(url, stream=True)
-        for data in r.iter_content(1024):
-            audio_data += data
-            if loop % 40 == 0:
-                f = open(f"./assets/audio/streamings/{file_counter}.mp3", "wb")
-                f.write(audio_data)
-                f.close()
-                file_counter += 1
-                audio_data = b''
-            loop += 1
-            if not self.stream:
-                break
+        if r.status_code == 200:
+            for data in r.iter_content(buffer_size):
+                if not self.stream or not client.is_connected():
+                    r.connection.close()
+                    break
+                args = []
+                args.extend(('ffmpeg','-i','-','-f', 's16le', '-ar', '48000', '-ac', '2', '-loglevel', 'warning', 'pipe:1'))
+                process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=None, stdin=subprocess.PIPE)
+                process.stdin.write(data)
+                process.stdin.close()
+                pcm = process.stdout.read(encoder.FRAME_SIZE)
+                loops = 0
+                _start = time.perf_counter()
+                while pcm:
+                    loops += 1
+                    encoded_data = encoder.encode(pcm, encoder.SAMPLES_PER_FRAME)
+                    play_audio(encoded_data, encode=False)
+                    next_time = _start + DELAY * loops
+                    delay = max(0, DELAY + (next_time - time.perf_counter()))
+                    time.sleep(delay)
+                    pcm = process.stdout.read(encoder.FRAME_SIZE)
+                process.kill()

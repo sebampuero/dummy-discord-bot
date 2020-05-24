@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify, render_template
 from Utils.NetworkUtils import NetworkUtils
 import Constants.StringConstants as Constants
+from BE.BotBE import BotBE
 
 async def say(data, guild, text_channel, voice):
     text = str(data["text"]).lower()
@@ -22,6 +23,13 @@ async def sendDm(data, guild):
         if member_name in str(member.display_name.lower()):
             dm_channel = await member.create_dm()
             await dm_channel.send(text)
+
+async def changeRadio(data, guild, text_channel, voice):
+    #url = str(data["url"])
+    #vc = str(data["voice_channel"])
+    #voice_channel = guild.get_channel()
+    #await voice.playStreamingRadio(url, voice_channel, text_channel)
+    pass
     
 def get_bot_blueprint(guild, voice, text_channel, event_loop):
     
@@ -53,6 +61,26 @@ def get_bot_blueprint(guild, voice, text_channel, event_loop):
             data = request.json
             event_loop.create_task(sendDm(data, guild))
             return jsonify({'message': 'OK'}), 201
+        except Exception as e:
+            print(str(e))
+            return jsonify({'message': Constants.THERE_WAS_AN_ERROR}), 500
+
+    @bot_blueprint.route("/radios", methods=["GET"])
+    def showRadios():
+        try:
+            botBE = BotBE()
+            radios = botBE.load_radios_config()
+            return jsonify(radios), 200
+        except Exception as e:
+            print(str(e))
+            return jsonify({'message': Constants.THERE_WAS_AN_ERROR}), 500
+
+    @bot_blueprint.route("/radios", methods=["POST"])
+    def changeRadio():
+        try:
+            data = request.json
+            event_loop.create_task(changeRadio(data, guild, text_channel, voice))
+            return jsonify({'message': 'OK'}), 200
         except Exception as e:
             print(str(e))
             return jsonify({'message': Constants.THERE_WAS_AN_ERROR}), 500

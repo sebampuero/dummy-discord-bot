@@ -52,9 +52,7 @@ async def deleteMp3FilesPeriodically():
     while True:
         if not voice.isVoiceClientPlaying():
             deleter_thread = FileDeleterThread("LoquendoDeleter", "./assets/audio/loquendo", "^\w+\.mp3$")
-            deleter_thread2 = FileDeleterThread("RadioMp3Deleter", "./assets/audio/streamings", "^\w+\.mp3$")
             deleter_thread.start()
-            deleter_thread2.start()
         await asyncio.sleep(600)
 
 async def measureHeartBeat():
