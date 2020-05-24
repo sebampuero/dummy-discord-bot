@@ -5,9 +5,9 @@ import asyncio
 import logging
 import discord
 import io
-from . import opus
 import subprocess
 import time
+import discord
 """
 NetworkUtils is responsible for managing and processing all network related requests
 """
@@ -94,9 +94,6 @@ class NetworkUtils():
                     return ""
 
     def streaming(self, url, client, buffer_size=STREAM_BUFFER_SIZE):
-        encoder = opus.Encoder()
-        DELAY = encoder.FRAME_LENGTH / 1000.0
-        play_audio = client.send_audio_packet
         headers = {
             'Accept-Encoding': 'identity;q=1, *;q=0',
             'accept': "*/*",
@@ -120,15 +117,9 @@ class NetworkUtils():
                 process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=None, stdin=subprocess.PIPE)
                 process.stdin.write(data)
                 process.stdin.close()
-                pcm = process.stdout.read(encoder.FRAME_SIZE)
-                loops = 0
-                _start = time.perf_counter()
-                while pcm:
-                    loops += 1
-                    encoded_data = encoder.encode(pcm, encoder.SAMPLES_PER_FRAME)
-                    play_audio(encoded_data, encode=False)
-                    next_time = _start + DELAY * loops
-                    delay = max(0, DELAY + (next_time - time.perf_counter()))
-                    time.sleep(delay)
-                    pcm = process.stdout.read(encoder.FRAME_SIZE)
+                audio_source = discord.PCMAudio(process.stdout)
+                client.play(audio_source)
+                while client.is_playing():
+                    time.sleep(0.001)
+                    pass
                 process.kill()
