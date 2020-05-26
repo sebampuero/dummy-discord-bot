@@ -10,27 +10,15 @@ class Alert():
     def __init__(self):
         self.bot_be = BotBE()
         
-    async def handleAlertSet(self, message, text_channel):
-        alert_msg = message.content.split(" ")
-        if len(alert_msg) == 4:
-            url = alert_msg[1].strip()
-            price_range = alert_msg[2].strip()
-            currency = alert_msg[3].strip()
-            ack = self.bot_be.set_alert(str(url), str(price_range), str(currency), str(message.author.id))
-            await text_channel.send(ack)
-        else:
-            await text_channel.send(Constants.BAD_FORMATTED_ALERT)
+    async def handle_alert_set(self, url, price_range, currency, ctx):
+        ack = self.bot_be.set_alert(str(url), str(price_range), str(currency), str(ctx.author.id))
+        await ctx.send(ack)
         
-    async def handleUnsetAlert(self, message, text_channel):
-        alert_msg = message.content.split(" ")
-        if len(alert_msg) == 2:
-            url = alert_msg[1].strip()
-            ack = self.bot_be.unset_alert(str(url), str(message.author.id))
-            await text_channel.send(ack)
-        else:
-            await text_channel.send(Constants.BAD_FORMATTED_UNSET_ALERT)
+    async def handle_unset_alert(self, url, ctx):
+        ack = self.bot_be.unset_alert(str(url), str(ctx.author.id))
+        await ctx.send(ack)
             
-    async def checkAlerts(self, client, text_channel):
+    async def check_alerts(self, client, text_channel):
         await client.wait_until_ready()
         while not client.is_closed():
             try:

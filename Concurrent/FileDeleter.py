@@ -15,5 +15,5 @@ class FileDeleterThread(OurThread):
     def run(self):
        # paths = ["./assets/audio/loquendo", "./assets/audio/streamings"]
         # pattern = "^\w+\.mp3$"
-        self.file_utils.removeFilesInDir(self.path, self.pattern)
+        self.file_utils.remove_files_in_dir(self.path, self.pattern)
             

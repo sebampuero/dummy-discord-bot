@@ -23,8 +23,7 @@ class BotBE():
 		if size > 0:
 			random_quote_idx = random.randint(0, size - 1)
 			quote_msg = quotes[random_quote_idx][2]
-			quote_timestamp = quotes[random_quote_idx][1]
-			return f"{quote_msg}"
+			return str(quote_msg)
 		else:
 			return ""
 
@@ -88,6 +87,21 @@ class BotBE():
 			print(str(e))
 			return Constants.COULD_NOT_DO_IT
 
+	def load_radios_msg(self):
+		try:
+			radios = self.bot_svc.get_radios()
+			msg = ""
+			for key, value in radios.items():
+					msg = msg + f"Ciudad: `{str(key)}` \n"
+					loop = 0
+					for radio in value["items"]:
+						loop += 1
+						msg = msg + f" `{loop}` " + radio["name"] + "\n"
+			return msg
+		except Exception as e:
+			print(str(e))
+			return ""
+	
 	def load_radios_config(self):
 		try:
 			return self.bot_svc.get_radios()

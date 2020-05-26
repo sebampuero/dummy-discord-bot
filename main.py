@@ -6,103 +6,78 @@ from Voice import Voice
 from Subscription import Subscription
 from Alert import Alert
 from Quote import Quote
-from MessageProcessor import MessageProcessor
-from ServerManager import ServerManager
-from Concurrent.FileDeleter import FileDeleterThread
 from Concurrent.Server import Server
+from Utils.FileUtils import FileUtils
+from discord.ext import commands
+from CommandsProcessor import Commands
 
-"""
-Main bot class
-@author Sebastian Ampuero
-@date 30.04.2020
-"""
+class CustomContext(commands.Context):
+    """
+    This class will define several custom functions for our messaging context
+    """
+    pass
+
+class ChismositoBot(commands.Bot):
+
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.voice = Voice(self)
+        self.subscription = Subscription()
+        self.quote = Quote()
+        self.alert = Alert()
+        self.chat_channel = None
+
+    def set_chat_channel(self, guild, chat_channel):
+        self.chat_channel = chat_channel
+
+    def start_bg_tasks(self):
+        self.loop.create_task(self.quote.show_daily_quote(self, self.chat_channel))
+        self.loop.create_task(self.alert.check_alerts(self, self.chat_channel))
+        self.init_server()
+
+    def init_server(self):
+        server_thread = Server("FlaskServerThread")
+        server_thread.set_voice(self.voice)
+        server_thread.set_client(self)
+        server_thread.set_chat_channel(self.chat_channel)
+        server_thread.start()
+
+    async def get_context(self, message, *, cls=CustomContext):
+        return await super().get_context(message, cls=cls)
+
+    async def on_ready(self):  
+        print(f'We have logged in as {self.user}')  # notification of login.
+        self.loop.create_task(self.deleteMp3FilesPeriodically())
+        for channel in self.get_all_channels():
+            if str(channel) == "chat": #test
+                self.chat_channel = channel
+        Commands(self, self.voice, self.subscription, self.quote, self.alert)
+        self.start_bg_tasks()
+
+    async def deleteMp3FilesPeriodically(self):
+        while not self.is_closed() and not self.voice.is_voice_client_speaking():
+            FileUtils.remove_files_in_dir("./assets/audio/loquendo", "^\w+\.mp3$")
+            await asyncio.sleep(1200)
+    
+    async def on_disconnect(self):
+        logging.warning("Disconnected, is there internet connection?")
+
+    async def on_connect(self):
+        logging.warning("We are connected")
+     
+    async def on_resumed(self):
+        logging.warning("Resumed session")
+
+    async def on_voice_state_update(self, member, before, after):
+        if member == self.user:
+            return
+        if self.voice.entered_voice_channel(before, after):
+            await self.voice.notify_subscribers_user_joined_voice_chat(member, after.channel, self)
+            await self.voice.play_welcome_audio(member, after.channel)
+
+
 logging.basicConfig(format='%(asctime)s %(message)s')
 token = open("token.txt", "r").read()
-client = discord.Client(activity=discord.Activity(type=discord.ActivityType.watching, name=StringConstants.ASS_DANI))  # starts the discord client.
-voice = Voice(client)
-subscription = Subscription()
-quote = Quote()
-alert = Alert()
-server_manager = ServerManager()
-message_processor = MessageProcessor(voice, subscription, quote, alert, server_manager)
-server_thread = Server("FlaskServerThread")
-
-is_first_connection = True
-
-@client.event  
-async def on_ready():  
-    print(f'We have logged in as {client.user}')  # notification of login.
-    global general_text_chat, daxo_guild, is_first_connection
-    daxo_guild = client.get_guild(451813158290587649) #689198522930823271
-    for channel in client.get_all_channels():
-        if str(channel) == "chat": #test
-            general_text_chat = channel
-    if is_first_connection:
-        init_threads()
-        is_first_connection = False
-    else:
-        await message_processor.handleOnResumed(general_text_chat)
-    client.loop.create_task(quote.showDailyQuote(client, general_text_chat))
-    client.loop.create_task(alert.checkAlerts(client, general_text_chat))
-    client.loop.create_task(server_manager.showServerStats(client, daxo_guild, general_text_chat))
-    client.loop.create_task(measureHeartBeat())
-    client.loop.create_task(deleteMp3FilesPeriodically())
-
-async def deleteMp3FilesPeriodically():
-    while True:
-        if not voice.isVoiceClientPlaying():
-            deleter_thread = FileDeleterThread("LoquendoDeleter", "./assets/audio/loquendo", "^\w+\.mp3$")
-            deleter_thread.start()
-        await asyncio.sleep(600)
-
-async def measureHeartBeat():
-    while True:
-        latency = client.latency * 1000
-        await asyncio.sleep(60)
-        if latency > 2000:
-            await general_text_chat.send(f"{StringConstants.BAD_PING} {round(latency, 2)} ms")
-
-def init_threads():
-    server_thread.setVoice(voice)
-    server_thread.setGuild(daxo_guild)
-    server_thread.setChatChannel(general_text_chat)
-    server_thread.start()
-
-@client.event
-async def on_member_join(member):
-    await message_processor.saluteNewMember(member, general_text_chat)
-
-@client.event
-async def on_message(message):  # event that happens per any message.
-    if message.author == client.user:
-        return
-    await message_processor.handleAllMessages(message, general_text_chat)
-
-@client.event
-async def on_voice_state_update(member, before, after):
-    if member == client.user:
-        return
-    if voice.isVoiceStateValid(before, after):
-        await voice.notifySubscribersUserJoinedVoiceChat(member, after, client)
-        await voice.playWelcomeAudio(member, after)
-        
-@client.event
-async def on_disconnect():
-    logging.warning("Disconnected, is there internet connection?")
-
-@client.event
-async def on_connect():
-    logging.warning("We are connected")
-
-@client.event     
-async def on_resumed():
-    logging.warning("Resumed session")
-
-loop = asyncio.get_event_loop()
-try:
-    loop.run_until_complete(client.start(token))
-except KeyboardInterrupt:
-    loop.run_until_complete(client.logout())
-    # cancel all tasks lingering
-finally:
-    loop.close()
+client = ChismositoBot(command_prefix="-")
+client.run(token)

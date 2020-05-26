@@ -74,15 +74,6 @@
             }
         ]
     },
-    "irk": {
-        "city": "Irkutsk",
-        "items": [
-            {
-                "name": "Русский Рок",
-                "link": "http://46.105.180.202:8092/autodj?listening-from-radio-garden"
-            }
-        ]
-    },
     "munich": {
         "city": "Munich",
         "items": [
@@ -125,6 +116,30 @@
             {
                 "name": "Big B Radio - Jpop",
                 "link": "http://64.71.79.181:6045/stream?listening-from-radio-garden"
+            }
+        ]
+    }
+    ,
+    "toulouse": {
+        "city": "Toulouse",
+        "items": [
+            {
+                "name": "Toulouse FM",
+                "link": "http://mediam.streamakaci.com/toulousefm.mp3?listening-from-radio-garden"
+            }
+        ]
+    }
+    ,
+    "tarapoto": {
+        "city": "Tarapoto",
+        "items": [
+            {
+                "name": "Red FM Tarapoto Full Techno",
+                "link": "https://whmsonic.playerfullhd.com:7310/;?listening-from-radio-garden"
+            },
+            {
+                "name": "Full Cumbia potos tragoo",
+                "link": "https://whmsonic.playerfullhd.com:7311/;?listening-from-radio-garden"
             }
         ]
     }

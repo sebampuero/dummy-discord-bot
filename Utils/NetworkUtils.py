@@ -23,14 +23,14 @@ class NetworkUtils():
             'Accept-Encoding': 'gzip, deflate'
         }
     
-    async def checkConnectionStatusForSite(self, url, headers=None):
+    async def check_connection_status_for_site(self, url, headers=None):
         headers = dict(self.base_headers, **headers) if headers else self.base_headers
         async with aiohttp.ClientSession() as session:
             async with session.get(url, headers=headers) as response:
                 return response.status
         
 
-    async def getAndSaveTtsLoquendoVoice(self, text, voice="Jorge", language="Spanish (Spain)"):
+    async def get_loquendo_voice(self, text, voice="Jorge", language="Spanish (Spain)"):
         url = "http://nuancevocalizerexpressive.sodels.com/"
         headers = {
             'pragma': 'no-cache',
@@ -74,7 +74,7 @@ class NetworkUtils():
                     logging.error("Failed downloading with status 500", exc_info=True)
                     return ""
                 
-    async def getContentFromPage(self, url, headers=None):
+    async def get_content_from_page(self, url, headers=None):
         headers = dict(self.base_headers, **headers) if headers else self.base_headers
         async with aiohttp.ClientSession() as session:
             async with session.get(url, headers=headers) as response:

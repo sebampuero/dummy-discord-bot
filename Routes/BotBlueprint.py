@@ -10,29 +10,16 @@ async def say(data, guild, text_channel, voice):
     for member in guild.members:
         if member_name in str(member.display_name.lower()) and member.voice != None:
             network_utils = NetworkUtils()
-            audio_filename = await network_utils.getAndSaveTtsLoquendoVoice(text, voice=loquendo_voice)
+            audio_filename = await network_utils.get_loquendo_voice(text, voice=loquendo_voice)
             if audio_filename != "":
-                await voice.reproduceFromFile(member, audio_filename)
+                await voice.reproduce_from_file(member, audio_filename)
             else:
                 await text_channel.send(f"No se pudo reproducir '{text}', seguramente se fue a la mierda la pagina de loquendo")
-
-async def sendDm(data, guild):
-    text = str(data["text"]).strip()
-    member_name = str(data["to"]).lower().strip()
-    for member in guild.members:
-        if member_name in str(member.display_name.lower()):
-            dm_channel = await member.create_dm()
-            await dm_channel.send(text)
-
-async def changeRadio(data, guild, text_channel, voice):
-    #url = str(data["url"])
-    #vc = str(data["voice_channel"])
-    #voice_channel = guild.get_channel()
-    #await voice.playStreamingRadio(url, voice_channel, text_channel)
-    pass
     
-def get_bot_blueprint(guild, voice, text_channel, event_loop):
+def get_bot_blueprint(client, voice, text_channel, event_loop):
     
+    guild = client.get_guild(451813158290587649)
+
     bot_blueprint = Blueprint("bot", __name__)
     
     @bot_blueprint.route("/")
@@ -44,43 +31,13 @@ def get_bot_blueprint(guild, voice, text_channel, event_loop):
         return render_template("index.html", members=members_list_with_voice)
     
     @bot_blueprint.route("/say", methods=["POST"])
-    def reproduceFromText():
+    def reproduce_from_text():
         try:
-            if voice.isVoiceClientSpeaking():
+            if voice.is_voice_client_speaking():
                 return jsonify({'message': Constants.BOT_BUSY_RESPONSE}), 200
             data = request.json
             event_loop.create_task(say(data, guild, text_channel, voice))
             return jsonify({'message': Constants.TRYING_REPR_AUDIO}), 201
-        except Exception as e:
-            print(str(e))
-            return jsonify({'message': Constants.THERE_WAS_AN_ERROR}), 500
-        
-    @bot_blueprint.route("/dm", methods=["POST"])
-    def privateMessage():
-        try:
-            data = request.json
-            event_loop.create_task(sendDm(data, guild))
-            return jsonify({'message': 'OK'}), 201
-        except Exception as e:
-            print(str(e))
-            return jsonify({'message': Constants.THERE_WAS_AN_ERROR}), 500
-
-    @bot_blueprint.route("/radios", methods=["GET"])
-    def showRadios():
-        try:
-            botBE = BotBE()
-            radios = botBE.load_radios_config()
-            return jsonify(radios), 200
-        except Exception as e:
-            print(str(e))
-            return jsonify({'message': Constants.THERE_WAS_AN_ERROR}), 500
-
-    @bot_blueprint.route("/radios", methods=["POST"])
-    def changeRadio():
-        try:
-            data = request.json
-            event_loop.create_task(changeRadio(data, guild, text_channel, voice))
-            return jsonify({'message': 'OK'}), 200
         except Exception as e:
             print(str(e))
             return jsonify({'message': Constants.THERE_WAS_AN_ERROR}), 500

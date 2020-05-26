@@ -25,7 +25,7 @@ class Soup():
         }
         tag = "span"
         class_ = "offer__price price"
-        response = await self.network_utils.getContentFromPage(url, headers=headers)
+        response = await self.network_utils.get_content_from_page(url, headers=headers)
         soup = BeautifulSoup(response,  "html.parser")
         element = soup.find_all(tag, class_= class_, limit=2)
         if len(element) > 0:
@@ -40,7 +40,7 @@ class Soup():
         id = "priceblock_ourprice"
         tag = "span"
         
-        response = await self.network_utils.getContentFromPage(url)
+        response = await self.network_utils.get_content_from_page(url)
         soup = BeautifulSoup(response, features = "lxml")
         element = soup.find(tag, id = id)
         if element != None:
