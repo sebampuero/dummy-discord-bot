@@ -29,36 +29,84 @@ class RadioSource(StreamSource):
         self.name = radio_name
         super().__init__(discord.FFmpegPCMAudio(url), url, volume=0.3)
 
-class Voice():
-    
-    OPUS_LIBS = ['libopus-0.x86.dll', 'libopus-0.x64.dll', 'libopus-0.dll', 'libopus.so.0', 'libopus.0.dylib']
+class VoiceManager:
+
     COUNTER_IDLE_TIMEOUT = 1
-    
-    def __init__(self, client):
-        self.client = client
+
+    def __init__(self):
         self.welcome_audios_queue = []
-        self.bot_be = BotBE()
-        self.load_opus_libs()
         self.idle_counter = 0
         self.started_counter_flag = False
         self.is_streaming = False
         self.is_speaking = False
         self.current_streaming_url = None
-        
-    async def _init_counter_voice_idle_timeout(self, counter_idle_timeout=COUNTER_IDLE_TIMEOUT):
+        self.voice_client = None
+
+    async def init_counter_voice_idle_timeout(self, counter_idle_timeout=COUNTER_IDLE_TIMEOUT):
         if not self.started_counter_flag:
             self.started_counter_flag = True
             while True:
                 await asyncio.sleep(1)
-                if not self.client.voice_clients[0].is_playing():
+                if not self.voice_client.is_playing():
                     self.idle_counter = self.idle_counter + 1
                     if self.idle_counter == counter_idle_timeout:
                         self.started_counter_flag = False
                         await self.disconnect()
                         break
 
-    def _restart_counter_voice_idle_timeout(self):
+    def restart_counter_voice_idle_timeout(self):
         self.idle_counter = 0
+
+    def after_speaking(self, error):
+        self.is_speaking = False
+        if self.is_streaming:
+            self.resume_streaming()
+
+    def resume_streaming(self):
+        if self.current_streaming_url:
+            self.voice_client.play(RadioSource(self.current_streaming_url, "")) # TODO: CHECK
+
+    async def disconnect(self):
+        if self.voice_client != None:
+            if self.voice_client.is_connected():
+                logging.warning(f"Disconnected from channel {self.voice_client.channel}")
+                await self.voice_client.disconnect()
+                self.current_streaming_url = None
+                self.is_streaming = False
+                self.is_speaking = False
+                
+    def is_voice_client_playing(self):
+        if self.voice_client != None:
+            return self.voice_client.is_playing()
+        return False
+
+    def is_voice_client_speaking(self):
+        return self.is_speaking
+
+    def is_voice_client_streaming(self):
+        return self.is_streaming
+        
+    def stop_player(self):
+        if self.voice_client != None:
+            self.voice_client.stop()
+
+    def set_volume_for_voice_client(self, volume):
+        self.voice_client.source.volume = volume
+
+class Voice():
+    
+    OPUS_LIBS = ['libopus-0.x86.dll', 'libopus-0.x64.dll', 'libopus-0.dll', 'libopus.so.0', 'libopus.0.dylib']
+    
+    def __init__(self, client):
+        self.client = client
+        self.bot_be = BotBE()
+        self.load_opus_libs()
+        self._populate_voice_managers()
+
+    def _populate_voice_managers(self):
+        self.guild_to_voice_manager_map = {}
+        for guild in self.client.guilds:
+            self.guild_to_voice_manager_map[guild.id] = VoiceManager()
             
     async def deactivate_welcome_audio(self, chat_channel):
         message = chat_channel.message
@@ -91,117 +139,109 @@ class Voice():
             await self.reproduce_from_file(member, "./assets/audio/vladimir.mp3")
         except Exception as e:
             logging.error("While saying good night", exc_info=True)
-            
-    def _after_talking(self, error):
-        self.is_speaking = False
-        if self.is_streaming:
-            self._resume_streaming()
 
-    def _resume_streaming(self):
-        if self.current_streaming_url:
-            self.client.voice_clients[0].play(RadioSource(self.current_streaming_url, "")) # TODO: CHECK
+    def is_voice_speaking_for_guild(self, guild):
+        vmanager = self.guild_to_voice_manager_map.get(guild.id)
+        return vmanager.is_voice_client_speaking()
+
+    def is_voice_playing_for_guild(self, guild):
+        vmanager = self.guild_to_voice_manager_map.get(guild.id)
+        return vmanager.is_voice_client_playing()
+
+    def is_voice_streaming_for_guild(self, guild):
+        vmanager = self.guild_to_voice_manager_map.get(guild.id)
+        return vmanager.is_voice_client_streaming()
+
+    def stop_player_for_guild(self, guild):
+        vmanager = self.guild_to_voice_manager_map.get(guild.id)
+        return vmanager.stop_player()
+
+    def set_volume_for_guild(self, volume, guild):
+        vmanager = self.guild_to_voice_manager_map.get(guild.id)
+        vmanager.set_volume_for_voice_client(volume / 100.0)
+
+    async def disconnect_player_for_guild(self, guild):
+        vmanager = self.guild_to_voice_manager_map.get(guild.id)
+        await vmanager.disconnect()
 
     async def reproduce_from_file(self, member, audio_filename):
+        vmanager = self.guild_to_voice_manager_map.get(member.guild.id)
         try:
             vc = member.voice.channel
-            member_guild = member.guild
             if discord.opus.is_loaded():
-                self._restart_counter_voice_idle_timeout()
-                if len(self.client.voice_clients) == 0:
-                    await vc.connect()
+                vmanager.restart_counter_voice_idle_timeout()
+                if vmanager.voice_client == None or not vmanager.voice_client.is_connected():
+                    vmanager.voice_client = await vc.connect()
                 audio_source = LocalfileSource(audio_filename)
-                if self.is_streaming and vc == self.client.voice_clients[0].channel:
-                    self.stop_player()
-                if not self.client.voice_clients[0].is_playing():
-                    self.is_speaking = True
-                    self.client.voice_clients[0].play(audio_source, after=self._after_talking)
-                    if not self.is_streaming:
-                        await self._init_counter_voice_idle_timeout()
+                if vmanager.is_voice_client_streaming() and vc == vmanager.voice_client.channel:
+                    vmanager.stop_player()
+                if not vmanager.is_voice_client_playing():
+                    vmanager.is_speaking = True
+                    vmanager.voice_client.play(audio_source, after=vmanager.after_speaking)
+                    if not vmanager.is_voice_client_streaming():
+                        await vmanager.init_counter_voice_idle_timeout()
         except Exception as e:
             logging.error("While reproducing from file", exc_info=True)
-            await self.disconnect()
-            
+            await vmanager.disconnect()
+
     async def play_welcome_audio(self, member, voice_channel):
+        guild_id = member.guild.id
+        vmanager = self.guild_to_voice_manager_map.get(guild_id)
         try:  
-            member_guild = member.guild
             user_ids_to_audio_map = self.bot_be.load_users_welcome_audios()
-            if not str(member.id) in user_ids_to_audio_map or not user_ids_to_audio_map[str(member.id)]["active"]:
+            if not str(member.id) in user_ids_to_audio_map or not user_ids_to_audio_map[str(member.id)]["active"] or not str(guild_id) in user_ids_to_audio_map[str(member.id)]:
                 return
-            audio_files_list = user_ids_to_audio_map[str(member.id)]["audio_files"]
+            audio_files_list = user_ids_to_audio_map[str(member.id)][str(guild_id)]
             random_idx = random.randint(0, len(audio_files_list) - 1)
             audio_file_name = audio_files_list[random_idx]
             if discord.opus.is_loaded():
-                self._restart_counter_voice_idle_timeout()
-                if len(self.client.voice_clients) == 0:
-                    await voice_channel.connect()
+                vmanager.restart_counter_voice_idle_timeout()
+                if vmanager.voice_client == None or not vmanager.voice_client.is_connected():
+                    vmanager.voice_client = await voice_channel.connect()
                 first_audio_source = LocalfileSource(audio_file_name)
-                if self.is_streaming and voice_channel != self.client.voice_clients[0].channel:
+                if vmanager.is_voice_client_streaming() and voice_channel != vmanager.voice_client.channel:
                     return
-                if self.is_streaming:
-                    self.stop_player() #TODO: Think of a better logic
-                self.is_speaking = True 
-                if self.client.voice_clients[0].is_playing():
-                    self.welcome_audios_queue.append(first_audio_source)
+                if vmanager.is_voice_client_streaming():
+                    vmanager.stop_player() #TODO: Think of a better logic
+                vmanager.is_speaking = True 
+                if vmanager.is_voice_client_playing():
+                    vmanager.welcome_audios_queue.append(first_audio_source)
                     while True:
-                        if not self.client.voice_clients[0].is_playing():
-                            audio_source = self.welcome_audios_queue.pop()
-                            self.client.voice_clients[0].play(audio_source, after=self._after_talking)
-                            if len(self.welcome_audios_queue) == 0:
+                        if not vmanager.is_voice_client_playing():
+                            audio_source = vmanager.welcome_audios_queue.pop()
+                            vmanager.voice_client.play(audio_source, after=vmanager.after_speaking)
+                            if len(vmanager.welcome_audios_queue) == 0:
                                 break
                 else:
-                    self.client.voice_clients[0].play(first_audio_source, after=self._after_talking)
-                    if not self.is_streaming:
-                        await self._init_counter_voice_idle_timeout()
+                    vmanager.voice_client.play(first_audio_source, after=vmanager.after_speaking)
+                    if not vmanager.is_voice_client_streaming():
+                        await vmanager.init_counter_voice_idle_timeout()
         except Exception as e:
-            await self.disconnect()
+            await vmanager.disconnect()
             logging.error("While playing welcome audio", exc_info=True)
 
     async def play_streaming(self, url, ctx, radio_name):
+        vmanager = self.guild_to_voice_manager_map.get(ctx.guild.id)
         try:
-            member_guild = ctx.author.guild
             vc = ctx.author.voice.channel
             if discord.opus.is_loaded():
-                if len(self.client.voice_clients) == 0:
-                    await vc.connect()
-                if self.client.voice_clients[0].channel != vc:
-                    await self.client.voice_clients[0].move_to(vc)
-                if not self.client.voice_clients[0].is_playing():
+                if vmanager.voice_client == None or not vmanager.voice_client.is_connected():
+                    vmanager.voice_client = await vc.connect()
+                if vmanager.voice_client.channel != vc:
+                    await vmanager.voice_client.move_to(vc)
+                if not vmanager.is_voice_client_playing():
                     net_utils = NetworkUtils()
                     if await net_utils.check_connection_status_for_site(url) != 200:
                         await ctx.send(f"Se jodio esta radio {url}")
                         return
                     player = RadioSource(url, radio_name)
-                    self.current_streaming_url = url
-                    self.is_streaming = True
-                    self.client.voice_clients[0].play(player)
+                    vmanager.current_streaming_url = url
+                    vmanager.is_streaming = True
+                    vmanager.voice_client.play(player)
                     await ctx.send(f"Reproduciendo {radio_name}")
         except Exception as e:
-            await self.disconnect()
+            await vmanager.disconnect()
             logging.error("While streaming audio", exc_info=True)
-    
-    async def disconnect(self):
-        if len(self.client.voice_clients) > 0:
-            if self.client.voice_clients[0].is_connected():
-                logging.warning(f"Disconnected from channel {self.client.voice_clients[0].channel}")
-                await self.client.voice_clients[0].disconnect()
-                self.current_streaming_url = None
-                self.is_streaming = False
-                self.is_speaking = False
-                
-    def is_voice_client_playing(self):
-        if len(self.client.voice_clients) > 0:
-            return self.client.voice_clients[0].is_playing()
-        return False
-
-    def is_voice_client_speaking(self):
-        return self.is_speaking
-
-    def is_voice_client_streaming(self):
-        return self.is_streaming
-        
-    def stop_player(self):
-        if len(self.client.voice_clients) > 0:
-            self.client.voice_clients[0].stop()
             
     def load_opus_libs(self, opus_libs=OPUS_LIBS):
         if discord.opus.is_loaded():

@@ -20,8 +20,8 @@ class BotService():
 	def get_subscribers_from_subscribee(self, subscribee):
 		return self.dao.get_subscribers_from_subscribee(subscribee)
 
-	def add_quote(self, quote):
-		self.dao.add_quote(quote)
+	def add_quote(self, quote, member_id):
+		self.dao.add_quote(quote, member_id)
 
 	def get_all_quotes(self):
 		return self.dao.get_all_quotes()

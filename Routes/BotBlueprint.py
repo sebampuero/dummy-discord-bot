@@ -16,9 +16,10 @@ async def say(data, guild, text_channel, voice):
             else:
                 await text_channel.send(f"No se pudo reproducir '{text}', seguramente se fue a la mierda la pagina de loquendo")
     
-def get_bot_blueprint(client, voice, text_channel, event_loop):
+def get_bot_blueprint(client, voice, event_loop):
     
     guild = client.get_guild(451813158290587649)
+    text_channel = client.get_channel(451813158747635723)
 
     bot_blueprint = Blueprint("bot", __name__)
     
@@ -33,7 +34,7 @@ def get_bot_blueprint(client, voice, text_channel, event_loop):
     @bot_blueprint.route("/say", methods=["POST"])
     def reproduce_from_text():
         try:
-            if voice.is_voice_client_speaking():
+            if voice.is_voice_speaking_for_guild(guild):
                 return jsonify({'message': Constants.BOT_BUSY_RESPONSE}), 200
             data = request.json
             event_loop.create_task(say(data, guild, text_channel, voice))

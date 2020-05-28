@@ -18,7 +18,7 @@ class Alert():
         ack = self.bot_be.unset_alert(str(url), str(ctx.author.id))
         await ctx.send(ack)
             
-    async def check_alerts(self, client, text_channel):
+    async def check_alerts(self, client):
         await client.wait_until_ready()
         while not client.is_closed():
             try:
@@ -28,7 +28,9 @@ class Alert():
                     for alert in alerts_list:
                         user_id = alert[0]
                         url = alert[1]
-                        await text_channel.send(f"{Constants.PRICE_ALERT_REACHED} {url} <@!{user_id}>")
+                        a_member = await client.fetch_user(user_id)
+                        dm_channel = await a_member.create_dm()
+                        await dm_channel.send(f"{Constants.PRICE_ALERT_REACHED} {url} <@!{user_id}>")
                 await asyncio.sleep(10)
             except Exception as e:
                 print(str(e) + " but no problem for check alerts")

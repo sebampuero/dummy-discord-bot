@@ -6,135 +6,169 @@ import Constants.StringConstants as StringConstants
 import logging
 import random
 
-class Commands:
+class Commands(commands.Cog):
 
     def __init__(self, client, voice, subscription, quote, alert):
-        self._start_commands(BotBE(), client, voice, subscription, quote, alert)
+        self.client = client
+        self.voice = voice
+        self.subscription = subscription
+        self.quote = quote
+        self.alert = alert
+        self.bot_be = BotBE()
         
-    def _start_commands(self, bot_be, client, voice, subscription, quote, alert):
+    @commands.Cog.listener()
+    async def on_message(self, message):
+        if "quieres" in message.content.lower():
+            options = ["si", "no", "tal vez", "deja de preguntar huevadas conchadetumadre", "anda chambea", "estas cagado del cerebro", "obvio", "si pe webon"]
+            random_idx = random.randint(0, len(options) - 1)
+            await message.channel.send(f"{options[random_idx]}")
+            await self.client.process_commands(message)
+        elif "buenas noches" == message.content.lower():
+            if not await self._check_voice_status_invalid(message):
+                await self.voice.say_good_night(message.author)
 
-        @client.event
-        async def on_command_error(ctx, error):
-            if isinstance(error, commands.BadArgument) or isinstance(error, commands.MissingRequiredArgument):
-                await ctx.send("Formateaste mal tu mensaje. Escribe `--help`")
-            elif isinstance(error, commands.CommandNotFound):
-                await _help(ctx)
-            else:
-                logging.error(str(error), exc_info=True)
+    @commands.Cog.listener()
+    async def on_member_join(self, member):
+        guild_id = member.guild.id
+        common_text_channel = self.client.guild_to_common_chat_map[guild_id]
+        await common_text_channel.send(f"Hola {member.display_name}, bienvenido a este canal de mierda")
 
-        @client.command(aliases=["sub"])
-        async def subscribe(ctx, *args):
-            if len(args) == 0:
-                raise commands.BadArgument
-            await subscription.handle_subscribe(ctx.message.mentions, ctx)
+    @commands.Cog.listener()
+    async def on_command_error(self, ctx, error):
+        if isinstance(error, commands.BadArgument) or isinstance(error, commands.MissingRequiredArgument):
+            await ctx.send("Formateaste mal tu mensaje. Escribe `--help`")
+        elif isinstance(error, commands.CommandNotFound):
+            await self._help(ctx)
+        else:
+            logging.error(str(error), exc_info=True)
 
-        @client.command(aliases=["unsub"])
-        async def unsubscribe(ctx, *args):
-            if len(args) == 0:
-                raise commands.BadArgument
-            await subscription.handle_unsubscribe(ctx.message.mentions, ctx)
-            
-        @client.command(aliases=["daily-quote", "quote"])
-        async def daily_quote(ctx, quote):
-            await quote.handle_quote_save(quote, ctx)
+    @commands.command(aliases=["sub"])
+    async def subscribe(self, ctx):
+        if len(ctx.message.mentions) == 0:
+            raise commands.BadArgument
+        await self.subscription.handle_subscribe(ctx.message.mentions, ctx)
 
-        @client.command(aliases=["set-alert", "sa"])
-        async def set_alert(ctx, url, price_range, currency):
-            await alert.handle_alert_set(url, price_range, currency, ctx)
+    @commands.command(aliases=["unsub"])
+    async def unsubscribe(self, ctx):
+        if len(ctx.message.mentions) == 0:
+            raise commands.BadArgument
+        await self.subscription.handle_unsubscribe(ctx.message.mentions, ctx)
+        
+    @commands.command(aliases=["daily-quote", "quote"])
+    async def daily_quote(self, ctx, quote):
+        await self.quote.handle_quote_save(quote, ctx)
 
-        @client.command(aliases=["unset-alert", "ua"])
-        async def unset_alert(ctx, url):
-            await alert.handle_unset_alert(url, ctx)
+    @commands.command(aliases=["set-alert", "sa"])
+    async def set_alert(self, ctx, url, price_range, currency):
+        await self.alert.handle_alert_set(url, price_range, currency, ctx)
 
-        @client.command(aliases=["-help", "/h"])
-        async def _help(ctx):
-            return await ctx.send("`-subscribe o -sub [tag]` 'Subscribirse a un webon para cuando entre a discord'\n" + 
-                                    "`-unsubscribe o -unsub [tag]` 'Desuscribirse'\n" +
-                                    "`-daily-quote o -quote [quote diario]` 'Mensaje diario del bot'\n" +
-                                    "`-set-alert o -sa [Link de juego G2A o item de amazon] [rango de precios objetivo] [Moneda(USD o EUR)]` 'Alerta de precios en amazon o G2A'\n" +
-                                    "`-unset-alert o -ua [Link de juego G2A o item de amazon]`\n" +
-                                    "`-audio-off o -off`  'Desactiva tu saludo'\n" +
-                                    "`-audio-on o -on` 'Activa tu saludo'\n" +
-                                    '`-say o -di o -dilo-mierda "[texto a decir]" [f] o [f2] (opcional)`\n' +
-                                    "`-start-radio o -sr [ciudad] [id de radio]`\n" +
-                                    "`-show-radios o -radios` 'Muestra las radios disponibles'\n" +
-                                    "`-stop-radio o -st`\n")
+    @commands.command(aliases=["unset-alert", "ua"])
+    async def unset_alert(self, ctx, url):
+        await self.alert.handle_unset_alert(url, ctx)
 
-        @client.command(aliases=["off", "audio-off"])
-        async def audio_off(ctx):
-            await voice.deactivate_welcome_audio(ctx)
+    @commands.command(aliases=["-help", "/h"])
+    async def _help(self, ctx):
+        return await ctx.send("-Subscribirse a un webon para cuando entre a discord `-subscribe o -sub [@nombre]`\n" + 
+                                "-Desuscribirse `-unsubscribe o -unsub [@nombre]`\n" +
+                                "-Mensaje diario del bot `-daily-quote o -quote [quote diario]`\n" +
+                                "-Alerta de precios en amazon o G2A `-set-alert o -sa [Link de juego G2A o item de amazon] [rango de precios objetivo] [Moneda(USD o EUR)]`\n" +
+                                "-Desactivar alerta `-unset-alert o -ua [Link de juego G2A o item de amazon]`\n" +
+                                "-Desactiva tu saludo `-audio-off o -off`\n" +
+                                "-Activa tu saludo `-audio-on o -on`\n" +
+                                '-El bot dice `-say o -di o -dilo-mierda "[texto a decir]" [f] (opcional) o [f2] (opcional)`\n' +
+                                "-Iniciar o cambiar de radio `-start-radio o -sr [ciudad] [id de radio]`\n" +
+                                "-Muestra las radios disponibles `-show-radios o -radios`\n" +
+                                "-Volumen de 0 al 100% `-volumen [%]`\n" +
+                                "-Parar la radio `-stop-radio o -st`\n")
 
-        @client.command(aliases=["on", "audio-on"])
-        async def audio_on(ctx):
-            await voice.activate_welcome_audio(ctx)
+    @commands.command(aliases=["off", "audio-off"])
+    async def audio_off(self, ctx):
+        await self.voice.deactivate_welcome_audio(ctx)
 
-        @client.command(aliases=["di", "dilo-mierda"])
-        async def say(ctx, text, loquendo_voice=None):
-            if await _check_voice_status_invalid(ctx):
-                return
-            network_utils = NetworkUtils()
-            audio_filename = ""
-            if loquendo_voice == "f":
-                audio_filename = await network_utils.get_loquendo_voice(text, voice="Monica")
-            elif loquendo_voice == "f2":
-                audio_filename = await network_utils.get_loquendo_voice(text, voice="Marisol")
-            elif not loquendo_voice:
-                audio_filename = await network_utils.get_loquendo_voice(text, voice="Jorge")
-            else:
-                await ctx.send('Lo que digas ahora lo pones entre " " webon')
-            if audio_filename != "":
-                await voice.reproduce_from_file(ctx.author, audio_filename)
-            else:
-                await ctx.send(StringConstants.SMTH_FUCKED_UP)
+    @commands.command(aliases=["on", "audio-on"])
+    async def audio_on(self, ctx):
+        await self.voice.activate_welcome_audio(ctx)
 
-        @client.command(aliases=["show-radios", "radios"])
-        async def show_radios(ctx):
-            radios = bot_be.load_radios_msg()
-            await ctx.send(radios)
+    @commands.command(aliases=["di", "dilo-mierda"])
+    async def say(self, ctx, text, loquendo_voice=None):
+        if await self._check_voice_status_invalid(ctx):
+            return
+        network_utils = NetworkUtils()
+        audio_filename = ""
+        if loquendo_voice == "f":
+            audio_filename = await network_utils.get_loquendo_voice(text, voice="Monica")
+        elif loquendo_voice == "f2":
+            audio_filename = await network_utils.get_loquendo_voice(text, voice="Marisol")
+        elif not loquendo_voice:
+            audio_filename = await network_utils.get_loquendo_voice(text, voice="Jorge")
+        else:
+            return await ctx.send('Lo que digas ahora lo pones entre " " webon. `-say " " `')
+        if audio_filename != "":
+            await self.voice.reproduce_from_file(ctx.author, audio_filename)
+        else:
+            await ctx.send(StringConstants.SMTH_FUCKED_UP)
 
-        @client.command(aliases=["start-radio", "sr"])
-        async def start_radio(ctx, city, radio_id):
-            if not await _check_voice_status_invalid(ctx):
-                if voice.is_voice_client_playing():
-                    voice.stop_player()
-                radios = bot_be.load_radios_config()
+    @commands.command(aliases=["show-radios", "radios"])
+    async def show_radios(self, ctx):
+        radios = self.bot_be.load_radios_msg()
+        await ctx.send(radios)
+
+    @commands.command(aliases=["start-radio", "sr"])
+    async def start_radio(self, ctx, city, radio_id):
+        if not await self._check_voice_status_invalid(ctx):
+            if self.voice.is_voice_playing_for_guild(ctx.guild):
+                self.voice.stop_player_for_guild(ctx.guild)
+            try:
+                radios = self.bot_be.load_radios_config()
                 selected_city = radios[city]
                 selected_radio_url = selected_city["items"][int(radio_id) - 1]["link"]
                 selected_radio_name = selected_city['items'][int(radio_id) - 1]['name']
-                await voice.play_streaming(selected_radio_url, ctx, selected_radio_name)
+                await self.voice.play_streaming(selected_radio_url, ctx, selected_radio_name)
+            except IndexError:
+                await ctx.send("Escribe bien cojudo, usa `-radios`")
 
-        async def _check_voice_status_invalid(ctx):
-            if not ctx.author.voice:
-                await ctx.send(StringConstants.NOT_IN_VOICE_CHANNEL_MSG)
-                return True
-            if voice.is_voice_client_speaking():
-                await ctx.send("Ahora no, cojudo")
-                return True
-            return False
+    async def _check_voice_status_invalid(self, ctx):
+        if not ctx.author.voice:
+            await ctx.send(StringConstants.NOT_IN_VOICE_CHANNEL_MSG)
+            return True
+        if self.voice.is_voice_speaking_for_guild(ctx.guild):
+            await ctx.send("Ahora no, cojudo")
+            return True
+        return False
 
-        @client.command(aliases=["stop-radio", "st", "vete-mierda"])
-        async def stop_radio(ctx):
-            await ctx.send(":C")
-            await voice.disconnect()
+    @commands.command(aliases=["stop-radio", "st", "vete-mierda", "stop"])
+    async def stop_radio(self, ctx):
+        await ctx.send(":C")
+        await self.voice.disconnect_player_for_guild(ctx.guild)
 
-        @client.command(aliases=["adios"])
-        async def good_night(ctx):
-            if not await _check_voice_status_invalid(ctx):
-                await voice.say_good_night(ctx.author)
+    @commands.command(name="set-chat")
+    async def set_common_chat_channel(self, ctx, id: int):
+        channel = self.client.get_channel(id)
+        if channel:
+            self.client.set_chat_channel(ctx.guild, channel)
+        else:
+            await ctx.send("Ese canal de texto no existe en el server")
 
-        @client.command(name="set-chat")
-        async def set_common_chat_channel(ctx, id: int):
-            channel = client.get_channel(id)
-            if channel:
-                client.set_chat_channel(ctx.guild, channel)
-            else:
-                await ctx.send("Ese canal de texto no existe en el server")
+    @commands.command()
+    async def ping(self, ctx):
+        await ctx.send(f"Estoy a {round(self.client.latency * 1000)}ms")
 
-        @client.command()
-        async def ping(ctx):
-            await ctx.send(f"Estoy a {round(client.latency * 1000)}ms")
+    @commands.command(aliases=["quien", "quien-lol"])
+    async def who(self, ctx, *args):
+        value = random.randint(0, len(args) - 1)
+        await ctx.send(args[value])
 
-        @client.command(aliases=["quien", "quien-lol"])
-        async def who(ctx, *args):
-            value = random.randint(0, len(args) - 1)
-            await ctx.send(args[value])
+    @commands.command(aliases=["volumen", "v"])
+    async def set_voice_volume(self, ctx, volume: float):
+        if not ctx.author.voice:
+            return
+        if volume < 0 or volume > 100:
+            return await ctx.send("No seas pendejo")
+        await ctx.send(f"Volumen seteado al {volume}%")
+        self.voice.set_volume_for_guild(volume, ctx.guild)
+
+    @commands.command(aliases=["play", "next"])
+    async def prevent_conflict(self, ctx):
+        pass
+
+        

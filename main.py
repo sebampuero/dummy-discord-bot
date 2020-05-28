@@ -22,25 +22,25 @@ class ChismositoBot(commands.Bot):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.voice = Voice(self)
-        self.subscription = Subscription()
-        self.quote = Quote()
-        self.alert = Alert()
-        self.chat_channel = None
+
+    def _populate_guild_chat_map(self):
+        self.guild_to_common_chat_map = {}
+        for guild in self.guilds:
+            self.guild_to_common_chat_map[guild.id] = guild.text_channels[0]
 
     def set_chat_channel(self, guild, chat_channel):
-        self.chat_channel = chat_channel
+        self.guild_to_common_chat_map[guild.id] = chat_channel
 
     def start_bg_tasks(self):
-        self.loop.create_task(self.quote.show_daily_quote(self, self.chat_channel))
-        self.loop.create_task(self.alert.check_alerts(self, self.chat_channel))
+        self.loop.create_task(self.delete_mp3_files_periodically())
+        self.loop.create_task(self.quote.show_daily_quote(self))
+        self.loop.create_task(self.alert.check_alerts(self))
         self.init_server()
 
     def init_server(self):
         server_thread = Server("FlaskServerThread")
         server_thread.set_voice(self.voice)
         server_thread.set_client(self)
-        server_thread.set_chat_channel(self.chat_channel)
         server_thread.start()
 
     async def get_context(self, message, *, cls=CustomContext):
@@ -48,15 +48,16 @@ class ChismositoBot(commands.Bot):
 
     async def on_ready(self):  
         print(f'We have logged in as {self.user}')  # notification of login.
-        self.loop.create_task(self.deleteMp3FilesPeriodically())
-        for channel in self.get_all_channels():
-            if str(channel) == "chat": #test
-                self.chat_channel = channel
-        Commands(self, self.voice, self.subscription, self.quote, self.alert)
+        self.voice = Voice(self)
+        self.subscription = Subscription()
+        self.quote = Quote()
+        self.alert = Alert()
+        self.add_cog(Commands(self, self.voice, self.subscription, self.quote, self.alert))
+        self._populate_guild_chat_map()
         self.start_bg_tasks()
 
-    async def deleteMp3FilesPeriodically(self):
-        while not self.is_closed() and not self.voice.is_voice_client_speaking():
+    async def delete_mp3_files_periodically(self):
+        while not self.is_closed():
             FileUtils.remove_files_in_dir("./assets/audio/loquendo", "^\w+\.mp3$")
             await asyncio.sleep(1200)
     
@@ -79,5 +80,6 @@ class ChismositoBot(commands.Bot):
 
 logging.basicConfig(format='%(asctime)s %(message)s')
 token = open("token.txt", "r").read()
-client = ChismositoBot(command_prefix="-")
+client = ChismositoBot(command_prefix=commands.when_mentioned_or("-"),
+                   description='Tu vieeja')
 client.run(token)
