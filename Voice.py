@@ -306,6 +306,21 @@ class Voice():
             await vmanager.disconnect()
             logging.error("While streaming audio", exc_info=True)
 
+    async def skip_for_youtube(self, ctx):
+        vmanager = self.guild_to_voice_manager_map.get(ctx.guild.id)
+        try:
+            vc = ctx.author.voice.channel
+            if discord.opus.is_loaded():
+                if vmanager.voice_client == None or not vmanager.voice_client.is_connected():
+                    return await ctx.send("Tengo que estar primero en un canal de voz")
+                if vmanager.voice_client.channel != vc:
+                    return await ctx.send(f"No estoy en este canal de voz {vc.name}")
+                vmanager.stop_player()
+                self._start_music_loop(vmanager, ctx)
+        except Exception as e:
+            await vmanager.disconnect()
+            logging.error("While streaming audio", exc_info=True)
+
     def _start_music_loop(self, vmanager, ctx):
         if len(vmanager.player_queue) == 0:
             return asyncio.run_coroutine_threadsafe(vmanager.disconnect(), self.client.loop)

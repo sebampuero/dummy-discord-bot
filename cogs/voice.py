@@ -106,7 +106,13 @@ class voice(commands.Cog):
             embed_options = {'title': f'Agregando a lista de reproduccion con busqueda: {" ".join(query)}'}
             embed = VoiceEmbeds(author=ctx.author, **embed_options)
             await ctx.send(embed=embed, delete_after=5.0)
-                
+
+    @commands.command(name="sig", aliases=["siguiente"])
+    async def skip_youtube(self, ctx):
+        '''Va a la siguiente cancion en la lista de canciones registradas con `-metele`
+        '''
+        if not await self._check_voice_status_invalid(ctx):
+            await self.client.voice.skip_for_youtube(ctx)
 
     @commands.command(aliases=["v"], name="volumen")
     async def set_voice_volume(self, ctx, volume: float):
