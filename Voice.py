@@ -68,7 +68,8 @@ class VoiceManager:
 
     COUNTER_IDLE_TIMEOUT = 1
 
-    def __init__(self):
+    def __init__(self, client):
+        self.client = client
         self.welcome_audios_queue = []
         self.player_queue = []
         self.idle_counter = 0
@@ -76,6 +77,7 @@ class VoiceManager:
         self.is_streaming = False
         self.is_speaking = False
         self.current_streaming_source = None
+        self.current_streaming_context = None
         self.voice_client = None
 
     async def init_counter_voice_idle_timeout(self, counter_idle_timeout=COUNTER_IDLE_TIMEOUT):
@@ -100,7 +102,27 @@ class VoiceManager:
 
     def resume_streaming(self):
         if self.current_streaming_source:
-            self.voice_client.play(self.current_streaming_source) # TODO: CHECK
+            print("resuming stream")
+            self.voice_client.play(self.current_streaming_source, after=lambda e: self.music_loop(e)) #does not matter if radio streams, after will never be called 
+            
+    def music_loop(self, error):
+        if len(self.player_queue) == 0:
+            return asyncio.run_coroutine_threadsafe(self.disconnect(), self.client.loop)
+        source_to_play = self.player_queue.pop()
+        self.current_streaming_source = source_to_play
+        self.voice_client.play(source_to_play, after=lambda e: self.music_loop(e))
+        options = {'title': f'Reproduciendo ahora {source_to_play.title}'}
+        embed = VoiceEmbeds(self.current_streaming_context.author,**options)
+        asyncio.run_coroutine_threadsafe(self.current_streaming_context.send(embed=embed), self.client.loop)
+
+    def start_salute_loop(self, error):
+        if len(self.welcome_audios_queue) == 0:
+            if self.is_streaming:
+                return self.after_speaking(error=None)
+            else:
+                return asyncio.run_coroutine_threadsafe(self.disconnect(), self.client.loop)
+        source = self.welcome_audios_queue.pop()
+        self.voice_client.play(source, after=lambda e: self.start_salute_loop)
 
     async def disconnect(self):
         if self.voice_client != None:
@@ -108,6 +130,7 @@ class VoiceManager:
                 logging.warning(f"Disconnected from channel {self.voice_client.channel}")
                 await self.voice_client.disconnect()
                 self.current_streaming_source = None
+                self.current_streaming_context = None
                 self.is_streaming = False
                 self.is_speaking = False
                 
@@ -150,7 +173,7 @@ class Voice():
     def _populate_voice_managers(self):
         self.guild_to_voice_manager_map = {}
         for guild in self.client.guilds:
-            self.guild_to_voice_manager_map[guild.id] = VoiceManager()
+            self.guild_to_voice_manager_map[guild.id] = VoiceManager(self.client)
             
     async def deactivate_welcome_audio(self, chat_channel):
         message = chat_channel.message
@@ -249,19 +272,10 @@ class Voice():
                 vmanager.welcome_audios_queue.append(source)
                 if not vmanager.is_voice_client_speaking():
                     vmanager.is_speaking = True
-                    self._start_salute_loop(vmanager)
+                    vmanager.start_salute_loop
         except Exception as e:
             await vmanager.disconnect()
             logging.error("While playing welcome audio", exc_info=True)
-
-    def _start_salute_loop(self, vmanager):
-        if len(vmanager.welcome_audios_queue) == 0:
-            if vmanager.is_streaming:
-                return vmanager.after_speaking(error=None)
-            else:
-                return asyncio.run_coroutine_threadsafe(vmanager.disconnect(), self.client.loop)
-        source = vmanager.welcome_audios_queue.pop()
-        vmanager.voice_client.play(source, after=lambda e: self._start_salute_loop(vmanager))
 
     async def play_streaming(self, url, ctx, radio_name):
         vmanager = self.guild_to_voice_manager_map.get(ctx.guild.id)
@@ -300,8 +314,9 @@ class Voice():
                 vmanager.is_streaming = True
                 player_source = YTDLSource.from_query(query)
                 vmanager.player_queue.append(player_source)
+                vmanager.current_streaming_context = ctx
                 if not vmanager.is_voice_client_playing():
-                    self._start_music_loop(vmanager, ctx)
+                    vmanager.music_loop(error=None)
         except Exception as e:
             await vmanager.disconnect()
             logging.error("While streaming audio", exc_info=True)
@@ -316,20 +331,9 @@ class Voice():
                 if vmanager.voice_client.channel != vc:
                     return await ctx.send(f"No estoy en este canal de voz {vc.name}")
                 vmanager.stop_player()
-                self._start_music_loop(vmanager, ctx)
         except Exception as e:
             await vmanager.disconnect()
             logging.error("While streaming audio", exc_info=True)
-
-    def _start_music_loop(self, vmanager, ctx):
-        if len(vmanager.player_queue) == 0:
-            return asyncio.run_coroutine_threadsafe(vmanager.disconnect(), self.client.loop)
-        source_to_play = vmanager.player_queue.pop()
-        vmanager.current_streaming_source = source_to_play
-        vmanager.voice_client.play(source_to_play, after=lambda e: self._start_music_loop(vmanager, ctx))
-        options = {'title': f'Reproduciendo ahora {source_to_play.title}'}
-        embed = VoiceEmbeds(ctx.author,**options)
-        asyncio.run_coroutine_threadsafe(ctx.send(embed=embed), self.client.loop)
 
     def load_opus_libs(self, opus_libs=OPUS_LIBS):
         if discord.opus.is_loaded():
