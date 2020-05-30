@@ -4,8 +4,9 @@ import random
 import logging
 from BE.BotBE import BotBE
 import Constants.StringConstants as Constants
-from Concurrent.FileDeleter import FileDeleterThread
 from Utils.NetworkUtils import NetworkUtils
+from youtube_dl import YoutubeDL
+from embeds.custom import VoiceEmbeds
 """
  This class is responsible for all voice communications the Bot handles (voice updates and voice output)
 """
@@ -29,17 +30,52 @@ class RadioSource(StreamSource):
         self.name = radio_name
         super().__init__(discord.FFmpegPCMAudio(url), url, volume=0.3)
 
+class YTDLSource(discord.PCMVolumeTransformer):
+    ytdl_opts = {
+        'default_search': 'auto',
+        'noplaylist': True,
+        'quiet': True,
+        # 'logger' : 'the logger'
+        'format': 'bestaudio/best',
+        'restrictfilenames': True,
+        'outtmpl': '../music_cache/%(extractor)s-%(title)s.%(ext)s',  # %(title)s.%(ext)s',
+    }
+
+    def __init__(self, source, data, volume=0.3):
+        super().__init__(source, volume)
+        self.title = data.get('title')
+
+    @classmethod
+    def from_query(cls, query):
+        query = ' '.join(query)
+        with YoutubeDL(YTDLSource.ytdl_opts) as ydl:
+            ydl.cache.remove()
+            info = ydl.extract_info(query, download=False)
+            if 'entries' in info:  # grab the first video
+                info = info['entries'][0]
+
+            if not info['is_live']:
+                data = ydl.extract_info(query)  # TODO run in executor?
+            else:
+                pass  #TODO get next video
+
+            if 'entries' in data:  # if we get a playlist, grab the first video TODO does ytdl_opts['noplaylist'] prevent this error?
+                data = data['entries'][0]
+            path = ydl.prepare_filename(data)
+            return cls(discord.FFmpegPCMAudio(path), data)
+
 class VoiceManager:
 
     COUNTER_IDLE_TIMEOUT = 1
 
     def __init__(self):
         self.welcome_audios_queue = []
+        self.player_queue = []
         self.idle_counter = 0
         self.started_counter_flag = False
         self.is_streaming = False
         self.is_speaking = False
-        self.current_streaming_url = None
+        self.current_streaming_source = None
         self.voice_client = None
 
     async def init_counter_voice_idle_timeout(self, counter_idle_timeout=COUNTER_IDLE_TIMEOUT):
@@ -63,15 +99,15 @@ class VoiceManager:
             self.resume_streaming()
 
     def resume_streaming(self):
-        if self.current_streaming_url:
-            self.voice_client.play(RadioSource(self.current_streaming_url, "")) # TODO: CHECK
+        if self.current_streaming_source:
+            self.voice_client.play(self.current_streaming_source) # TODO: CHECK
 
     async def disconnect(self):
         if self.voice_client != None:
             if self.voice_client.is_connected():
                 logging.warning(f"Disconnected from channel {self.voice_client.channel}")
                 await self.voice_client.disconnect()
-                self.current_streaming_url = None
+                self.current_streaming_source = None
                 self.is_streaming = False
                 self.is_speaking = False
                 
@@ -89,6 +125,14 @@ class VoiceManager:
     def stop_player(self):
         if self.voice_client != None:
             self.voice_client.stop()
+
+    def pause_player(self):
+        if self.voice_client != None:
+            self.voice_client.pause()
+
+    def resume_player(self):
+        if self.voice_client != None:
+            self.voice_client.resume()
 
     def set_volume_for_voice_client(self, volume):
         self.voice_client.source.volume = volume
@@ -174,7 +218,7 @@ class Voice():
                     vmanager.voice_client = await vc.connect()
                 audio_source = LocalfileSource(audio_filename)
                 if vmanager.is_voice_client_streaming() and vc == vmanager.voice_client.channel:
-                    vmanager.stop_player()
+                    vmanager.pause_player()
                 if not vmanager.is_voice_client_playing():
                     vmanager.is_speaking = True
                     vmanager.voice_client.play(audio_source, after=vmanager.after_speaking)
@@ -195,30 +239,29 @@ class Voice():
             random_idx = random.randint(0, len(audio_files_list) - 1)
             audio_file_name = audio_files_list[random_idx]
             if discord.opus.is_loaded():
-                vmanager.restart_counter_voice_idle_timeout()
                 if vmanager.voice_client == None or not vmanager.voice_client.is_connected():
                     vmanager.voice_client = await voice_channel.connect()
-                first_audio_source = LocalfileSource(audio_file_name)
                 if vmanager.is_voice_client_streaming() and voice_channel != vmanager.voice_client.channel:
                     return
                 if vmanager.is_voice_client_streaming():
-                    vmanager.stop_player() #TODO: Think of a better logic
-                vmanager.is_speaking = True 
-                if vmanager.is_voice_client_playing():
-                    vmanager.welcome_audios_queue.append(first_audio_source)
-                    while True:
-                        if not vmanager.is_voice_client_playing():
-                            audio_source = vmanager.welcome_audios_queue.pop()
-                            vmanager.voice_client.play(audio_source, after=vmanager.after_speaking)
-                            if len(vmanager.welcome_audios_queue) == 0:
-                                break
-                else:
-                    vmanager.voice_client.play(first_audio_source, after=vmanager.after_speaking)
-                    if not vmanager.is_voice_client_streaming():
-                        await vmanager.init_counter_voice_idle_timeout()
+                    vmanager.pause_player()
+                source = LocalfileSource(audio_file_name)
+                vmanager.welcome_audios_queue.append(source)
+                if not vmanager.is_voice_client_speaking():
+                    vmanager.is_speaking = True
+                    self._start_salute_loop(vmanager)
         except Exception as e:
             await vmanager.disconnect()
             logging.error("While playing welcome audio", exc_info=True)
+
+    def _start_salute_loop(self, vmanager):
+        if len(vmanager.welcome_audios_queue) == 0:
+            if vmanager.is_streaming:
+                return vmanager.after_speaking(error=None)
+            else:
+                return asyncio.run_coroutine_threadsafe(vmanager.disconnect(), self.client.loop)
+        source = vmanager.welcome_audios_queue.pop()
+        vmanager.voice_client.play(source, after=lambda e: self._start_salute_loop(vmanager))
 
     async def play_streaming(self, url, ctx, radio_name):
         vmanager = self.guild_to_voice_manager_map.get(ctx.guild.id)
@@ -235,14 +278,44 @@ class Voice():
                         await ctx.send(f"Se jodio esta radio {url}")
                         return
                     player = RadioSource(url, radio_name)
-                    vmanager.current_streaming_url = url
+                    vmanager.current_streaming_source = player
                     vmanager.is_streaming = True
                     vmanager.voice_client.play(player)
-                    await ctx.send(f"Reproduciendo {radio_name}")
+                    options = {'title': f'Reproduciendo radio {radio_name}'}
+                    embed = VoiceEmbeds(ctx.author,**options)
+                    await ctx.send(embed=embed)
         except Exception as e:
             await vmanager.disconnect()
             logging.error("While streaming audio", exc_info=True)
-            
+
+    async def play_for_youtube(self, query, ctx):
+        vmanager = self.guild_to_voice_manager_map.get(ctx.guild.id)
+        try:
+            vc = ctx.author.voice.channel
+            if discord.opus.is_loaded():
+                if vmanager.voice_client == None or not vmanager.voice_client.is_connected():
+                    vmanager.voice_client = await vc.connect()
+                if vmanager.voice_client.channel != vc:
+                    await vmanager.voice_client.move_to(vc)
+                vmanager.is_streaming = True
+                player_source = YTDLSource.from_query(query)
+                vmanager.player_queue.append(player_source)
+                if not vmanager.is_voice_client_playing():
+                    self._start_music_loop(vmanager, ctx)
+        except Exception as e:
+            await vmanager.disconnect()
+            logging.error("While streaming audio", exc_info=True)
+
+    def _start_music_loop(self, vmanager, ctx):
+        if len(vmanager.player_queue) == 0:
+            return asyncio.run_coroutine_threadsafe(vmanager.disconnect(), self.client.loop)
+        source_to_play = vmanager.player_queue.pop()
+        vmanager.current_streaming_source = source_to_play
+        vmanager.voice_client.play(source_to_play, after=lambda e: self._start_music_loop(vmanager, ctx))
+        options = {'title': f'Reproduciendo ahora {source_to_play.title}'}
+        embed = VoiceEmbeds(ctx.author,**options)
+        asyncio.run_coroutine_threadsafe(ctx.send(embed=embed), self.client.loop)
+
     def load_opus_libs(self, opus_libs=OPUS_LIBS):
         if discord.opus.is_loaded():
             return True

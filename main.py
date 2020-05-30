@@ -1,6 +1,7 @@
 import discord
 import asyncio
 import logging
+import os
 import Constants.StringConstants as StringConstants
 from Voice import Voice
 from Subscription import Subscription
@@ -8,14 +9,19 @@ from Alert import Alert
 from Quote import Quote
 from Concurrent.Server import Server
 from Utils.FileUtils import FileUtils
+from BE.BotBE import BotBE
 from discord.ext import commands
-from CommandsProcessor import Commands
 
 class CustomContext(commands.Context):
     """
     This class will define several custom functions for our messaging context
     """
-    pass
+    async def sad_reaction(self):
+        emoji = '😥'
+        try:
+            await self.message.add_reaction(emoji)
+        except discord.HTTPException:
+            pass
 
 class ChismositoBot(commands.Bot):
 
@@ -52,7 +58,7 @@ class ChismositoBot(commands.Bot):
         self.subscription = Subscription()
         self.quote = Quote()
         self.alert = Alert()
-        self.add_cog(Commands(self, self.voice, self.subscription, self.quote, self.alert))
+        self.bot_be = BotBE()
         self._populate_guild_chat_map()
         self.start_bg_tasks()
 
@@ -81,5 +87,8 @@ class ChismositoBot(commands.Bot):
 logging.basicConfig(format='%(asctime)s %(message)s')
 token = open("token.txt", "r").read()
 client = ChismositoBot(command_prefix=commands.when_mentioned_or("-"),
-                   description='Tu vieeja')
+                   description='El bot mas pendejo de todos', case_insensitive=True)
+for filename in os.listdir('./cogs'):
+    if filename.endswith(".py"):
+        client.load_extension(f'cogs.{filename[:-3]}')
 client.run(token)
