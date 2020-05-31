@@ -9,6 +9,8 @@ from youtube_dl import YoutubeDL
 from embeds.custom import VoiceEmbeds
 """
  This class is responsible for all voice communications the Bot handles (voice updates and voice output)
+
+ TODO: The decision to apply an State Design Pattern for these implementations is still pending.
 """
 
 class LocalfileSource(discord.PCMVolumeTransformer):
@@ -49,7 +51,6 @@ class YTDLSource(discord.PCMVolumeTransformer):
     def from_query(cls, query):
         query = ' '.join(query)
         with YoutubeDL(YTDLSource.ytdl_opts) as ydl:
-            ydl.cache.remove()
             info = ydl.extract_info(query, download=False)
             if 'entries' in info:  # grab the first video
                 info = info['entries'][0]
@@ -102,7 +103,6 @@ class VoiceManager:
 
     def resume_streaming(self):
         if self.current_streaming_source:
-            print("resuming stream")
             self.voice_client.play(self.current_streaming_source, after=lambda e: self.music_loop(e)) #does not matter if radio streams, after will never be called 
             
     def music_loop(self, error):
@@ -115,14 +115,14 @@ class VoiceManager:
         embed = VoiceEmbeds(self.current_streaming_context.author,**options)
         asyncio.run_coroutine_threadsafe(self.current_streaming_context.send(embed=embed), self.client.loop)
 
-    def start_salute_loop(self, error):
+    def salute_loop(self, error):
         if len(self.welcome_audios_queue) == 0:
             if self.is_streaming:
                 return self.after_speaking(error=None)
             else:
                 return asyncio.run_coroutine_threadsafe(self.disconnect(), self.client.loop)
         source = self.welcome_audios_queue.pop()
-        self.voice_client.play(source, after=lambda e: self.start_salute_loop)
+        self.voice_client.play(source, after=lambda e: self.salute_loop(e))
 
     async def disconnect(self):
         if self.voice_client != None:
@@ -272,7 +272,7 @@ class Voice():
                 vmanager.welcome_audios_queue.append(source)
                 if not vmanager.is_voice_client_speaking():
                     vmanager.is_speaking = True
-                    vmanager.start_salute_loop
+                    vmanager.salute_loop(error=None)
         except Exception as e:
             await vmanager.disconnect()
             logging.error("While playing welcome audio", exc_info=True)
@@ -334,6 +334,14 @@ class Voice():
         except Exception as e:
             await vmanager.disconnect()
             logging.error("While streaming audio", exc_info=True)
+
+    def pause_player(self, ctx):
+        vmanager = self.guild_to_voice_manager_map.get(ctx.guild.id)
+        vmanager.pause_player()
+
+    def resume_player(self, ctx):
+        vmanager = self.guild_to_voice_manager_map.get(ctx.guild.id)
+        vmanager.resume_player()
 
     def load_opus_libs(self, opus_libs=OPUS_LIBS):
         if discord.opus.is_loaded():

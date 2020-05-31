@@ -114,6 +114,22 @@ class voice(commands.Cog):
         if not await self._check_voice_status_invalid(ctx):
             await self.client.voice.skip_for_youtube(ctx)
 
+    @commands.command(name="pausa")
+    async def pause(self, ctx):
+        '''Pausea el bot
+        '''
+        if not await self._check_voice_status_invalid(ctx):
+            self.client.voice.pause_player(ctx)
+            await ctx.message.add_reaction('⏸️')
+
+    @commands.command(name="sigue")
+    async def resume(self, ctx):
+        '''Continua con la reproduccion
+        '''
+        if not await self._check_voice_status_invalid(ctx):
+            self.client.voice.resume_player(ctx)
+            await ctx.message.add_reaction('▶️')
+
     @commands.command(aliases=["v"], name="volumen")
     async def set_voice_volume(self, ctx, volume: float):
         '''Setea el volumen a un %
