@@ -159,12 +159,16 @@ class Radio(State):
     async def reproduce(self, query):
         voice_client = self.voice_manager.voice_client
         self.voice_manager.current_streaming_source = RadioSource(query, "")
-        voice_client.play(self.voice_manager.current_streaming_source)
+        voice_client.play(self.voice_manager.current_streaming_source, after=lambda e: self.handle_error(e))
 
     async def resume(self):
         voice_client = self.voice_manager.voice_client
         if self.voice_manager.current_streaming_source:
-            voice_client.play(self.voice_manager.current_streaming_source)
+            voice_client.play(self.voice_manager.current_streaming_source, after=lambda e: self.handle_error(e))
+
+    def handle_error(self, error):
+        if error:
+            self.switch(self.voice_manager.off)
 
     def switch(self, state):
         self.voice_manager.pause_player()
@@ -190,6 +194,9 @@ class Stream(State):
             voice_client.play(self.voice_manager.current_streaming_source, after=lambda e: self.music_loop(e))
 
     def music_loop(self, error):
+        if error:
+            self.switch(self.voice_manager.off)
+            return
         if len(self.queue) == 0:
             self.switch(self.voice_manager.off)
             asyncio.run_coroutine_threadsafe(self.voice_manager.play(None), self.client.loop)
@@ -219,6 +226,9 @@ class Speak(State):
             voice_client.play(LocalfileSource(query), after= lambda e: self.resume_playing_for_prev_state(e))
 
     def resume_playing_for_prev_state(self, error):
+        if error:
+            self.switch(self.voice_manager.off)
+            return
         self.switch(self.voice_manager.prev_state)
         asyncio.run_coroutine_threadsafe(self.voice_manager.resume(), self.client.loop)
 
@@ -245,6 +255,9 @@ class Salute(State):
             self.salute_loop(error=None)
         
     def salute_loop(self, error):
+        if error:
+            self.switch(self.voice_manager.off)
+            return
         if len(self.welcome_audios_queue) == 0:
             if isinstance(self.voice_manager.prev_state, Off):
                 self.switch(self.voice_manager.off)
@@ -258,6 +271,9 @@ class Salute(State):
         self.voice_manager.voice_client.play(source, after=lambda e: self.salute_loop(e))
 
     def resume_playing_for_prev_state(self, error):
+        if error:
+            self.switch(self.voice_manager.off)
+            return
         self.switch(self.voice_manager.prev_state)
         asyncio.run_coroutine_threadsafe(self.voice_manager.resume(), self.client.loop)
 

@@ -2,6 +2,8 @@ from flask import Blueprint, request, jsonify, render_template
 from Utils.NetworkUtils import NetworkUtils
 import Constants.StringConstants as Constants
 from BE.BotBE import BotBE
+from types import SimpleNamespace
+from Voice import Speak
 
 async def say(data, guild, text_channel, voice):
     text = str(data["text"]).lower()
@@ -34,7 +36,8 @@ def get_bot_blueprint(client, voice, event_loop):
     @bot_blueprint.route("/say", methods=["POST"])
     def reproduce_from_text():
         try:
-            if voice.is_voice_speaking_for_guild(guild):
+            playing_state = voice.get_playing_state(SimpleNamespace(guild=guild))
+            if isinstance(playing_state, Speak):
                 return jsonify({'message': Constants.BOT_BUSY_RESPONSE}), 200
             data = request.json
             event_loop.create_task(say(data, guild, text_channel, voice))
