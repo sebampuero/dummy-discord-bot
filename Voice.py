@@ -9,8 +9,6 @@ from youtube_dl import YoutubeDL
 from embeds.custom import VoiceEmbeds
 """
  This class is responsible for all voice communications the Bot handles (voice updates and voice output)
-
- TODO: The decision to apply an State Design Pattern for these implementations is still pending.
 """
 
 class LocalfileSource(discord.PCMVolumeTransformer):
@@ -67,84 +65,28 @@ class YTDLSource(discord.PCMVolumeTransformer):
 
 class VoiceManager:
 
-    COUNTER_IDLE_TIMEOUT = 1
-
     def __init__(self, client):
         self.client = client
-        self.welcome_audios_queue = []
-        self.player_queue = []
-        self.idle_counter = 0
-        self.started_counter_flag = False
-        self.is_streaming = False
-        self.is_speaking = False
-        self.current_streaming_source = None
-        self.current_streaming_context = None
+        self.off = Off(self, client)
+        self.radio = Radio(self, client)
+        self.stream = Stream(self, client)
+        self.speak = Speak(self, client)
+        self.salute = Salute(self, client)
+        self.state = self.off
+        self.prev_state = self.state
         self.voice_client = None
 
-    async def init_counter_voice_idle_timeout(self, counter_idle_timeout=COUNTER_IDLE_TIMEOUT):
-        if not self.started_counter_flag:
-            self.started_counter_flag = True
-            while True:
-                await asyncio.sleep(1)
-                if not self.voice_client.is_playing():
-                    self.idle_counter = self.idle_counter + 1
-                    if self.idle_counter == counter_idle_timeout:
-                        self.started_counter_flag = False
-                        await self.disconnect()
-                        break
+    def change_state(self, state):
+        self.state = state
 
-    def restart_counter_voice_idle_timeout(self):
-        self.idle_counter = 0
+    async def play(self, query):
+        logging.warning(f"In state {self.state}")
+        await self.state.reproduce(query)
 
-    def after_speaking(self, error):
-        self.is_speaking = False
-        if self.is_streaming:
-            self.resume_streaming()
+    async def resume(self):
+        logging.warning(f"In state {self.state}")
+        await self.state.resume()
 
-    def resume_streaming(self):
-        if self.current_streaming_source:
-            self.voice_client.play(self.current_streaming_source, after=lambda e: self.music_loop(e)) #does not matter if radio streams, after will never be called 
-            
-    def music_loop(self, error):
-        if len(self.player_queue) == 0:
-            return asyncio.run_coroutine_threadsafe(self.disconnect(), self.client.loop)
-        source_to_play = self.player_queue.pop()
-        self.current_streaming_source = source_to_play
-        self.voice_client.play(source_to_play, after=lambda e: self.music_loop(e))
-        options = {'title': f'Reproduciendo ahora {source_to_play.title}'}
-        embed = VoiceEmbeds(self.current_streaming_context.author,**options)
-        asyncio.run_coroutine_threadsafe(self.current_streaming_context.send(embed=embed), self.client.loop)
-
-    def salute_loop(self, error):
-        if len(self.welcome_audios_queue) == 0:
-            if self.is_streaming:
-                return self.after_speaking(error=None)
-            else:
-                return asyncio.run_coroutine_threadsafe(self.disconnect(), self.client.loop)
-        source = self.welcome_audios_queue.pop()
-        self.voice_client.play(source, after=lambda e: self.salute_loop(e))
-
-    async def disconnect(self):
-        if self.voice_client != None:
-            if self.voice_client.is_connected():
-                logging.warning(f"Disconnected from channel {self.voice_client.channel}")
-                await self.voice_client.disconnect()
-                self.current_streaming_source = None
-                self.current_streaming_context = None
-                self.is_streaming = False
-                self.is_speaking = False
-                
-    def is_voice_client_playing(self):
-        if self.voice_client != None:
-            return self.voice_client.is_playing()
-        return False
-
-    def is_voice_client_speaking(self):
-        return self.is_speaking
-
-    def is_voice_client_streaming(self):
-        return self.is_streaming
-        
     def stop_player(self):
         if self.voice_client != None:
             self.voice_client.stop()
@@ -157,8 +99,173 @@ class VoiceManager:
         if self.voice_client != None:
             self.voice_client.resume()
 
+    def is_voice_client_playing(self):
+        return self.voice_client and self.voice_client.is_playing()
+
     def set_volume_for_voice_client(self, volume):
         self.voice_client.source.volume = volume
+
+    async def disconnect(self):
+        if self.voice_client != None:
+            if self.voice_client.is_connected():
+                logging.warning(f"Disconnected from channel {self.voice_client.channel}")
+                await self.voice_client.disconnect()
+                self.state = self.off
+
+class State(object):
+
+    name = "state"
+
+    def __init__(self, voice_manager, client):
+        self.voice_manager = voice_manager
+        self.client = client
+
+    def switch(self, state):
+        pass
+
+    async def reproduce(self, query):
+        pass
+
+    async def resume(self):
+        pass
+
+    def __str__(self):
+        return self.name 
+
+class Off(State):
+
+    name = "off"
+
+    def __init__(self, voice_manager, client):
+        super().__init__(voice_manager, client)
+
+    async def reproduce(self, query):
+        logging.warning("Unable to reproduce because of state OFF")
+        await self.voice_manager.disconnect()
+
+    def switch(self, state):
+        self.voice_manager.change_state(state)
+
+    async def resume(self):
+        raise NotImplementedError()
+
+class Radio(State):
+
+    name = "radio"
+
+    def __init__(self, voice_manager, client):
+        super().__init__(voice_manager, client)
+
+    async def reproduce(self, query):
+        voice_client = self.voice_manager.voice_client
+        self.voice_manager.current_streaming_source = RadioSource(query, "")
+        voice_client.play(self.voice_manager.current_streaming_source)
+
+    async def resume(self):
+        voice_client = self.voice_manager.voice_client
+        if self.voice_manager.current_streaming_source:
+            voice_client.play(self.voice_manager.current_streaming_source)
+
+    def switch(self, state):
+        self.voice_manager.pause_player()
+        self.voice_manager.change_state(state)
+    
+class Stream(State):
+
+    name = "stream"
+
+    def __init__(self, voice_manager, client):
+        super().__init__(voice_manager, client)
+        self.queue = []
+
+    async def reproduce(self, query):
+        voice_client = self.voice_manager.voice_client
+        self.queue.append(YTDLSource.from_query(query))
+        if not self.voice_manager.is_voice_client_playing():
+            self.music_loop(error=None)
+
+    async def resume(self):
+        voice_client = self.voice_manager.voice_client
+        if self.voice_manager.current_streaming_source:
+            voice_client.play(self.voice_manager.current_streaming_source, after=lambda e: self.music_loop(e))
+
+    def music_loop(self, error):
+        if len(self.queue) == 0:
+            self.switch(self.voice_manager.off)
+            asyncio.run_coroutine_threadsafe(self.voice_manager.play(None), self.client.loop)
+            return
+        source_to_play = self.queue.pop()
+        self.voice_manager.current_streaming_source = source_to_play
+        self.voice_manager.voice_client.play(source_to_play, after=lambda e: self.music_loop(e))
+        options = {'title': f'Reproduciendo ahora {source_to_play.title}'}
+        embed = VoiceEmbeds(self.voice_manager.current_streaming_context.author,**options)
+        asyncio.run_coroutine_threadsafe(self.voice_manager.current_streaming_context.send(embed=embed), self.client.loop)
+
+    def switch(self, state):
+        self.voice_manager.change_state(state)
+
+class Speak(State):
+
+    name = "speak"
+
+    def __init__(self, voice_manager, client):
+        super().__init__(voice_manager, client)
+
+    async def reproduce(self, query):
+        voice_client = self.voice_manager.voice_client 
+        if isinstance(self.voice_manager.prev_state, Off):
+            voice_client.play(LocalfileSource(query), after= lambda e: self.switch(self.voice_manager.off))
+        else:
+            voice_client.play(LocalfileSource(query), after= lambda e: self.resume_playing_for_prev_state(e))
+
+    def resume_playing_for_prev_state(self, error):
+        self.switch(self.voice_manager.prev_state)
+        asyncio.run_coroutine_threadsafe(self.voice_manager.resume(), self.client.loop)
+
+    async def resume(self):
+        raise NotImplementedError()
+
+    def switch(self, state):
+        self.voice_manager.change_state(state)
+        if isinstance(state, Off):
+            asyncio.run_coroutine_threadsafe(self.voice_manager.play(None), self.client.loop)
+
+class Salute(State):
+
+    name = "salute"
+
+    def __init__(self, voice_manager, client):
+        super().__init__(voice_manager, client)
+        self.welcome_audios_queue = []
+
+    async def reproduce(self, query):
+        voice_client = self.voice_manager.voice_client
+        self.welcome_audios_queue.append(LocalfileSource(query))
+        if not self.voice_manager.is_voice_client_playing():
+            self.salute_loop(error=None)
+        
+    def salute_loop(self, error):
+        if len(self.welcome_audios_queue) == 0:
+            if isinstance(self.voice_manager.prev_state, Off):
+                self.switch(self.voice_manager.off)
+                asyncio.run_coroutine_threadsafe(self.voice_manager.play(None), self.client.loop)
+                return
+            else:
+                self.switch(self.voice_manager.prev_state)
+                self.resume_playing_for_prev_state(error=None)
+                return
+        source = self.welcome_audios_queue.pop()
+        self.voice_manager.voice_client.play(source, after=lambda e: self.salute_loop(e))
+
+    def resume_playing_for_prev_state(self, error):
+        self.switch(self.voice_manager.prev_state)
+        asyncio.run_coroutine_threadsafe(self.voice_manager.resume(), self.client.loop)
+
+    async def resume(self):
+        raise NotImplementedError()
+
+    def switch(self, state):
+        self.voice_manager.change_state(state)
 
 class Voice():
     
@@ -207,46 +314,41 @@ class Voice():
         except Exception as e:
             logging.error("While saying good night", exc_info=True)
 
-    def is_voice_speaking_for_guild(self, guild):
-        vmanager = self.guild_to_voice_manager_map.get(guild.id)
-        return vmanager.is_voice_client_speaking()
+    def get_playing_state(self, ctx):
+        return self.guild_to_voice_manager_map.get(ctx.guild.id).state
 
-    def is_voice_playing_for_guild(self, guild):
-        vmanager = self.guild_to_voice_manager_map.get(guild.id)
-        return vmanager.is_voice_client_playing()
-
-    def is_voice_streaming_for_guild(self, guild):
-        vmanager = self.guild_to_voice_manager_map.get(guild.id)
-        return vmanager.is_voice_client_streaming()
-
-    def stop_player_for_guild(self, guild):
-        vmanager = self.guild_to_voice_manager_map.get(guild.id)
+    def stop_player(self, ctx):
+        vmanager = self.guild_to_voice_manager_map.get(ctx.guild.id)
         return vmanager.stop_player()
 
-    def set_volume_for_guild(self, volume, guild):
-        vmanager = self.guild_to_voice_manager_map.get(guild.id)
+    def set_volume(self, volume, ctx):
+        vmanager = self.guild_to_voice_manager_map.get(ctx.guild.id)
         vmanager.set_volume_for_voice_client(volume / 100.0)
 
-    async def disconnect_player_for_guild(self, guild):
-        vmanager = self.guild_to_voice_manager_map.get(guild.id)
+    async def disconnect_player(self, ctx):
+        vmanager = self.guild_to_voice_manager_map.get(ctx.guild.id)
         await vmanager.disconnect()
+
+    def pause_player(self, ctx):
+        vmanager = self.guild_to_voice_manager_map.get(ctx.guild.id)
+        vmanager.pause_player()
+
+    def resume_player(self, ctx):
+        vmanager = self.guild_to_voice_manager_map.get(ctx.guild.id)
+        vmanager.resume_player()
 
     async def reproduce_from_file(self, member, audio_filename):
         vmanager = self.guild_to_voice_manager_map.get(member.guild.id)
         try:
             vc = member.voice.channel
             if discord.opus.is_loaded():
-                vmanager.restart_counter_voice_idle_timeout()
                 if vmanager.voice_client == None or not vmanager.voice_client.is_connected():
                     vmanager.voice_client = await vc.connect()
-                audio_source = LocalfileSource(audio_filename)
-                if vmanager.is_voice_client_streaming() and vc == vmanager.voice_client.channel:
+                if isinstance(vmanager.state, Stream) or isinstance(vmanager.state, Radio):
                     vmanager.pause_player()
-                if not vmanager.is_voice_client_playing():
-                    vmanager.is_speaking = True
-                    vmanager.voice_client.play(audio_source, after=vmanager.after_speaking)
-                    if not vmanager.is_voice_client_streaming():
-                        await vmanager.init_counter_voice_idle_timeout()
+                    vmanager.prev_state = vmanager.state
+                vmanager.change_state(vmanager.speak)
+                await vmanager.play(audio_filename)
         except Exception as e:
             logging.error("While reproducing from file", exc_info=True)
             await vmanager.disconnect()
@@ -264,20 +366,17 @@ class Voice():
             if discord.opus.is_loaded():
                 if vmanager.voice_client == None or not vmanager.voice_client.is_connected():
                     vmanager.voice_client = await voice_channel.connect()
-                if vmanager.is_voice_client_streaming() and voice_channel != vmanager.voice_client.channel:
-                    return
-                if vmanager.is_voice_client_streaming():
+                if isinstance(vmanager.state, Stream) or isinstance(vmanager.state, Radio):
                     vmanager.pause_player()
-                source = LocalfileSource(audio_file_name)
-                vmanager.welcome_audios_queue.append(source)
-                if not vmanager.is_voice_client_speaking():
-                    vmanager.is_speaking = True
-                    vmanager.salute_loop(error=None)
+                    vmanager.prev_state = vmanager.state
+                if not isinstance(vmanager.state, Speak):
+                    vmanager.change_state(vmanager.salute)
+                    await vmanager.play(audio_file_name)
         except Exception as e:
             await vmanager.disconnect()
             logging.error("While playing welcome audio", exc_info=True)
 
-    async def play_streaming(self, url, ctx, radio_name):
+    async def play_radio(self, url, ctx, radio_name):
         vmanager = self.guild_to_voice_manager_map.get(ctx.guild.id)
         try:
             vc = ctx.author.voice.channel
@@ -286,18 +385,18 @@ class Voice():
                     vmanager.voice_client = await vc.connect()
                 if vmanager.voice_client.channel != vc:
                     await vmanager.voice_client.move_to(vc)
-                if not vmanager.is_voice_client_playing():
-                    net_utils = NetworkUtils()
-                    if await net_utils.check_connection_status_for_site(url) != 200:
-                        await ctx.send(f"Se jodio esta radio {url}")
-                        return
-                    player = RadioSource(url, radio_name)
-                    vmanager.current_streaming_source = player
-                    vmanager.is_streaming = True
-                    vmanager.voice_client.play(player)
-                    options = {'title': f'Reproduciendo radio {radio_name}'}
-                    embed = VoiceEmbeds(ctx.author,**options)
-                    await ctx.send(embed=embed)
+                net_utils = NetworkUtils()
+                if await net_utils.check_connection_status_for_site(url) != 200:
+                    await ctx.send(f"Se jodio esta radio {url}")
+                    return
+                if isinstance(vmanager.state, Stream) or isinstance(vmanager.state, Radio):
+                    vmanager.pause_player()
+                vmanager.prev_state = vmanager.state
+                vmanager.change_state(vmanager.radio)
+                await vmanager.play(url)
+                options = {'title': f'Reproduciendo radio {radio_name}'}
+                embed = VoiceEmbeds(ctx.author,**options)
+                await ctx.send(embed=embed)
         except Exception as e:
             await vmanager.disconnect()
             logging.error("While streaming audio", exc_info=True)
@@ -311,37 +410,15 @@ class Voice():
                     vmanager.voice_client = await vc.connect()
                 if vmanager.voice_client.channel != vc:
                     await vmanager.voice_client.move_to(vc)
-                vmanager.is_streaming = True
-                player_source = YTDLSource.from_query(query)
-                vmanager.player_queue.append(player_source)
+                if isinstance(vmanager.state, Radio):
+                    vmanager.pause_player()
+                vmanager.prev_state = vmanager.state
+                vmanager.change_state(vmanager.stream)
                 vmanager.current_streaming_context = ctx
-                if not vmanager.is_voice_client_playing():
-                    vmanager.music_loop(error=None)
+                await vmanager.play(query)
         except Exception as e:
             await vmanager.disconnect()
             logging.error("While streaming audio", exc_info=True)
-
-    async def skip_for_youtube(self, ctx):
-        vmanager = self.guild_to_voice_manager_map.get(ctx.guild.id)
-        try:
-            vc = ctx.author.voice.channel
-            if discord.opus.is_loaded():
-                if vmanager.voice_client == None or not vmanager.voice_client.is_connected():
-                    return await ctx.send("Tengo que estar primero en un canal de voz")
-                if vmanager.voice_client.channel != vc:
-                    return await ctx.send(f"No estoy en este canal de voz {vc.name}")
-                vmanager.stop_player()
-        except Exception as e:
-            await vmanager.disconnect()
-            logging.error("While streaming audio", exc_info=True)
-
-    def pause_player(self, ctx):
-        vmanager = self.guild_to_voice_manager_map.get(ctx.guild.id)
-        vmanager.pause_player()
-
-    def resume_player(self, ctx):
-        vmanager = self.guild_to_voice_manager_map.get(ctx.guild.id)
-        vmanager.resume_player()
 
     def load_opus_libs(self, opus_libs=OPUS_LIBS):
         if discord.opus.is_loaded():

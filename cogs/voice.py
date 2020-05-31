@@ -3,6 +3,7 @@ from discord.ext import commands
 import Constants.StringConstants as StringConstants
 from Utils.NetworkUtils import NetworkUtils
 from embeds.custom import VoiceEmbeds
+from Voice import Off, Speak, Salute, Radio, Stream
 
 class voice(commands.Cog):
     '''Todo lo necesario para hacer que el bot hable y reproduzca musiquita
@@ -23,15 +24,15 @@ class voice(commands.Cog):
         await self.client.voice.activate_welcome_audio(ctx)
 
     async def execute_voice_handling(self, ctx, voice, text):
-        if await self._check_voice_status_invalid(ctx):
-            return
-        network_utils = NetworkUtils()
-        audio_filename = ""
-        audio_filename = await network_utils.get_loquendo_voice(str(text), voice=voice)
-        if audio_filename != "":
-            await self.client.voice.reproduce_from_file(ctx.author, audio_filename)
-        else:
-            await ctx.send(StringConstants.SMTH_FUCKED_UP)
+        playing_state = self.client.voice.get_playing_state(ctx)
+        if (not isinstance(playing_state, Speak) or not isinstance(playing_state, Salute)) and not await self._is_user_in_voice_channel(ctx):
+            network_utils = NetworkUtils()
+            audio_filename = ""
+            audio_filename = await network_utils.get_loquendo_voice(str(text), voice=voice)
+            if audio_filename != "":
+                await self.client.voice.reproduce_from_file(ctx.author, audio_filename)
+            else:
+                await ctx.send(StringConstants.SMTH_FUCKED_UP)
 
     @commands.command(name="say")
     async def say(self, ctx, *, text):
@@ -63,24 +64,21 @@ class voice(commands.Cog):
         '''Inicia la radio con la ciudad y su radio correspondiente
         `-start-radio o -sr [ciudad] [numero de radio]`
         '''
-        if not await self._check_voice_status_invalid(ctx):
-            if self.client.voice.is_voice_playing_for_guild(ctx.guild):
-                self.client.voice.stop_player_for_guild(ctx.guild)
+        playing_state = self.client.voice.get_playing_state(ctx)
+        if (not isinstance(playing_state, Speak) or not isinstance(playing_state, Salute)) and not await self._is_user_in_voice_channel(ctx):
             try:
                 radios = self.client.bot_be.load_radios_config()
                 selected_city = radios[city]
                 selected_radio_url = selected_city["items"][int(radio_id) - 1]["link"]
                 selected_radio_name = selected_city['items'][int(radio_id) - 1]['name']
-                await self.client.voice.play_streaming(selected_radio_url, ctx, selected_radio_name)
+                await self.client.voice.play_radio(selected_radio_url, ctx, selected_radio_name)
             except IndexError:
                 await ctx.send("Escribe bien cojudo, usa `-radios`")
+            
 
-    async def _check_voice_status_invalid(self, ctx):
+    async def _is_user_in_voice_channel(self, ctx):
         if not ctx.author.voice:
             await ctx.send(StringConstants.NOT_IN_VOICE_CHANNEL_MSG)
-            return True
-        if self.client.voice.is_voice_speaking_for_guild(ctx.guild):
-            await ctx.send("Ahora no, cojudo")
             return True
         return False
 
@@ -88,37 +86,42 @@ class voice(commands.Cog):
     async def stop_radio(self, ctx):
         '''Para la radio y bota al bot del canal
         '''
-        await ctx.sad_reaction()
-        await self.client.voice.disconnect_player_for_guild(ctx.guild)
+        playing_state = self.client.voice.get_playing_state(ctx)
+        if not await self._is_user_in_voice_channel(ctx) and isinstance(playing_state, Radio):
+            await ctx.sad_reaction()
+            await self.client.voice.disconnect_player(ctx)
 
     @commands.command(name="metele", aliases=["dale", "entrale", "reproduce", "hazme-la-taba"])
     async def play_youtube(self, ctx, *query):
         '''Reproduce queries y links de youtube
         '''
-        if not await self._check_voice_status_invalid(ctx):
-            if not query: # validate that this is an url
-                return await ctx.message.add_reaction('❌')
+        if not query: # validate that this is an url
+            return await ctx.message.add_reaction('❌')
+        playing_state = self.client.voice.get_playing_state(ctx)
+        if (not isinstance(playing_state, Speak) or not isinstance(playing_state, Salute)) and not await self._is_user_in_voice_channel(ctx):
             try:
-                await ctx.message.delete()
+                await ctx.message.delete(delay=5.0)
             except:
                 pass
             await self.client.voice.play_for_youtube(query, ctx)
             embed_options = {'title': f'Agregando a lista de reproduccion con busqueda: {" ".join(query)}'}
             embed = VoiceEmbeds(author=ctx.author, **embed_options)
-            await ctx.send(embed=embed, delete_after=5.0)
+            await ctx.send(embed=embed, delete_after=8.0)
+            
 
     @commands.command(name="sig", aliases=["siguiente"])
     async def skip_youtube(self, ctx):
         '''Va a la siguiente cancion en la lista de canciones registradas con `-metele`
         '''
-        if not await self._check_voice_status_invalid(ctx):
-            await self.client.voice.skip_for_youtube(ctx)
+        playing_state = self.client.voice.get_playing_state(ctx)
+        if not await self._is_user_in_voice_channel(ctx) and isinstance(playing_state, Stream):
+            self.client.voice.stop_player(ctx)
 
     @commands.command(name="pausa")
     async def pause(self, ctx):
         '''Pausea el bot
         '''
-        if not await self._check_voice_status_invalid(ctx):
+        if not await self._is_user_in_voice_channel(ctx):
             self.client.voice.pause_player(ctx)
             await ctx.message.add_reaction('⏸️')
 
@@ -126,7 +129,7 @@ class voice(commands.Cog):
     async def resume(self, ctx):
         '''Continua con la reproduccion
         '''
-        if not await self._check_voice_status_invalid(ctx):
+        if not await self._is_user_in_voice_channel(ctx):
             self.client.voice.resume_player(ctx)
             await ctx.message.add_reaction('▶️')
 
@@ -134,12 +137,12 @@ class voice(commands.Cog):
     async def set_voice_volume(self, ctx, volume: float):
         '''Setea el volumen a un %
         `-volumen [0-100]`'''
-        if not ctx.author.voice:
-            return
         if volume < 0 or volume > 100:
             return await ctx.send("No seas pendejo")
-        await ctx.send(f"Volumen seteado al {volume}%")
-        self.client.voice.set_volume_for_guild(volume, ctx.guild)
+        playing_state = self.client.voice.get_playing_state(ctx)
+        if not await self._is_user_in_voice_channel(ctx) and not isinstance(playing_state, Off):
+            await ctx.send(f"Volumen seteado al {volume}%")
+            self.client.voice.set_volume(volume, ctx)
 
 def setup(client):
     client.add_cog(voice(client))
