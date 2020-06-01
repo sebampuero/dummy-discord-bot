@@ -120,7 +120,7 @@ class VoiceManager:
                 logging.warning(f"Disconnected from channel {self.voice_client.channel}")
                 await self.voice_client.disconnect()
                 self.state = self.off
-                self.voice_manager.prev_state = self.state
+                self.prev_state = self.state
 
 class State(object):
 
@@ -227,6 +227,8 @@ class SpotifyStream(State):
         except discord.ClientException:
             self.switch(self.voice_manager.off)
             self.voice_manager.prev_state = self.voice_manager.state
+        except Exception:
+            self.music_loop(error=None)
 
 class YoutubeStream(State):
 
@@ -257,8 +259,8 @@ class YoutubeStream(State):
             asyncio.run_coroutine_threadsafe(self.voice_manager.play(None), self.client.loop)
             return
         query = self.queue.pop()
-        self.voice_manager.current_streaming_source = YTDLSource.from_query(query)
         try:
+            self.voice_manager.current_streaming_source = YTDLSource.from_query(query)
             self.voice_manager.voice_client.play(self.voice_manager.current_streaming_source, after=lambda e: self.music_loop(e))
             options = {'title': f'Reproduciendo ahora {self.voice_manager.current_streaming_source.title}'}
             embed = VoiceEmbeds(self.voice_manager.current_streaming_context.author,**options)
@@ -266,6 +268,8 @@ class YoutubeStream(State):
         except discord.ClientException:
             self.switch(self.voice_manager.off)
             self.voice_manager.prev_state = self.voice_manager.state
+        except Exception:
+            self.music_loop(error=None)
 
 class Speak(State):
 
@@ -504,7 +508,7 @@ class Voice():
                 if vmanager.voice_client.channel != vc:
                     await vmanager.voice_client.move_to(vc)
                 if isinstance(vmanager.state, SpotifyStream):
-                    await ctx.send("Una lista de spotify ya se esta reproduciendo")
+                    return await ctx.send("Una lista de spotify ya se esta reproduciendo")
                 if isinstance(vmanager.state, Radio) or isinstance(vmanager.state, YoutubeStream):
                     vmanager.pause_player()
                 query = self.process_query_object_for_spotify_playlist(query)
@@ -518,6 +522,8 @@ class Voice():
                     await ctx.send(embed=embed)
                 else:
                     await ctx.send("Hubo un error")
+                    vmanager.prev_state = vmanager.off
+                    vmanager.change_state(vmanager.state)
         except Exception as e:
             await vmanager.disconnect()
             logging.error("While streaming spotify", exc_info=True)
