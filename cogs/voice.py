@@ -3,7 +3,7 @@ from discord.ext import commands
 import Constants.StringConstants as StringConstants
 from Utils.NetworkUtils import NetworkUtils
 from embeds.custom import VoiceEmbeds
-from Voice import Off, Speak, Salute, Radio, Stream
+from Voice import Off, Speak, Salute, Radio, YoutubeStream, SpotifyStream
 
 class voice(commands.Cog):
     '''Todo lo necesario para hacer que el bot hable y reproduzca musiquita
@@ -83,38 +83,47 @@ class voice(commands.Cog):
         return False
 
     @commands.command(aliases=["st", "vete-mierda", "stop"], name="stop-radio")
-    async def stop_radio(self, ctx):
-        '''Para la radio y bota al bot del canal
+    async def stop(self, ctx):
+        '''Para lo que sea que dice el bot y lo bota del canal
         '''
         playing_state = self.client.voice.get_playing_state(ctx)
-        if not await self._is_user_in_voice_channel(ctx) and isinstance(playing_state, Radio):
+        if not await self._is_user_in_voice_channel(ctx):
             await ctx.sad_reaction()
             await self.client.voice.disconnect_player(ctx)
 
     @commands.command(name="metele", aliases=["dale", "entrale", "reproduce", "hazme-la-taba"])
-    async def play_youtube(self, ctx, *query):
-        '''Reproduce queries y links de youtube
+    async def play_for_stream(self, ctx, *query):
+        '''Reproduce queries y links de Youtube asi como playlists de spotify.
+        Ejemplo {command_prefix}metele https://open.spotify.com/playlist/37i9dQZEVXbLiRSasKsNU9
+        O {command_prefix}metele https://www.youtube.com/watch?v=l00VTUYkebw
+        O {command_prefix}metele chuchulun don omar
         '''
-        if not query: # validate that this is an url
+        if not query:
             return await ctx.message.add_reaction('❌')
+        if "https://open.spotify.com" in str(query[0]) and "playlist" in str(query[0]):
+            await self.handle_query_for_spotify(str(query[0]), ctx)
+        elif "youtube.com" in str(query) or ".com" not in str(query):
+            await self.handle_query_for_youtube(query, ctx)
+
+    async def handle_query_for_youtube(self, query, ctx):
         playing_state = self.client.voice.get_playing_state(ctx)
         if (not isinstance(playing_state, Speak) or not isinstance(playing_state, Salute)) and not await self._is_user_in_voice_channel(ctx):
-            try:
-                await ctx.message.delete(delay=5.0)
-            except:
-                pass
             await self.client.voice.play_for_youtube(query, ctx)
             embed_options = {'title': f'Agregando a lista de reproduccion con busqueda: {" ".join(query)}'}
             embed = VoiceEmbeds(author=ctx.author, **embed_options)
             await ctx.send(embed=embed, delete_after=8.0)
-            
+
+    async def handle_query_for_spotify(self, query, ctx):
+        playing_state = self.client.voice.get_playing_state(ctx)
+        if (not isinstance(playing_state, Speak) or not isinstance(playing_state, Salute)) and not await self._is_user_in_voice_channel(ctx):
+            await self.client.voice.play_for_spotify(query, ctx)
 
     @commands.command(name="sig", aliases=["siguiente"])
-    async def skip_youtube(self, ctx):
+    async def next_song_in_queue(self, ctx):
         '''Va a la siguiente cancion en la lista de canciones registradas con `-metele`
         '''
         playing_state = self.client.voice.get_playing_state(ctx)
-        if not await self._is_user_in_voice_channel(ctx) and isinstance(playing_state, Stream):
+        if not await self._is_user_in_voice_channel(ctx) and (isinstance(playing_state, YoutubeStream) or isinstance(playing_state, SpotifyStream)):
             self.client.voice.stop_player(ctx)
 
     @commands.command(name="pausa")

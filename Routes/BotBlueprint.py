@@ -3,7 +3,7 @@ from Utils.NetworkUtils import NetworkUtils
 import Constants.StringConstants as Constants
 from BE.BotBE import BotBE
 from types import SimpleNamespace
-from Voice import Speak
+from Voice import Speak, Salute
 
 async def say(data, guild, text_channel, voice):
     text = str(data["text"]).lower()
@@ -37,7 +37,7 @@ def get_bot_blueprint(client, voice, event_loop):
     def reproduce_from_text():
         try:
             playing_state = voice.get_playing_state(SimpleNamespace(guild=guild))
-            if isinstance(playing_state, Speak):
+            if isinstance(playing_state, Speak) or isinstance(playing_state, Salute):
                 return jsonify({'message': Constants.BOT_BUSY_RESPONSE}), 200
             data = request.json
             event_loop.create_task(say(data, guild, text_channel, voice))
