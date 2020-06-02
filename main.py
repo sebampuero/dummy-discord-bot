@@ -1,3 +1,4 @@
+
 import discord
 import asyncio
 import logging
@@ -18,6 +19,27 @@ class CustomContext(commands.Context):
     """
     async def sad_reaction(self):
         emoji = '😥'
+        try:
+            await self.message.add_reaction(emoji)
+        except discord.HTTPException:
+            pass
+
+    async def bad_command_reaction(self):
+        emoji = '❌'
+        try:
+            await self.message.add_reaction(emoji)
+        except discord.HTTPException:
+            pass
+
+    async def good_command_reaction(self):
+        emoji = '👍'
+        try:
+            await self.message.add_reaction(emoji)
+        except discord.HTTPException:
+            pass
+
+    async def processing_command_reaction(self):
+        emoji = '⏳'
         try:
             await self.message.add_reaction(emoji)
         except discord.HTTPException:

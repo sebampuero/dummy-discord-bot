@@ -3,6 +3,7 @@ token.txt
 password.txt
 spotify.txt
 *.mp3
+music_cache/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

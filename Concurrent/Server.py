@@ -9,6 +9,7 @@ class Server(OurThread):
         super(Server, self).__init__()
         self.name = name
         self.loop = asyncio.get_event_loop()
+        self.daemon = True
         print(f"Init {self.name} thread")
     
     def set_voice(self, voice):
