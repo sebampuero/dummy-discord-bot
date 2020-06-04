@@ -12,18 +12,17 @@ class Quote():
         self.bot_be = BotBE()
     
     async def handle_quote_save(self, quote, ctx):
-        ack = self.bot_be.save_quote(quote, ctx.author.id)
+        ack = self.bot_be.save_quote(quote, ctx.author.id, ctx.guild.id)
         await ctx.send(ack)
         
     async def show_daily_quote(self, client):
         await client.wait_until_ready()
         while not client.is_closed():
             try:
-                sleep_time = random.randint(3600, 86400)
+                sleep_time = random.randint(3600, 12000)
                 await asyncio.sleep(sleep_time)
-                quote, member_id = self.bot_be.select_random_daily_quote()
-                guild_id = await client.fetch_user(member_id).guild
-                common_chat_channel = client.guild_to_common_chat_map[guild_id]
+                quote, member_id, guild_id = self.bot_be.select_random_daily_quote()
+                common_chat_channel = client.guild_to_common_chat_map[int(guild_id)]
                 if quote != "":
                     await common_chat_channel.send(quote)
             except Exception as e:

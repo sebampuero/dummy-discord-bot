@@ -38,19 +38,20 @@ class RadioSource(StreamSource):
         self.name = radio_name
         super().__init__(discord.FFmpegPCMAudio(url), url, volume=0.3)
 
-
 class YTDLSource(discord.PCMVolumeTransformer):
     ytdl_opts = {
+        'quiet': True,
         'format': 'bestaudio/best',
         'noplaylist': True,
         'nocheckcertificate': True,
         'ignoreerrors': False,
         'outtmpl': './music_cache/%(extractor)s-%(title)s.%(ext)s',
         'restrictfilenames': True,
-        'logtostderr': False,
-        'quiet': True,
-        'keepvideo': False,
+        #'simulate': True,
         'nooverwrites': True,
+        #'skip_download': False,
+        'logtostderr': False,
+        'keepvideo': False,
         'socket_timeout': 10,
         'no_warnings': True,
         'default_search': 'auto',
@@ -152,6 +153,10 @@ class State(object):
     async def resume(self):
         pass
 
+    def terminate_gracefully(self):
+        if self.voice_manager.voice_client and self.voice_manager.voice_client.source:
+            self.voice_manager.voice_client.source.cleanup()
+
     def __str__(self):
         return self.name 
 
@@ -184,11 +189,10 @@ class Radio(State):
         self.voice_manager.current_streaming_source = RadioSource(query, "")
         self.voice_manager.voice_client.play(self.voice_manager.current_streaming_source, after=lambda e: self.handle_error(e))
 
-
     async def resume(self):
         voice_client = self.voice_manager.voice_client
         if self.voice_manager.current_streaming_source:
-            voice_client.play(self.voice_manager.current_streaming_source, after=lambda e: self.handle_error(e))
+            voice_client.resume()
 
     def handle_error(self, error):
         self.switch(self.voice_manager.off)
@@ -216,15 +220,16 @@ class Stream(State):
     async def resume(self):
         voice_client = self.voice_manager.voice_client
         if self.voice_manager.current_streaming_source:
-            voice_client.play(self.voice_manager.current_streaming_source, after=lambda e: self.music_loop(e))
+            voice_client.resume()
 
     def music_loop(self, error):
         if error:
             self.cleanup()
             return
         if len(self.queue) == 0:
-            self.switch(self.voice_manager.off)
-            asyncio.run_coroutine_threadsafe(self.voice_manager.play(None), self.client.loop)
+            msg = "Fin de la lista de reproduccion"
+            asyncio.run_coroutine_threadsafe(self.voice_manager.current_vmanager_context.send(msg), self.client.loop)
+            asyncio.run_coroutine_threadsafe(self.voice_manager.disconnect(), self.client.loop)
             return
         query = self.queue.pop()
         try:
@@ -237,8 +242,10 @@ class Stream(State):
             self.cleanup()
             logging.error("while streaming", exc_info=True)
         except Exception:
+            error_msg = f"Se produjo un error reproduciendo {self.voice_manager.current_streaming_source.title}, intentando reproducir siguiente canción en lista"
+            asyncio.run_coroutine_threadsafe(self.voice_manager.current_vmanager_context.send(error_msg), self.client.loop)
             self.music_loop(error=None)
-            logging.error("while streaming", exc_info=True)
+            logging.error("while streaming, skipping to next song", exc_info=True)
 
     def cleanup(self):
         self.switch(self.voice_manager.off)
@@ -271,7 +278,7 @@ class Speak(State):
     def switch(self, state):
         super(Speak, self).switch(state)
         if isinstance(state, Off):
-            asyncio.run_coroutine_threadsafe(self.voice_manager.play(None), self.client.loop)
+            asyncio.run_coroutine_threadsafe(self.voice_manager.disconnect(), self.client.loop)
 
 class Salute(State):
 
@@ -289,13 +296,11 @@ class Salute(State):
         
     def salute_loop(self, error):
         if error:
-            self.switch(self.voice_manager.off)
-            self.voice_manager.prev_state = self.voice_manager.state
+            self.cleanup()
             return
         if len(self.welcome_audios_queue) == 0:
             if isinstance(self.voice_manager.prev_state, Off):
-                self.switch(self.voice_manager.off)
-                asyncio.run_coroutine_threadsafe(self.voice_manager.play(None), self.client.loop)
+                asyncio.run_coroutine_threadsafe(self.voice_manager.disconnect(), self.client.loop)
                 return
             else:
                 self.switch(self.voice_manager.prev_state)
@@ -305,8 +310,7 @@ class Salute(State):
         try:
             self.voice_manager.voice_client.play(source, after=lambda e: self.salute_loop(e))
         except discord.ClientException:
-            self.switch(self.voice_manager.off)
-            self.voice_manager.prev_state = self.voice_manager.state
+            self.cleanup()
 
     def resume_playing_for_prev_state(self, error):
         if error:
@@ -314,6 +318,10 @@ class Salute(State):
             return
         self.switch(self.voice_manager.prev_state)
         asyncio.run_coroutine_threadsafe(self.voice_manager.resume(), self.client.loop)
+
+    def cleanup(self):
+        self.switch(self.voice_manager.off)
+        self.voice_manager.prev_state = self.voice_manager.state
 
     async def resume(self):
         raise NotImplementedError()
@@ -333,21 +341,23 @@ class Voice():
         for guild in self.client.guilds:
             self.guild_to_voice_manager_map[guild.id] = VoiceManager(self.client)
             
-    async def deactivate_welcome_audio(self, chat_channel): #TODO: remember to use guild as object containing audio items and status
+    async def deactivate_welcome_audio(self, chat_channel):
         message = chat_channel.message
         user_ids_to_audio_map = self.bot_be.load_users_welcome_audios()
         user_id = str(message.author.id)
+        guild_id = str(message.author.guild.id)
         if user_id in user_ids_to_audio_map:
-            user_ids_to_audio_map[user_id]["active"] = False
+            user_ids_to_audio_map[user_id][guild_id]["active"] = False
             self.bot_be.save_users_welcome_audios(user_ids_to_audio_map)
             await chat_channel.send(Constants.NOT_MORE_SALUTE)
-
+    #TODO: Apply DRY in these methods
     async def activate_welcome_audio(self, chat_channel):
         message = chat_channel.message
         user_ids_to_audio_map = self.bot_be.load_users_welcome_audios()
         user_id = str(message.author.id)
+        guild_id = str(message.author.guild.id)
         if user_id in user_ids_to_audio_map:
-            user_ids_to_audio_map[user_id]["active"] = True
+            user_ids_to_audio_map[user_id][guild_id]["active"] = True
             self.bot_be.save_users_welcome_audios(user_ids_to_audio_map)
             await chat_channel.send(Constants.SALUTE)
             
@@ -360,10 +370,7 @@ class Voice():
                 await dm_channel.send(f"{member.display_name} {Constants.HAS_ENTERED_CHANNEL} {voice_channel.name}")
                 
     async def say_good_night(self, member):
-        try:
-            await self.reproduce_from_file(member, "./assets/audio/vladimir.mp3")
-        except Exception as e:
-            logging.error("While saying good night", exc_info=True)
+        await self.reproduce_from_file(member, "./assets/audio/vladimir.mp3")
 
     def get_playing_state(self, ctx):
         return self.guild_to_voice_manager_map.get(ctx.guild.id).state
@@ -410,9 +417,9 @@ class Voice():
         vmanager = self.guild_to_voice_manager_map.get(guild_id)
         try:  
             user_ids_to_audio_map = self.bot_be.load_users_welcome_audios()
-            if not str(member.id) in user_ids_to_audio_map or not user_ids_to_audio_map[str(member.id)]["active"] or not str(guild_id) in user_ids_to_audio_map[str(member.id)]:
+            if not str(member.id) in user_ids_to_audio_map or not user_ids_to_audio_map[str(member.id)][str(guild_id)]["active"] or not str(guild_id) in user_ids_to_audio_map[str(member.id)]:
                 return
-            audio_files_list = user_ids_to_audio_map[str(member.id)][str(guild_id)]
+            audio_files_list = user_ids_to_audio_map[str(member.id)][str(guild_id)]["audios"]
             random_idx = random.randint(0, len(audio_files_list) - 1)
             audio_file_name = audio_files_list[random_idx]
             if discord.opus.is_loaded():
@@ -441,6 +448,7 @@ class Voice():
                     return
                 if isinstance(vmanager.state, Stream) or isinstance(vmanager.state, Radio):
                     vmanager.pause_player()
+                    vmanager.state.terminate_gracefully()
                 vmanager.prev_state = vmanager.state
                 vmanager.change_state(vmanager.radio)
                 await vmanager.play(url)
@@ -460,6 +468,7 @@ class Voice():
                     return
                 if isinstance(vmanager.state, Radio):
                     vmanager.pause_player()
+                    vmanager.state.terminate_gracefully()
                 vmanager.prev_state = vmanager.state
                 vmanager.change_state(vmanager.stream)
                 vmanager.current_vmanager_context = ctx
@@ -480,6 +489,7 @@ class Voice():
                     return
                 if isinstance(vmanager.state, Radio):
                     vmanager.pause_player()
+                    vmanager.state.terminate_gracefully()
                 query = self.process_query_object_for_spotify_playlist(query)
                 vmanager.prev_state = vmanager.state
                 vmanager.change_state(vmanager.stream)
@@ -535,4 +545,6 @@ class Voice():
                 pass         
 
     def entered_voice_channel(self, before, after):
-        return after.channel != None and not before.self_deaf and not before.self_mute and not before.self_stream and not after.self_deaf and not after.self_mute and not after.self_stream
+        return after.channel != None and not before.self_video and not before.self_deaf \
+            and not before.self_mute and not before.self_stream and not before.deaf and not before.mute and not after.self_video \
+                and not after.self_deaf and not after.self_mute and not after.self_stream and not after.mute and not after.deaf

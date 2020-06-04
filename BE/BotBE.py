@@ -24,13 +24,14 @@ class BotBE():
 			random_quote_idx = random.randint(0, size - 1)
 			quote_msg = quotes[random_quote_idx][2]
 			member_id = quotes[random_quote_idx][3]
-			return str(quote_msg), member_id
+			guild_id = quotes[random_quote_idx][4]
+			return str(quote_msg), member_id, guild_id
 		else:
 			return ""
 
-	def save_quote(self, quote, member_id):
+	def save_quote(self, quote, member_id, guild_id):
 		try:
-			self.bot_svc.add_quote(quote, member_id)
+			self.bot_svc.add_quote(quote, member_id, guild_id)
 			return Constants.ADDED
 		except Exception as e:
 			logging.error(f"{str(e)} while saving quote", exc_info=True)

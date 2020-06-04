@@ -31,8 +31,8 @@ class BotDAO():
 		sql = f"SELECT subscriber FROM subscriptions WHERE subscribee = '{subscribee}'"
 		return self.db.execute_query_with_result(sql)
 
-	def add_quote(self, quote, member_id):
-		sql = f"INSERT INTO quotes(timestamp, value, discord_user_id) VALUES(UNIX_TIMESTAMP(), '{quote}', '{member_id}')"
+	def add_quote(self, quote, member_id, guild_id):
+		sql = f"INSERT INTO quotes(timestamp, value, discord_user_id, guild_id) VALUES(UNIX_TIMESTAMP(), '{quote}', '{member_id}', '{guild_id}')"
 		self.db.execute_query(sql)
 
 	def get_all_quotes(self):

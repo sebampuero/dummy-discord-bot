@@ -48,7 +48,7 @@ class misc(commands.Cog):
     @commands.Cog.listener()
     async def on_command_error(self, ctx, error):
         if isinstance(error, commands.CommandNotFound):
-            message = await ctx.send(f"Yo no tengo ese comando registrado `{ctx.message.content}`. Usa `-help`")
+            message = await ctx.send("Yo no tengo ese comando registrado. Usa `-help`", delete_after=5.0)
             await ctx.bad_command_reaction()
         else:
             logging.error(str(error), exc_info=True)

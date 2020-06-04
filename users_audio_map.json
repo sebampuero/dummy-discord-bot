@@ -1,107 +1,139 @@
 {
     "629788607745622036": {
-        "active": "true",
-        "451813158290587649": [
-            "./assets/audio/john-caquillon.mp3"
-        ]
+        "451813158290587649": {
+            "active": "true",
+            "audios": [
+                "./assets/audio/john-caquillon.mp3"
+            ]
+        }
     },
     "603292764435775499": {
-        "active": "true",
-        "451813158290587649": [
-            "./assets/audio/john-caquillon.mp3"
-        ]
+        "451813158290587649": {
+            "active": "true",
+            "audios": [
+                "./assets/audio/john-caquillon.mp3"
+            ]
+        }
     },
     "320244614512640001": {
-        "active": "true",
-        "451813158290587649": [
-            "./assets/audio/pastruti.mp3"
-        ]
+        "451813158290587649": {
+            "active": "true",
+            "audios": [
+                "./assets/audio/pastruti.mp3"
+            ]
+        }
     },
     "320244975235235840": {
-        "active": "true",
-        "451813158290587649": [
-            "./assets/audio/pastruti.mp3"
-        ]
+        "451813158290587649": {
+            "active": "true",
+            "audios": [
+                "./assets/audio/pastruti.mp3"
+            ]
+        }
     },
     "285255506401165312": {
-        "active": true,
-        "451813158290587649": [
-            "./assets/audio/malvino.mp3"
-        ]
+        "451813158290587649": {
+            "active": "true",
+            "audios": [
+                "./assets/audio/malvino.mp3"
+            ]
+        }
     },
     "496255394767962132": {
-        "active": "true",
-        "451813158290587649": [
-            "./assets/audio/edu.mp3",
-            "./assets/audio/edu2.mp3"
-        ]
+        "451813158290587649": {
+            "active": "true",
+            "audios": [
+                "./assets/audio/edu.mp3",
+                "./assets/audio/edu2.mp3"
+            ]
+        }
     },
     "283077679270330369": {
-        "active": true,
-        "451813158290587649": [
-            "./assets/audio/dani.mp3",
-            "./assets/audio/dani2.mp3"
-        ]
+        "451813158290587649": {
+            "active": "true",
+            "audios": [
+                "./assets/audio/dani.mp3",
+                "./assets/audio/dani2.mp3"
+            ]
+        }
     },
     "304793510551486465": {
-        "active": "true",
-        "451813158290587649": [
-            "./assets/audio/kuripo.mp3",
-            "./assets/audio/kuripo2.mp3"
-        ]
+        "451813158290587649": {
+            "active": "true",
+            "audios": [
+                "./assets/audio/kuripo.mp3",
+                "./assets/audio/kuripo.mp3"
+            ]
+        }
     },
     "289599656143618049": {
-        "active": "true",
-        "451813158290587649": [
-            "./assets/audio/urday.mp3",
-            "./assets/audio/urday2.mp3"
-        ]
+        "451813158290587649": {
+            "active": "true",
+            "audios": [
+                "./assets/audio/urday.mp3",
+                "./assets/audio/urday2.mp3"
+            ]
+        }
     },
     "283081721367494666": {
-        "active": "true",
-        "451813158290587649": [
-            "./assets/audio/calitos_1.mp3",
-            "./assets/audio/calos.mp3"
-        ]
+        "451813158290587649": {
+            "active": "true",
+            "audios": [
+                "./assets/audio/calitos_1.mp3",
+                "./assets/audio/calos.mp3"
+            ]
+        }
     },
     "312010935105486851": {
-        "active": "true",
-        "451813158290587649": [
-            "./assets/audio/suspiron_1.mp3"
-        ]
+        "451813158290587649": {
+            "active": "true",
+            "audios": [
+                "./assets/audio/suspiron_1.mp3"
+            ]
+        }
     },
     "689493214352506920": {
-        "active": "true",
-        "451813158290587649": [
-            "./assets/audio/suspiron_1.mp3"
-        ]
+        "451813158290587649": {
+            "active": "true",
+            "audios": [
+                "./assets/audio/suspiron_1.mp3"
+            ]
+        }
     },
     "279796600308498434": {
-        "active": false,
-        "451813158290587649": [
-            "./assets/audio/papu.mp3",
-            "./assets/audio/papu2.mp3"
-        ]
+        "451813158290587649": {
+            "active": false,
+            "audios": [
+                "./assets/audio/papu.mp3",
+                "./assets/audio/papu2.mp3"
+            ]
+        }
     },
     "307665795767336962": {
-        "active": true,
-        "451813158290587649": [
-            "./assets/audio/tavo.mp3"
-        ]
+        "451813158290587649": {
+            "active": "true",
+            "audios": [
+                "./assets/audio/tavo.mp3"
+            ]
+        }
     },
     "372209684557594625": {
-        "active": true,
-        "451813158290587649": [
-            "./assets/audio/ribo.mp3",
-            "./assets/audio/ribo1.mp3"
-        ]
+        "451813158290587649": {
+            "active": "true",
+            "audios": [
+                "./assets/audio/ribo.mp3",
+                "./assets/audio/ribo1.mp3"
+            ]
+        }
     },
     "665014394878558290": {
-        "active": true,
-        "451813158290587649": [
-            "./assets/audio/fleming.mp3",
-            "./assets/audio/fleming2.mp3",
-            "./assets/audio/fleming3.mp3"
-        ]
+        "451813158290587649": {
+            "active": "true",
+            "audios": [
+                "./assets/audio/fleming.mp3",
+                "./assets/audio/fleming2.mp3",
+                "./assets/audio/fleming3.mp3"
+            ]
+        }
     }
 }
