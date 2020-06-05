@@ -111,7 +111,7 @@ class voice(commands.Cog):
                 await self.client.voice.play_streaming_youtube(query, ctx)
                 await ctx.processing_command_reaction()
             else:
-                await ctx.send(f"No tengo soporte aun para {ctx.message.content}")
+                await ctx.send(f"No tengo soporte aun para {str(query)}")
 
     @commands.command(name="sig", aliases=["siguiente"])
     async def next_song_in_queue(self, ctx):

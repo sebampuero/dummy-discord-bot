@@ -7,3 +7,11 @@ class VoiceEmbeds(discord.Embed):
         kwargs.update(options)
         super().__init__(**kwargs)
         self.set_author(name=author.display_name)
+
+    @classmethod
+    def from_dict(cls, data):
+        options_voice = {
+            'color': 1127128
+        }
+        options_voice.update(data)
+        return super().from_dict(options_voice)
