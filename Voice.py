@@ -9,8 +9,9 @@ from Utils.NetworkUtils import NetworkUtils
 from youtube_dl import YoutubeDL
 from spotipy.oauth2 import SpotifyClientCredentials
 from embeds.custom import VoiceEmbeds
+from enum import Enum
 """
- This class is responsible for all voice communications the Bot handles (voice updates and voice output)
+ Implementation of the music functionality of the Bot. Handles radio streaming, youtube/spotify streaming and playback of local mp3 files. 
 """
 
 f = open("spotify.txt", "r")
@@ -18,6 +19,10 @@ creds = f.read().split(",")
 client_credentials_manager = SpotifyClientCredentials(client_id=creds[0], client_secret=creds[1])
 sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
 f.close()
+
+class StreamingType(Enum):
+    YOUTUBE = 1
+    SPOTIFY = 2
 
 class LocalfileSource(discord.PCMVolumeTransformer):
     
@@ -107,6 +112,11 @@ class YTDLSource(discord.PCMVolumeTransformer):
 
 class VoiceManager:
 
+    """
+    The manager of a voice connection in a given guild. Delegates voice functions and commands to any given state
+    (radio, streaming, speaking and saluting). 
+    """
+
     def __init__(self, client):
         self.client = client
         self.off = Off(self, client)
@@ -121,22 +131,22 @@ class VoiceManager:
     def change_state(self, state):
         self.state = state
 
-    def play(self, query, original_msg=None):
+    def play(self, query, **kwargs):
         logging.warning(f"In state {self.state}")
-        self.state.reproduce(query, original_msg)
+        self.state.reproduce(query, **kwargs)
 
     def resume_previous(self):
         logging.warning(f"In state {self.state}")
         self.state.resume()
 
     def interrupt_player(self):
-        if self.voice_client != None:
-            self.voice_client._player = None
-            self.voice_client.stop()
+        if self.voice_client and self.current_player:
+            self.state.should_exit = True
+            self.current_player.stop()
 
-    def stop(self):
-        if self.voice_client != None:
-            self.voice_client.stop()
+    def next_for_queue(self):
+        if self.voice_client and self.current_player:
+            self.current_player.stop()
 
     def pause_player(self):
         if self.voice_client and self.current_player:
@@ -150,11 +160,14 @@ class VoiceManager:
         if self.voice_client != None:
             self.voice_client.resume()
 
+    def trigger_shuffle(self):
+        self.state.shuffle_for_queue = not self.state.shuffle_for_queue
+
     def is_voice_client_playing(self):
         return self.voice_client and self.voice_client.is_playing()
 
     def set_volume_for_voice_client(self, volume):
-        self.voice_client.source.volume = volume
+        self.state.set_volume(volume)
 
     async def disconnect(self):
         if self.voice_client != None:
@@ -166,20 +179,38 @@ class VoiceManager:
 
 class State(object):
 
+    """
+    Abstract State base. Subclasses that inherit from this class represent any given voice state the bot is in. 
+    """
+
     name = "state"
 
     def __init__(self, voice_manager, client):
         self.voice_manager = voice_manager
         self.client = client
+        self.shuffle_for_queue = False
+        self.should_exit = False
 
     def switch(self, state):
         self.voice_manager.change_state(state)
 
-    def reproduce(self, query, original_msg):
+    def reproduce(self, query, **kwargs):
+        """
+        Starts the playback. 
+        :param query is the query that the player plays. Depending on the state that inherits from this class, the query is processed accordingly.
+        """
         pass
 
     def resume(self):
+        """
+        This function is called whenever the current state is interrupted by another state. Upon termination of
+        the interrupting state this function is called.
+        """
         pass
+
+    def set_volume(self, volume):
+        if self.voice_manager.voice_client:
+            self.voice_manager.voice_client.source.volume = volume
 
     def __str__(self):
         return self.name 
@@ -191,15 +222,12 @@ class Off(State):
     def __init__(self, voice_manager, client):
         super().__init__(voice_manager, client)
 
-    def reproduce(self, query, original_msg):
+    def reproduce(self, query, **kwargs):
         logging.warning("Unable to reproduce because of state OFF")
         self.client.loop.create_task(self.voice_manager.disconnect())
 
     def switch(self, state):
         super(Off, self).switch(state)
-
-    def resume(self):
-        raise NotImplementedError()
 
 class Radio(State):
 
@@ -207,19 +235,27 @@ class Radio(State):
 
     def __init__(self, voice_manager, client):
         super().__init__(voice_manager, client)
+        self.access_counter = 0
 
-    def reproduce(self, query, original_msg):
-        voice_client = self.voice_manager.voice_client 
-        self.voice_manager.voice_client.play(RadioSource(query, ""), after=lambda e: self.handle_error(e))
+    def reproduce(self, query, **kwargs):
+        self.voice_manager.voice_client.play(RadioSource(query, kwargs["radio_name"]), after=lambda e: self.handle_error(e))
         self.voice_manager.current_player = self.voice_manager.voice_client._player
 
     def resume(self):
         if self.voice_manager.current_player:
             self.voice_manager.current_player.resume()
 
+    def set_volume(self, volume):
+        if self.voice_manager.current_player:
+            self.voice_manager.current_player.source.volume = volume
+
     def handle_error(self, error):
-        self.switch(self.voice_manager.off)
-        self.voice_manager.prev_state = self.voice_manager.state
+        if error:
+            self.client.loop.create_task(self.vmanager.current_context.send("Se produjo un error"))
+        if not self.should_exit:
+            self.switch(self.voice_manager.off)
+            self.voice_manager.prev_state = self.voice_manager.state
+        self.should_exit = False
             
     def switch(self, state):
         self.voice_manager.pause_player()
@@ -234,8 +270,9 @@ class Stream(State):
         super().__init__(voice_manager, client)
         self.queue = []
     
-    def reproduce(self, query, original_msg):
-        self.original_msg = original_msg
+    def reproduce(self, query, **kwargs):
+        self.should_exit = False
+        self.original_msg = kwargs["original_msg"]
         self.queue.extend(query) if type(query) in [list] else self.queue.append(query)
         if not self.voice_manager.is_voice_client_playing():
             self.music_loop(error=None)
@@ -244,16 +281,29 @@ class Stream(State):
         if self.voice_manager.current_player:
             self.voice_manager.current_player.resume()
             
+    def set_volume(self, volume):
+        if self.voice_manager.current_player:
+            self.voice_manager.current_player.source.volume = volume
+
+    def retrieve_query_for_source(self):
+        if not self.shuffle_for_queue:
+            return self.queue.pop()
+        else:
+            rand_idx = random.randint(0, len(self.queue) - 1)
+            return self.queue.pop(rand_idx)
+
     def music_loop(self, error):
+        if self.should_exit:
+            return
         if error:
             self.cleanup()
             return
         if len(self.queue) == 0:
             msg = "Fin de la lista de reproduccion"
-            asyncio.run_coroutine_threadsafe(self.voice_manager.current_vmanager_context.send(msg), self.client.loop)
+            asyncio.run_coroutine_threadsafe(self.voice_manager.current_context.send(msg), self.client.loop)
             asyncio.run_coroutine_threadsafe(self.voice_manager.disconnect(), self.client.loop)
             return
-        query = self.queue.pop()
+        query = self.retrieve_query_for_source()
         try:
             self.voice_manager.voice_client.play(YTDLSource.from_query(query, self.client.loop), after=lambda e: self.music_loop(e))
             self.voice_manager.current_player = self.voice_manager.voice_client._player
@@ -261,7 +311,7 @@ class Stream(State):
                 'title': f'Reproduciendo ahora {self.voice_manager.voice_client.source.title}',
                 'url': self.voice_manager.voice_client.source.url,
                 'author': {
-                    "name": self.voice_manager.current_vmanager_context.author.display_name
+                    "name": self.voice_manager.current_context.author.display_name
                 },
                 'fields': [
                     {
@@ -279,7 +329,7 @@ class Stream(State):
             logging.error("while streaming", exc_info=True)
         except Exception:
             error_msg = f"Se produjo un error reproduciendo {self.voice_manager.voice_client.source.title}, intentando reproducir siguiente canción en lista"
-            asyncio.run_coroutine_threadsafe(self.voice_manager.current_vmanager_context.send(error_msg), self.client.loop)
+            asyncio.run_coroutine_threadsafe(self.voice_manager.current_context.send(error_msg), self.client.loop)
             self.music_loop(error=None)
             logging.error("while streaming, skipping to next song", exc_info=True)
 
@@ -294,7 +344,7 @@ class Speak(State):
     def __init__(self, voice_manager, client):
         super().__init__(voice_manager, client)
 
-    def reproduce(self, query, original_msg):
+    def reproduce(self, query, **kwargs):
         voice_client = self.voice_manager.voice_client 
         if isinstance(self.voice_manager.prev_state, Off):
             voice_client.play(LocalfileSource(query), after= lambda e: self.switch(self.voice_manager.off))
@@ -307,9 +357,6 @@ class Speak(State):
             return
         self.switch(self.voice_manager.prev_state)
         self.voice_manager.resume_previous()
-
-    async def resume(self):
-        raise NotImplementedError()
 
     def switch(self, state):
         super(Speak, self).switch(state)
@@ -324,7 +371,7 @@ class Salute(State):
         super().__init__(voice_manager, client)
         self.welcome_audios_queue = []
 
-    def reproduce(self, query, original_msg):
+    def reproduce(self, query, **kwargs):
         voice_client = self.voice_manager.voice_client
         self.welcome_audios_queue.append(LocalfileSource(query))
         if not self.voice_manager.is_voice_client_playing():
@@ -358,9 +405,6 @@ class Salute(State):
     def cleanup(self):
         self.switch(self.voice_manager.off)
         self.voice_manager.prev_state = self.voice_manager.state
-
-    async def resume(self):
-        raise NotImplementedError()
 
 class Voice():
     
@@ -405,12 +449,17 @@ class Voice():
     async def say_good_night(self, member):
         await self.reproduce_from_file(member, "./assets/audio/vladimir.mp3")
 
+    def trigger_shuffle(self, ctx):
+        vmanager = self.guild_to_voice_manager_map.get(ctx.guild.id)
+        vmanager.trigger_shuffle()
+        return vmanager.state.shuffle_for_queue
+
     def get_playing_state(self, ctx):
         return self.guild_to_voice_manager_map.get(ctx.guild.id).state
 
-    def stop_player(self, ctx):
+    def next_in_queue(self, ctx):
         vmanager = self.guild_to_voice_manager_map.get(ctx.guild.id)
-        return vmanager.stop()
+        return vmanager.next_for_queue()
 
     def set_volume(self, volume, ctx):
         vmanager = self.guild_to_voice_manager_map.get(ctx.guild.id)
@@ -484,15 +533,16 @@ class Voice():
                     vmanager.interrupt_player()
                 vmanager.prev_state = vmanager.state
                 vmanager.change_state(vmanager.radio)
+                vmanager.current_context = ctx
                 options = {'title': f'Reproduciendo radio {radio_name}'}
                 embed = VoiceEmbeds(ctx.author,**options)
-                msg = await ctx.send(embed=embed)
-                vmanager.play(url, msg)
+                msg = await ctx.send(embed=embed) 
+                vmanager.play(url, **{ "original_msg": msg, "radio_name": radio_name })
         except discord.ClientException as e:
             await vmanager.disconnect()
-            logging.error("While streaming audio", exc_info=True)
+            logging.error("While streaming radio", exc_info=True)
 
-    async def play_streaming_youtube(self, query, ctx):
+    async def play_streaming(self, query, streaming_type, ctx):
         vmanager = self.guild_to_voice_manager_map.get(ctx.guild.id)
         try:
             vc = ctx.author.voice.channel
@@ -503,40 +553,33 @@ class Voice():
                     vmanager.interrupt_player()
                 vmanager.prev_state = vmanager.state
                 vmanager.change_state(vmanager.stream)
-                vmanager.current_vmanager_context = ctx
-                embed_options = {'title': f'Agregando a lista de reproduccion con busqueda: {" ".join(query)}'}
-                embed = VoiceEmbeds(author=ctx.author, **embed_options)
-                msg = await ctx.send(embed=embed)
-                vmanager.play(query, msg)
+                vmanager.current_context = ctx
+                if streaming_type == StreamingType.SPOTIFY:
+                    await self._play_streaming_spotify(query, vmanager, ctx)
+                elif streaming_type == StreamingType.YOUTUBE:
+                    await self._play_streaming_youtube(query, vmanager, ctx)
         except discord.ClientException as e:
             await vmanager.disconnect()
-            logging.error("While youtibing", exc_info=True)
-    #TODO: Apply DRY in these methods
-    async def play_streaming_spotify(self, query, ctx):
-        vmanager = self.guild_to_voice_manager_map.get(ctx.guild.id)
-        try:
-            vc = ctx.author.voice.channel
-            if discord.opus.is_loaded():
-                if not await self._voice_state_check(vc, vmanager, ctx):
-                    return
-                if isinstance(vmanager.state, Radio):
-                    vmanager.interrupt_player()
-                vmanager.prev_state = vmanager.state
-                vmanager.change_state(vmanager.stream)
-                vmanager.current_vmanager_context = ctx
-                query = self._process_query_object_for_spotify_playlist(query)
-                if len(query) > 0:
-                    options = {'title': f'Se agregaron {len(query)} canciones a la lista de reproduccion'}
-                    embed = VoiceEmbeds(ctx.author,**options)
-                    msg = await ctx.send(embed=embed)
-                    vmanager.play(query, msg)
-                else:
-                    await ctx.send("Hubo un error")
-                    vmanager.prev_state = vmanager.off
-                    vmanager.change_state(vmanager.off)
-        except discord.ClientException as e:
-            await vmanager.disconnect()
-            logging.error("While streaming spotify", exc_info=True)
+            logging.error("While streaming", exc_info=True)
+                
+    async def _play_streaming_youtube(self, query, vmanager, ctx):
+        embed_options = {'title': f'Agregando a lista de reproduccion con busqueda: {" ".join(query)}'}
+        embed = VoiceEmbeds(author=ctx.author, **embed_options)
+        msg = await ctx.send(embed=embed)
+        vmanager.play(query, **{"original_msg": msg})
+
+    async def _play_streaming_spotify(self, query, vmanager, ctx):
+        print(query)
+        query = self._process_query_object_for_spotify_playlist(query)
+        if len(query) > 0:
+            options = {'title': f'Se agregaron {len(query)} canciones a la lista de reproduccion'}
+            embed = VoiceEmbeds(ctx.author,**options)
+            msg = await ctx.send(embed=embed)
+            vmanager.play(query, **{"original_msg": msg})
+        else:
+            await ctx.send("Hubo un error")
+            vmanager.prev_state = vmanager.off
+            vmanager.change_state(vmanager.off)
 
     async def _voice_state_check(self, voice_channel, vmanager,  ctx=None):
         valid = True

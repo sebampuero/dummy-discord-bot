@@ -1,15 +1,17 @@
 import discord
+import os.path
 from discord.ext import commands
 import Constants.StringConstants as StringConstants
 from Utils.NetworkUtils import NetworkUtils
 from embeds.custom import VoiceEmbeds
-from Voice import Off, Speak, Salute, Radio, Stream
-
+from Voice import Off, Speak, Salute, Radio, Stream, StreamingType
+from BE.BotBE import BotBE
 class voice(commands.Cog):
     '''Todo lo necesario para hacer que el bot hable y reproduzca musiquita
     '''
     def __init__(self, client):
         self.client = client
+        self.bot_be = BotBE()
 
     @commands.command(aliases=["off"], name="audio-off")
     async def audio_off(self, ctx):
@@ -60,6 +62,7 @@ class voice(commands.Cog):
         await ctx.send(radios)
 
     @commands.command(aliases=["sr"], name="start-radio")
+    @commands.cooldown(1.0, 5.0, commands.BucketType.guild)
     async def start_radio(self, ctx, city, radio_id):
         '''Inicia la radio con la ciudad y su radio correspondiente
         `-start-radio o -sr [ciudad] [numero de radio]`
@@ -93,6 +96,7 @@ class voice(commands.Cog):
             await self.client.voice.disconnect_player(ctx)
 
     @commands.command(name="metele", aliases=["dale", "entrale", "reproduce", "hazme-la-taba"])
+    @commands.cooldown(1.0, 5.0, commands.BucketType.guild)
     async def play_for_stream(self, ctx, *query):
         '''Reproduce queries y links de Youtube asi como playlists de spotify.
         Ejemplo -metele https://open.spotify.com/playlist/37i9dQZEVXbLiRSasKsNU9
@@ -105,21 +109,22 @@ class voice(commands.Cog):
         playing_state = self.client.voice.get_playing_state(ctx)
         if (not isinstance(playing_state, Speak) and not isinstance(playing_state, Salute)) and await self._is_user_in_voice_channel(ctx):
             if "https://open.spotify.com" in str(query[0]) and "playlist" in str(query[0]):
-                await self.client.voice.play_streaming_spotify(str(query[0]), ctx)
+                await self.client.voice.play_streaming(str(query[0]), StreamingType.SPOTIFY, ctx)
                 await ctx.processing_command_reaction()
             elif "youtube.com" in str(query) or ".com" not in str(query):
-                await self.client.voice.play_streaming_youtube(query, ctx)
+                await self.client.voice.play_streaming(query, StreamingType.YOUTUBE,  ctx)
                 await ctx.processing_command_reaction()
             else:
                 await ctx.send(f"No tengo soporte aun para {str(query)}")
 
     @commands.command(name="sig", aliases=["siguiente"])
+    @commands.cooldown(1.0, 5.0, commands.BucketType.guild)
     async def next_song_in_queue(self, ctx):
         '''Va a la siguiente cancion en la lista de canciones de Spotify o Youtube
         '''
         playing_state = self.client.voice.get_playing_state(ctx)
         if await self._is_user_in_voice_channel(ctx) and (isinstance(playing_state, Stream)):
-            self.client.voice.stop_player(ctx)
+            self.client.voice.next_in_queue(ctx)
             await ctx.processing_command_reaction()
 
     @commands.command(name="pausa")
@@ -148,6 +153,49 @@ class voice(commands.Cog):
         if await self._is_user_in_voice_channel(ctx) and not isinstance(playing_state, Off):
             await ctx.send(f"Volumen seteado al {volume}%")
             self.client.voice.set_volume(volume, ctx)
+
+    @commands.command(aliases=["sh"], name="shuffle")
+    async def set_shuffle_for_queue(self, ctx):
+        '''Activa o desactiva el shuffle de una lista de reproduccion
+        '''
+        playing_state = self.client.voice.get_playing_state(ctx)
+        if await self._is_user_in_voice_channel(ctx) and (isinstance(playing_state, Stream)):
+            is_shuffle = self.client.voice.trigger_shuffle(ctx)
+            msg = "Shuffle activado" if is_shuffle else "Shuffle desactivado"
+            await ctx.send(msg)
+
+    @commands.group()
+    async def queue(self, ctx):
+        if ctx.invoked_subcommand is None:
+            await ctx.send('Especifica que quieres saber de la lista de reproduccion')
+
+    @queue.command()
+    async def queue_size(self, ctx):
+        pass
+
+    @commands.command(name="agregar-saludo", aliases=["saludo"])
+    async def add_audio_for_user(self, ctx):
+        '''Agrega un saludo
+        `-saludo` o `-agregar-saludo [@miembro]`
+        El audio insertado debe ser MP3 y no ser mas grande de 300KB
+        '''
+        if len(ctx.message.attachments) != 1:
+            return await ctx.send("Debes subir 1 solo audio")
+        if len(ctx.message.mentions) == 0 or len(ctx.message.mentions) > 1:
+            return await ctx.send("Debes tagear a una sola persona")
+        if not str(ctx.message.attachments[0].filename).endswith(".mp3"):
+            return await ctx.send("Debe ser un archivo MP3")
+        if ctx.message.attachments[0].size / 1000 > 300:
+            return await ctx.send(f"El archivo puede ser maximo de 300KB. Peso: {ctx.message.attachments[0].size / 1000}KB")
+        user_id = ctx.message.raw_mentions[0]
+        user_id_filename_placeholder = user_id
+        filename_to_save = f"./assets/audio/{user_id_filename_placeholder}.mp3"
+        while os.path.isfile(filename_to_save):
+            user_id_filename_placeholder += 1
+            filename_to_save = f"./assets/audio/{user_id_filename_placeholder}.mp3"
+        await ctx.message.attachments[0].save(filename_to_save)
+        self.bot_be.save_audio_for_user(filename_to_save, user_id, ctx.guild.id)
+        await ctx.send("Agregado papu")
 
 def setup(client):
     client.add_cog(voice(client))

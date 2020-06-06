@@ -118,6 +118,34 @@ class BotBE():
 			print(str(e))
 			return {}
 
+	def save_audio_for_user(self, filename, user_id, guild_id):
+		welcome_audios = self.load_users_welcome_audios()
+		try:
+			welcome_audios[str(user_id)]
+		except KeyError:
+			welcome_audios[str(user_id)] = {
+				str(guild_id): {
+					"active": True,
+					"audios": [
+						filename
+					]
+				}
+			}
+		else:
+			try:
+				welcome_audios[str(user_id)][str(guild_id)]
+			except KeyError:
+				welcome_audios[str(user_id)][str(guild_id)] = {
+					"active": True,
+					"audios": [
+						filename
+					]
+				}
+			else:
+				welcome_audios[str(user_id)][str(guild_id)]["audios"].append(filename)
+		finally:
+			self.save_users_welcome_audios(welcome_audios)
+
 	def save_radios(self, radios_new):
 		try:
 			self.bot_svc.save_radios(radios_new)

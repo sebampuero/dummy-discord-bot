@@ -8,10 +8,10 @@ class quotes(commands.Cog):
         self.client = client
 
     @commands.command(aliases=["quote"], name="daily-quote")
-    async def daily_quote(self, ctx, quote):
+    async def daily_quote(self, ctx, *quote):
         '''Agrega una quote usando `-quote o -daily-quote [quote]`
         '''
-        await self.client.quote.handle_quote_save(quote, ctx)
+        await self.client.quote.handle_quote_save(' '.join(quote), ctx)
 
 
 def setup(client):
