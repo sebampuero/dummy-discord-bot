@@ -164,13 +164,35 @@ class voice(commands.Cog):
             msg = "Shuffle activado" if is_shuffle else "Shuffle desactivado"
             await ctx.send(msg)
 
-    @commands.group()
+    @commands.command(name="loop")
+    async def set_loop_for_song(self, ctx):
+        '''Activa o desactiva el loop de una cancion en la lista de reproduccion
+        '''
+        playing_state = self.client.voice.get_playing_state(ctx)
+        if await self._is_user_in_voice_channel(ctx) and (isinstance(playing_state, Stream)):
+            is_loop = self.client.voice.trigger_loop_for_song(ctx)
+            msg =  "Loop activado" if is_loop else "Loop desactivado"
+            await ctx.send(msg)
+
+    @commands.group(name="lista")
     async def queue(self, ctx):
+        '''Functiones especificas sobre la lista de reproduccion
+        '''
         if ctx.invoked_subcommand is None:
             await ctx.send('Especifica que quieres saber de la lista de reproduccion')
 
-    @queue.command()
+    @queue.command(name="-t")
     async def queue_size(self, ctx):
+        '''Revela el numero de canciones que hay en la lista de reproduccion
+        '''
+        playing_state = self.client.voice.get_playing_state(ctx)
+        if isinstance(playing_state, Stream):
+            return await ctx.send(f"Canciones en lista: {self.client.voice.get_stream_queue_size(ctx)}")
+        else:
+            return await ctx.send("No se esta reproduciendo ninguna lista")
+
+    @queue.command(name="-nombres")
+    async def queue_songs_list(self, ctx, page: int):
         pass
 
     @commands.command(name="agregar-saludo", aliases=["saludo"])
