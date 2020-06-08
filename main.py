@@ -9,7 +9,6 @@ from Subscription import Subscription
 from Alert import Alert
 from Quote import Quote
 from Concurrent.Server import Server
-from Utils.FileUtils import FileUtils
 from BE.BotBE import BotBE
 from discord.ext import commands
 
@@ -60,8 +59,8 @@ class ChismositoBot(commands.Bot):
         self.guild_to_common_chat_map[guild.id] = chat_channel
 
     def start_bg_tasks(self):
-        self.loop.create_task(self.delete_mp3_files_periodically())
-        self.loop.create_task(self.quote.show_daily_quote(self))
+        #self.loop.create_task(self.delete_mp3_files_periodically())
+        #self.loop.create_task(self.quote.show_daily_quote(self))
         self.loop.create_task(self.alert.check_alerts(self))
         self.init_server()
 
@@ -83,11 +82,6 @@ class ChismositoBot(commands.Bot):
         self.bot_be = BotBE()
         self._populate_guild_chat_map()
         self.start_bg_tasks()
-
-    async def delete_mp3_files_periodically(self):
-        while not self.is_closed():
-            FileUtils.remove_files_in_dir("./assets/audio/loquendo", "^\w+\.mp3$")
-            await asyncio.sleep(1200)
     
     async def on_disconnect(self):
         logging.warning("Disconnected, is there internet connection?")

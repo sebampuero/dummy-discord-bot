@@ -124,7 +124,8 @@
             "active": "true",
             "audios": [
                 "./assets/audio/ribo.mp3",
-                "./assets/audio/ribo1.mp3"
+                "./assets/audio/ribo1.mp3",
+                "./assets/audio/372209684557594625.mp3"
             ]
         }
     },

@@ -3,14 +3,15 @@ import discord
 import random
 import logging
 import spotipy
-from BE.BotBE import BotBE
+import os
 import Constants.StringConstants as Constants
+from BE.BotBE import BotBE
 from Utils.NetworkUtils import NetworkUtils
 from youtube_dl import YoutubeDL
 from spotipy.oauth2 import SpotifyClientCredentials
 from embeds.custom import VoiceEmbeds
 from enum import Enum
-import os
+from Utils.FileUtils import FileUtils
 """
  Implementation of the music functionality of the Bot. Handles radio streaming, youtube/spotify streaming and playback of local mp3 files. 
 """
@@ -176,7 +177,8 @@ class VoiceManager:
         self.state.set_volume(volume)
 
     async def disconnect(self):
-        if self.voice_client != None:
+        if self.voice_client and self.voice_client.is_connected():
+            self.state.cleanup()
             logging.warning(f"Disconnected from channel {self.voice_client.channel}")
             await self.voice_client.disconnect(force=True)
             self.state = self.off
@@ -219,6 +221,10 @@ class State(object):
         if self.voice_manager.voice_client:
             self.voice_manager.voice_client.source.volume = volume
 
+    def cleanup(self):
+        self.switch(self.voice_manager.off)
+        self.voice_manager.prev_state = self.voice_manager.state
+
     def __str__(self):
         return self.name 
 
@@ -260,8 +266,7 @@ class Radio(State):
         if error:
             self.client.loop.create_task(self.vmanager.current_context.send("Se produjo un error"))
         if not self.should_exit_from_loop:
-            self.switch(self.voice_manager.off)
-            self.voice_manager.prev_state = self.voice_manager.state
+            self.cleanup()
         self.should_exit_from_loop = False
             
     def switch(self, state):
@@ -304,22 +309,10 @@ class Stream(State):
             return self.queue.pop(rand_idx)
 
     def remove_video_file(self):
-        to_delete_source = self.voice_manager.voice_client.source
-        logging.debug(f"Deleting source filename {to_delete_source.filename}")
-        for x in range(30):
-            try:
-                os.remove(to_delete_source.filename)
-                logging.debug(f'File deleted: {to_delete_source.filename}')
-                break
-            except PermissionError as e:
-                if e.winerror == 32:  # File is in use
-                    logging.debug(f'Can\'t delete file, it is currently in use: {to_delete_source.filename}')
-            except FileNotFoundError:
-                logging.warning(f'Could not find delete {to_delete_source.filename} as it was not found. Skipping.', exc_info=True)
-                break
-            except Exception:
-                logging.error(f"Error trying to delete {to_delete_source.filename}", exc_info=True)
-                break
+        if isinstance(self.voice_manager.voice_client.source, YTDLSource):
+            to_delete_source = self.voice_manager.voice_client.source
+            logging.debug(f"Deleting source filename {to_delete_source.filename}")
+            FileUtils.delete_file(to_delete_source.filename)
 
     def music_loop(self, error):
         if self.should_exit_from_loop:
@@ -331,7 +324,6 @@ class Stream(State):
             msg = "Fin de la lista de reproduccion"
             asyncio.run_coroutine_threadsafe(self.voice_manager.current_context.send(msg), self.client.loop)
             asyncio.run_coroutine_threadsafe(self.voice_manager.disconnect(), self.client.loop)
-            self.cleanup()
             return
         if self.voice_manager.voice_client.source:
             self.remove_video_file()
@@ -367,9 +359,8 @@ class Stream(State):
             logging.error("while streaming, skipping to next song", exc_info=True)
 
     def cleanup(self):
+        super(Stream, self).cleanup()
         self.remove_video_file()
-        self.switch(self.voice_manager.off)
-        self.voice_manager.prev_state = self.voice_manager.state
         self.queue = []
         self.trigger_loop = False
         self.shuffle_for_queue = False
@@ -381,12 +372,13 @@ class Speak(State):
     def __init__(self, voice_manager, client):
         super().__init__(voice_manager, client)
 
-    def reproduce(self, query, **kwargs):
-        voice_client = self.voice_manager.voice_client 
+    def reproduce(self, filename, **kwargs):
+        voice_client = self.voice_manager.voice_client
+        self.last_filename = filename 
         if isinstance(self.voice_manager.prev_state, Off):
-            voice_client.play(LocalfileSource(query), after= lambda e: self.switch(self.voice_manager.off))
+            voice_client.play(LocalfileSource(filename), after= lambda e: self.switch(self.voice_manager.off))
         else:
-            voice_client.play(LocalfileSource(query), after= lambda e: self.resume_playing_for_prev_state(e))
+            voice_client.play(LocalfileSource(filename), after= lambda e: self.resume_playing_for_prev_state(e))
 
     def resume_playing_for_prev_state(self, error):
         if error:
@@ -394,8 +386,10 @@ class Speak(State):
             return
         self.switch(self.voice_manager.prev_state)
         self.voice_manager.resume_previous()
+        FileUtils.delete_file(self.last_filename)
 
     def switch(self, state):
+        FileUtils.delete_file(self.last_filename)
         super(Speak, self).switch(state)
         if isinstance(state, Off):
             self.client.loop.create_task(self.voice_manager.disconnect())
@@ -434,14 +428,10 @@ class Salute(State):
 
     def resume_playing_for_prev_state(self, error):
         if error:
-            self.switch(self.voice_manager.off)
+            self.cleanup()
             return
         self.switch(self.voice_manager.prev_state)
         self.voice_manager.resume_previous()
-
-    def cleanup(self):
-        self.switch(self.voice_manager.off)
-        self.voice_manager.prev_state = self.voice_manager.state
 
 class Voice():
     
