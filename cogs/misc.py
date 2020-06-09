@@ -11,14 +11,6 @@ class misc(commands.Cog):
     def __init__(self, client):
         self.client = client
 
-    @commands.command(name="set-chat")
-    async def set_common_chat_channel(self, ctx, id: int):
-        channel = self.client.get_channel(id)
-        if channel:
-            self.client.set_chat_channel(ctx.guild, channel)
-        else:
-            await ctx.send("Ese canal de texto no existe en el server")
-
     @commands.command()
     async def ping(self, ctx):
         '''A cuantos `ms` estoy del servidor de Discord
@@ -33,11 +25,13 @@ class misc(commands.Cog):
     @commands.Cog.listener()
     async def on_member_join(self, member):
         guild_id = member.guild.id
-        common_text_channel = self.client.guild_to_common_chat_map[guild_id]
-        await common_text_channel.send(f"Hola {member.display_name}, bienvenido a este canal de mierda")
+        if self.client.system_channel:
+            await self.client.system_channel.send(f"Hola {member.display_name}, bienvenido a este canal de mierda")
 
     @commands.Cog.listener()
     async def on_message(self, message):
+        if message.author == self.client.user:
+            return
         if "quieres" in message.content.lower():
             options = ["si", "no", "tal vez", "deja de preguntar huevadas conchadetumadre", "anda chambea", "estas cagado del cerebro", "obvio", "si pe webon"]
             random_idx = random.randint(0, len(options) - 1)
@@ -50,6 +44,10 @@ class misc(commands.Cog):
         if isinstance(error, commands.CommandNotFound):
             message = await ctx.send("Yo no tengo ese comando registrado. Usa `-help`", delete_after=5.0)
             await ctx.bad_command_reaction()
+        elif isinstance(error, commands.CommandOnCooldown):
+            await ctx.send(f"Intenta denuevo en {round(error.retry_after, 2)} segundos")
+        elif isinstance(error, commands.MissingRequiredArgument):
+            await ctx.send(f"Te falta un parametro a este comando: {error.param}")
         else:
             logging.error(str(error), exc_info=True)
                 
@@ -57,4 +55,3 @@ class misc(commands.Cog):
 
 def setup(client):
     client.add_cog(misc(client))
-    client.get_command('set-chat').hidden = True

@@ -71,7 +71,7 @@ class voice(commands.Cog):
         if (not isinstance(playing_state, Speak) and not isinstance(playing_state, Salute)) and await self._is_user_in_voice_channel(ctx):
             try:
                 radios = self.client.bot_be.load_radios_config()
-                selected_city = radios[city]
+                selected_city = radios[city.lower()]
                 selected_radio_url = selected_city["items"][int(radio_id) - 1]["link"]
                 selected_radio_name = selected_city['items'][int(radio_id) - 1]['name']
                 await self.client.voice.play_radio(selected_radio_url, ctx, selected_radio_name)
@@ -124,7 +124,7 @@ class voice(commands.Cog):
         '''
         playing_state = self.client.voice.get_playing_state(ctx)
         if await self._is_user_in_voice_channel(ctx) and (isinstance(playing_state, Stream)):
-            self.client.voice.next_in_queue(ctx)
+            await self.client.voice.next_in_queue(ctx)
             await ctx.processing_command_reaction()
 
     @commands.command(name="pausa")
@@ -144,7 +144,7 @@ class voice(commands.Cog):
             await ctx.message.add_reaction('▶️')
 
     @commands.command(aliases=["vol"], name="volumen")
-    async def set_voice_volume(self, ctx, volume: float):
+    async def set_voice_volume(self, ctx, volume):
         '''Setea el volumen a un %
         `-volumen [0-100]`'''
         if volume < 0 or volume > 100:
@@ -181,7 +181,7 @@ class voice(commands.Cog):
         if ctx.invoked_subcommand is None:
             await ctx.send('Especifica que quieres saber de la lista de reproduccion')
 
-    @queue.command(name="-t")
+    @queue.command(name="t")
     async def queue_size(self, ctx):
         '''Revela el numero de canciones que hay en la lista de reproduccion
         '''
@@ -191,9 +191,27 @@ class voice(commands.Cog):
         else:
             return await ctx.send("No se esta reproduciendo ninguna lista")
 
-    @queue.command(name="-nombres")
-    async def queue_songs_list(self, ctx, page: int):
-        pass
+    @queue.command(name="l")
+    async def queue_songs_list(self, ctx, page):
+        '''Muestra las busquedas y canciones que estan actualmente en la lista de reproduccion.
+        Ejemplo `-lista l [numero de pagina]` 10 resultados por busqueda
+        '''
+        page = int(page)
+        if page < 1:
+            return await ctx.send("No seas huevon")
+        results_per_page = 10
+        start_idx = page * results_per_page - results_per_page
+        end_idx = page * results_per_page - 1
+        playing_state = self.client.voice.get_playing_state(ctx)
+        if isinstance(playing_state, Stream):
+            queue = self.client.voice.get_queue(ctx)
+            if not queue or len(queue) == 0:
+                return await ctx.send("No hay una lista de reproduccion")
+            paginated_queue = queue[start_idx:end_idx+1]
+            msg = ""
+            for idx, entry in enumerate(paginated_queue):
+                msg += f"`{start_idx + 1 + idx}` {entry}\n"
+            return await ctx.send(msg) if msg != "" else await ctx.send(f"No hay resultados para pagina {page}")
 
     @commands.command(name="agregar-saludo", aliases=["saludo"])
     async def add_audio_for_user(self, ctx):

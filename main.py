@@ -50,17 +50,7 @@ class ChismositoBot(commands.Bot):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def _populate_guild_chat_map(self):
-        self.guild_to_common_chat_map = {}
-        for guild in self.guilds:
-            self.guild_to_common_chat_map[guild.id] = guild.text_channels[0]
-
-    def set_chat_channel(self, guild, chat_channel):
-        self.guild_to_common_chat_map[guild.id] = chat_channel
-
     def start_bg_tasks(self):
-        #self.loop.create_task(self.delete_mp3_files_periodically())
-        #self.loop.create_task(self.quote.show_daily_quote(self))
         self.loop.create_task(self.alert.check_alerts(self))
         self.init_server()
 
@@ -80,8 +70,10 @@ class ChismositoBot(commands.Bot):
         self.quote = Quote()
         self.alert = Alert()
         self.bot_be = BotBE()
-        self._populate_guild_chat_map()
         self.start_bg_tasks()
+
+    async def on_guild_join(self, guild):
+        self.voice.populate_voice_managers()
     
     async def on_disconnect(self):
         logging.warning("Disconnected, is there internet connection?")
