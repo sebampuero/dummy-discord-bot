@@ -58,7 +58,7 @@ class voice(commands.Cog):
     async def show_radios(self, ctx):
         '''Muestra todas las radios disponibles
         '''
-        radios = self.client.bot_be.load_radios_msg()
+        radios = self.client.bot_be.load_radios_msg() #TODO: add pagination
         await ctx.send(radios)
 
     @commands.command(aliases=["sr"], name="start-radio")
@@ -79,6 +79,11 @@ class voice(commands.Cog):
             except IndexError:
                 await ctx.send("Escribe bien cojudo, usa `-radios`")
             
+    
+    @commands.command(name="save-radio", aliases=["svr"])
+    @commands.has_guild_permissions(administrator=True)
+    async def save_radio(self, ctx, city, url):
+        pass
 
     async def _is_user_in_voice_channel(self, ctx):
         if ctx.author.voice:
@@ -147,6 +152,7 @@ class voice(commands.Cog):
     async def set_voice_volume(self, ctx, volume):
         '''Setea el volumen a un %
         `-volumen [0-100]`'''
+        volume = float(volume)
         if volume < 0 or volume > 100:
             return await ctx.send("No seas pendejo")
         playing_state = self.client.voice.get_playing_state(ctx)

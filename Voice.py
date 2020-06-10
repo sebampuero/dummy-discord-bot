@@ -511,9 +511,6 @@ class Voice():
             if a_member != None:
                 dm_channel = await a_member.create_dm()
                 await dm_channel.send(f"{member.display_name} {Constants.HAS_ENTERED_CHANNEL} {voice_channel.name}")
-                
-    async def say_good_night(self, member):
-        await self.reproduce_from_file(member, "./assets/audio/vladimir.mp3")
 
     def get_stream_queue_size(self, ctx):
         vmanager = self.guild_to_voice_manager_map.get(ctx.guild.id)
@@ -619,8 +616,7 @@ class Voice():
                 vmanager.change_state(vmanager.radio)
                 vmanager.current_context = ctx
                 options = {'title': f'Reproduciendo radio {radio_name}'}
-                embed = VoiceEmbeds(ctx.author,**options)
-                msg = await ctx.send(embed=embed) 
+                msg = await ctx.send(embed=VoiceEmbeds(ctx.author,**options)) 
                 vmanager.play(url, **{ "original_msg": msg, "radio_name": radio_name })
         except discord.ClientException as e:
             await vmanager.disconnect()
@@ -648,16 +644,14 @@ class Voice():
                 
     async def _play_streaming_youtube(self, query, vmanager, ctx):
         embed_options = {'title': f'Agregando a lista de reproduccion con busqueda: {" ".join(query)}'}
-        embed = VoiceEmbeds(author=ctx.author, **embed_options)
-        msg = await ctx.send(embed=embed)
+        msg = await ctx.send(embed=VoiceEmbeds(author=ctx.author, **embed_options))
         vmanager.play(YoutubeQuery(query), **{"original_msg": msg})
 
     async def _play_streaming_spotify(self, query, vmanager, ctx):
         query_list = self._process_query_object_for_spotify_playlist(query)
         if len(query_list) > 0:
             options = {'title': f'Se agregaron {len(query_list)} canciones a la lista de reproduccion'}
-            embed = VoiceEmbeds(ctx.author,**options)
-            msg = await ctx.send(embed=embed)
+            msg = await ctx.send(embed=VoiceEmbeds(ctx.author,**options))
             vmanager.play(query_list, **{"original_msg": msg})
         else:
             await ctx.send("Hubo un error")
@@ -702,6 +696,4 @@ class Voice():
                 pass         
 
     def entered_voice_channel(self, before, after):
-        return after.channel != None and not before.self_video and not before.self_deaf \
-            and not before.self_mute and not before.self_stream and not before.deaf and not before.mute and not after.self_video \
-                and not after.self_deaf and not after.self_mute and not after.self_stream and not after.mute and not after.deaf
+        return after.channel and before.channel == None and before.channel != after.channel

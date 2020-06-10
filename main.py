@@ -1,4 +1,4 @@
-
+import json
 import discord
 import asyncio
 import logging
@@ -71,6 +71,12 @@ class ChismositoBot(commands.Bot):
         self.alert = Alert()
         self.bot_be = BotBE()
         self.start_bg_tasks()
+        self.load_config()
+
+    def load_config(self):
+        f = open("./config/config.json", "r")
+        self.config = json.load(f)
+        f.close()
 
     async def on_guild_join(self, guild):
         self.voice.populate_voice_managers()

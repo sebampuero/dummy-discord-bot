@@ -1,0 +1,9 @@
+{
+    "version": "0.1.30",
+    "description": "Discord bot that does stupid things",
+    "messages": {
+        "quieres": [
+            "si", "no", "tal vez", "estas cagado del cerebro", "obvio", "si pe webon"
+        ]
+    }
+}

@@ -33,11 +33,12 @@ class misc(commands.Cog):
         if message.author == self.client.user:
             return
         if "quieres" in message.content.lower():
-            options = ["si", "no", "tal vez", "deja de preguntar huevadas conchadetumadre", "anda chambea", "estas cagado del cerebro", "obvio", "si pe webon"]
+            self.client.load_config()
+            options = self.client.config["messages"]["quieres"]
             random_idx = random.randint(0, len(options) - 1)
             await message.channel.send(f"{options[random_idx]}")
         elif "buenas noches" == message.content.lower():
-            await self.client.voice.say_good_night(message.author)
+            await message.channel.send("Usa ahora `-say buenas noches`")
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx, error):
