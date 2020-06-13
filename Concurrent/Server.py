@@ -20,5 +20,5 @@ class Server(OurThread):
     
     def run(self):
         app = Flask(__name__, template_folder='../templates/')
-        app.register_blueprint(get_bot_blueprint(self.client, self.voice, self.loop), url_prefix="/")  
-        app.run(host="0.0.0.0", port=80, debug=True, use_reloader=False) #TODO: change api endpoint port to 3000 and let nginx handle static data
+        app.register_blueprint(get_bot_blueprint(self.client, self.voice, self.loop), url_prefix="/bot")  
+        app.run(host="127.0.0.1", port=3000, debug=True, use_reloader=False) #TODO: change api endpoint port to 3000 and let nginx handle static data

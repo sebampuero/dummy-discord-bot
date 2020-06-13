@@ -24,9 +24,8 @@ class misc(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_join(self, member):
-        guild_id = member.guild.id
-        if self.client.system_channel:
-            await self.client.system_channel.send(f"Hola {member.display_name}, bienvenido a este canal de mierda")
+        if member.guild.system_channel:
+            await member.guild.system_channel.send(f"Hola {member.display_name}, bienvenido a este canal de mierda")
 
     @commands.Cog.listener()
     async def on_message(self, message):

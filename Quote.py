@@ -22,8 +22,9 @@ class Quote():
                 sleep_time = random.randint(3600, 12000)
                 await asyncio.sleep(sleep_time)
                 quote, member_id, guild_id = self.bot_be.select_random_daily_quote()
-                if quote != "" and self.client.system_channel:
-                    await self.client.system_channel.send(quote)
+                guild = self.client.get_guild(guild_id)
+                if quote != "" and guild.system_channel:
+                    await guild.system_channel.send(quote)
             except Exception as e:
                 print(str(e) + " but no problem for daily quote")
                 await asyncio.sleep(5)

@@ -205,6 +205,7 @@ class VoiceManager:
             await self.voice_client.disconnect(force=True)
             self.state = self.off
             self.prev_state = self.state
+            self.voice_client = None
                 
 
 class State(object):
@@ -696,4 +697,6 @@ class Voice():
                 pass         
 
     def entered_voice_channel(self, before, after):
-        return after.channel and before.channel == None and before.channel != after.channel
+        if after.channel and before.channel:
+            return before.channel.name != after.channel.name
+        return after.channel and before.channel == None

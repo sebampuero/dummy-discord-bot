@@ -25,13 +25,13 @@ def get_bot_blueprint(client, voice, event_loop):
 
     bot_blueprint = Blueprint("bot", __name__)
     
-    @bot_blueprint.route("/")
-    def index():
+    @bot_blueprint.route("/members")
+    def get_members():
         members_list_with_voice = []
         for member in guild.members:
             if member.voice != None and not member.bot:
                 members_list_with_voice.append(member.display_name)
-        return render_template("index.html", members=members_list_with_voice)
+        return jsonify({"members": members_list_with_voice})
     
     @bot_blueprint.route("/say", methods=["POST"])
     def reproduce_from_text():
