@@ -62,6 +62,12 @@ class BotDAO():
 		self.db.execute_query(sql)
 
 	def save_playlist_for_user(self, user_id, url, name):
+		sql = f"INSERT IGNORE INTO user SET discord_id = '{user_id}'"
+		self.db.execute_query(sql)
 		sql = f"INSERT INTO playlist(url, name, discord_id) VALUES('{url}', '{name}', '{user_id}')" if name else  \
 			f"INSERT INTO playlist(url, discord_id) VALUES('{url}', '{user_id}')"
 		self.db.execute_query(sql)
+
+	def read_playlists_for_user(self, user_id):
+		sql = f"SELECT * FROM playlist WHERE discord_id = '{user_id}'"
+		return self.db.execute_query_with_result(sql)

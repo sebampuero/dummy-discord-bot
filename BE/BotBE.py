@@ -183,6 +183,15 @@ class BotBE():
 		else:
 			return await self.soup.get_price_amazon(url, currency)
 
+	def read_user_playlists(self, user_id):
+		try: 
+			result = self.bot_svc.read_playlists_for_user(user_id)
+			playlists_dict_list = [{"name": pl[1], "url": pl[0]} for pl in result]
+			return playlists_dict_list
+		except Exception as e:
+			logging.error(f"{str(e)} reading playlist", exc_info=True)
+			return []
+
 	def save_playlist_for_user(self, user_id, url, name):
 		try:
 			self.bot_svc.save_playlist_for_user(user_id, url, name)

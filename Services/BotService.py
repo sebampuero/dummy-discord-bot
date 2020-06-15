@@ -55,3 +55,6 @@ class BotService():
 
 	def save_playlist_for_user(self, user_id, url, name):
 		self.dao.save_playlist_for_user(user_id, url, name)
+
+	def read_playlists_for_user(self, user_id):
+		return self.dao.read_playlists_for_user(user_id)

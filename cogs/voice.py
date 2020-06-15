@@ -237,8 +237,11 @@ class voice(commands.Cog):
     async def playlist_read(self, ctx):
         '''Muestra las playlists guardadas
         '''
-        #playlists = self.bot_be.read_user_playlists(ctx.author)
-        pass
+        playlists_list = self.bot_be.read_user_playlists(str(ctx.author.id))
+        msg = ""
+        for idx, playlist_dict in enumerate(playlists_list):
+            msg += f"`{idx+1}` {playlist_dict['name']} {playlist_dict['url']}"
+        await ctx.send(msg) if msg != "" else await ctx.send("Aun no has guardado playlists de spotify")
 
     @commands.command(name="add-audio", aliases=["audio"])
     async def add_audio_for_user(self, ctx):
