@@ -60,3 +60,8 @@ class BotDAO():
 	def delete_alert(self, alert_id):
 		sql = f"DELETE FROM alerts WHERE id = {alert_id}"
 		self.db.execute_query(sql)
+
+	def save_playlist_for_user(self, user_id, url, name):
+		sql = f"INSERT INTO playlist(url, name, discord_id) VALUES('{url}', '{name}', '{user_id}')" if name else  \
+			f"INSERT INTO playlist(url, discord_id) VALUES('{url}', '{user_id}')"
+		self.db.execute_query(sql)

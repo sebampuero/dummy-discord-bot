@@ -411,13 +411,12 @@ class Speak(State):
     def __init__(self, voice_manager, client):
         super().__init__(voice_manager, client)
 
-    def reproduce(self, filename, **kwargs):
+    def reproduce(self, url, **kwargs):
         voice_client = self.voice_manager.voice_client
-        self.last_filename = filename 
         if isinstance(self.voice_manager.prev_state, Off):
-            voice_client.play(LocalfileSource(filename), after= lambda e: self.switch(self.voice_manager.off))
+            voice_client.play(StreamSource(discord.FFmpegPCMAudio(url), url), after= lambda e: self.switch(self.voice_manager.off))
         else:
-            voice_client.play(LocalfileSource(filename), after= lambda e: self.resume_playing_for_prev_state(e))
+            voice_client.play(StreamSource(discord.FFmpegPCMAudio(url), url), after= lambda e: self.resume_playing_for_prev_state(e))
 
     def resume_playing_for_prev_state(self, error):
         if error:
@@ -425,10 +424,8 @@ class Speak(State):
             return
         self.switch(self.voice_manager.prev_state)
         self.voice_manager.resume_previous()
-        FileUtils.delete_file(self.last_filename)
 
     def switch(self, state):
-        FileUtils.delete_file(self.last_filename)
         super(Speak, self).switch(state)
         if isinstance(state, Off):
             self.client.loop.create_task(self.voice_manager.disconnect())

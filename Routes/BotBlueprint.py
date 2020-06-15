@@ -4,19 +4,20 @@ import Constants.StringConstants as Constants
 from BE.BotBE import BotBE
 from types import SimpleNamespace
 from Voice import Speak, Salute
+from gtts import gTTS
 
 async def say(data, guild, text_channel, voice):
     text = str(data["text"]).lower()
     member_name = str(data["select_name"]).lower()
-    loquendo_voice = str(data["voice"])
     for member in guild.members:
         if member_name in str(member.display_name.lower()) and member.voice != None:
             network_utils = NetworkUtils()
-            audio_filename = await network_utils.get_loquendo_voice(text, voice=loquendo_voice)
-            if audio_filename != "":
-                await voice.reproduce_from_file(member, audio_filename)
+            tts_es = gTTS(text, lang="es-es")
+            url = tts_es.get_urls()[0]
+            if await network_utils.check_connection_status_for_site(url) == 200:
+                await voice.reproduce_from_file(member, url)
             else:
-                await text_channel.send(f"No se pudo reproducir '{text}', seguramente se fue a la mierda la pagina de loquendo")
+                await text_channel.send(f"No se pudo reproducir '{text}'")
     
 def get_bot_blueprint(client, voice, event_loop):
     

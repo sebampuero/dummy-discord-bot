@@ -22,7 +22,7 @@ $(document).ready(function () {
             url: "/bot/members",
             contentType: "application/json",
             success: function(data, textStatus, xhr) {
-                let $form = $("#sendform")
+                let $form = $("form#send-form")
                 let $cont = $("#no_members_container")
                 membersArr = data.members
                 if(membersArr.length == 0) {

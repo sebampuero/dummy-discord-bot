@@ -182,3 +182,11 @@ class BotBE():
 			return await self.soup.get_price_g2a(url, currency)
 		else:
 			return await self.soup.get_price_amazon(url, currency)
+
+	def save_playlist_for_user(self, user_id, url, name):
+		try:
+			self.bot_svc.save_playlist_for_user(user_id, url, name)
+			return "Agregado"
+		except Exception as e:
+			logging.error(f"{str(e)} saving playlist", exc_info=True)
+			return "Se produjo un error"

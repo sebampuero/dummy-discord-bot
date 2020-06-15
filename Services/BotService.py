@@ -52,3 +52,6 @@ class BotService():
 
 	def save_users_welcome_audios(self, new_):
 		self.dao_file.save_users_welcome_audios(new_)
+
+	def save_playlist_for_user(self, user_id, url, name):
+		self.dao.save_playlist_for_user(user_id, url, name)

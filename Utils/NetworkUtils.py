@@ -26,9 +26,8 @@ class NetworkUtils():
     async def check_connection_status_for_site(self, url, headers=None):
         headers = dict(self.base_headers, **headers) if headers else self.base_headers
         async with aiohttp.ClientSession() as session:
-            async with session.get(url, headers=headers) as response:
+            async with session.head(url, headers=headers) as response:
                 return response.status
-        
 
     async def get_loquendo_voice(self, text, voice="Jorge", language="Spanish (Spain)"):
         url = "http://nuancevocalizerexpressive.sodels.com/"

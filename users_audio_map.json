@@ -4,7 +4,8 @@
             "active": "true",
             "audios": [
                 "./assets/audio/john-caquillon.mp3",
-                "./assets/audio/603292764435775499.mp3"
+                "./assets/audio/603292764435775499.mp3",
+                "./assets/audio/603292764435775500.mp3"
             ]
         }
     },
@@ -13,7 +14,8 @@
             "active": "true",
             "audios": [
                 "./assets/audio/john-caquillon.mp3",
-                "./assets/audio/603292764435775499.mp3"
+                "./assets/audio/603292764435775499.mp3",
+                "./assets/audio/603292764435775500.mp3"
             ]
         }
     },

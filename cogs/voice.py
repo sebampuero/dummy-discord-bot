@@ -6,6 +6,7 @@ from Utils.NetworkUtils import NetworkUtils
 from embeds.custom import VoiceEmbeds
 from Voice import Off, Speak, Salute, Radio, Stream, StreamingType
 from BE.BotBE import BotBE
+from gtts import gTTS
 class voice(commands.Cog):
     '''Todo lo necesario para hacer que el bot hable y reproduzca musiquita
     '''
@@ -25,34 +26,28 @@ class voice(commands.Cog):
         '''
         await self.client.voice.activate_welcome_audio(ctx)
 
-    async def execute_voice_handling(self, ctx, voice, text):
+    async def execute_voice_handling(self, ctx, language, text):
         playing_state = self.client.voice.get_playing_state(ctx)
         if (not isinstance(playing_state, Speak) and not isinstance(playing_state, Salute)) and await self._is_user_in_voice_channel(ctx):
+            tts_es = gTTS(text, lang=language)#TODO: encapsulate this functionality 
+            url = tts_es.get_urls()[0]
             network_utils = NetworkUtils()
-            audio_filename = ""
-            audio_filename = await network_utils.get_loquendo_voice(str(text), voice=voice)
-            if audio_filename != "":
-                await self.client.voice.reproduce_from_file(ctx.author, audio_filename)
+            if await network_utils.check_connection_status_for_site(url) == 200:
+                await self.client.voice.reproduce_from_file(ctx.author, url)
             else:
                 await ctx.send(StringConstants.SMTH_FUCKED_UP)
 
     @commands.command(name="say")
     async def say(self, ctx, *, text):
-        '''Lo que diga el bot con voz hombre
+        '''Texto a voz en español
         '''
-        await self.execute_voice_handling(ctx, "Jorge", text)
+        await self.execute_voice_handling(ctx, "es-es", text)
 
-    @commands.command(name="sayf")
-    async def say_f(self, ctx, *, text):
-        '''Lo que diga el bot con voz de flaquita
+    @commands.command(name="say-en")
+    async def say_english(self, ctx, *, text):
+        '''Texto a voz en ingles
         '''
-        await self.execute_voice_handling(ctx, "Monica", text)
-        
-    @commands.command(name="sayf2")
-    async def say_f2(self, ctx, *, text):
-        '''Lo que diga el bot con voz de flaquita
-        '''
-        await self.execute_voice_handling(ctx, "Marisol", text)
+        await self.execute_voice_handling(ctx, "en-us", text)
         
     @commands.command(aliases=["radios"], name="show-radios")
     async def show_radios(self, ctx):
@@ -91,7 +86,7 @@ class voice(commands.Cog):
         await ctx.send(StringConstants.NOT_IN_VOICE_CHANNEL_MSG)
         return False
 
-    @commands.command(aliases=["st", "vete-mierda", "stop"], name="stop-radio")
+    @commands.command(aliases=["st","stop"], name="stop-radio")
     async def stop(self, ctx):
         '''Para lo que sea que dice el bot y lo bota del canal
         '''
@@ -100,7 +95,7 @@ class voice(commands.Cog):
             await ctx.sad_reaction()
             await self.client.voice.disconnect_player(ctx)
 
-    @commands.command(name="metele", aliases=["dale", "entrale", "reproduce", "hazme-la-taba"])
+    @commands.command(name="metele", aliases=["go", "pl"])
     @commands.cooldown(1.0, 5.0, commands.BucketType.guild)
     async def play_for_stream(self, ctx, *query):
         '''Reproduce queries y links de Youtube asi como playlists de spotify.
@@ -122,7 +117,7 @@ class voice(commands.Cog):
             else:
                 await ctx.send(f"No tengo soporte aun para {str(query)}")
 
-    @commands.command(name="sig", aliases=["siguiente"])
+    @commands.command(name="sig", aliases=["the-next"])
     @commands.cooldown(1.0, 5.0, commands.BucketType.guild)
     async def next_song_in_queue(self, ctx):
         '''Va a la siguiente cancion en la lista de canciones de Spotify o Youtube
@@ -132,7 +127,7 @@ class voice(commands.Cog):
             await self.client.voice.next_in_queue(ctx)
             await ctx.processing_command_reaction()
 
-    @commands.command(name="pausa")
+    @commands.command(name="pause")
     async def pause(self, ctx):
         '''Pausea el bot
         '''
@@ -140,7 +135,7 @@ class voice(commands.Cog):
             self.client.voice.pause_player(ctx)
             await ctx.message.add_reaction('⏸️')
 
-    @commands.command(name="sigue")
+    @commands.command(name="continue")
     async def resume(self, ctx):
         '''Continua con la reproduccion
         '''
@@ -148,7 +143,7 @@ class voice(commands.Cog):
             self.client.voice.resume_player(ctx)
             await ctx.message.add_reaction('▶️')
 
-    @commands.command(aliases=["vol"], name="volumen")
+    @commands.command(aliases=["vol"], name="volume")
     async def set_voice_volume(self, ctx, volume):
         '''Setea el volumen a un %
         `-volumen [0-100]`'''
@@ -180,7 +175,7 @@ class voice(commands.Cog):
             msg =  "Loop activado" if is_loop else "Loop desactivado"
             await ctx.send(msg)
 
-    @commands.group(name="lista")
+    @commands.group(name="list")
     async def queue(self, ctx):
         '''Functiones especificas sobre la lista de reproduccion
         '''
@@ -219,7 +214,33 @@ class voice(commands.Cog):
                 msg += f"`{start_idx + 1 + idx}` {entry}\n"
             return await ctx.send(msg) if msg != "" else await ctx.send(f"No hay resultados para pagina {page}")
 
-    @commands.command(name="agregar-saludo", aliases=["saludo"])
+    @commands.group(name="playlist")
+    async def playlist(self, ctx):
+        '''Comandos para guardar y ver playlists guardadas
+        '''
+        if ctx.invoked_subcommand is None:
+            await ctx.send('Especifica una accion')
+
+    @playlist.command(name="save")
+    async def playlist_save(self, ctx, url, name=None):
+        '''Guarda una url de playlist
+        '''
+        url = str(url)
+        name = str(name)
+        if "https://open.spotify.com" in url and "playlist" in url:
+            ack = self.bot_be.save_playlist_for_user(str(ctx.author.id), url, name)
+            await ctx.send(ack)
+        else:
+            await ctx.send("No es una playlist de spotify")
+
+    @playlist.command(name="read")
+    async def playlist_read(self, ctx):
+        '''Muestra las playlists guardadas
+        '''
+        #playlists = self.bot_be.read_user_playlists(ctx.author)
+        pass
+
+    @commands.command(name="add-audio", aliases=["audio"])
     async def add_audio_for_user(self, ctx):
         '''Agrega un saludo
         `-saludo` o `-agregar-saludo [@miembro]`
