@@ -29,25 +29,33 @@ class voice(commands.Cog):
     async def execute_voice_handling(self, ctx, language, text):
         playing_state = self.client.voice.get_playing_state(ctx)
         if (not isinstance(playing_state, Speak) and not isinstance(playing_state, Salute)) and await self._is_user_in_voice_channel(ctx):
-            tts_es = gTTS(text, lang=language)#TODO: encapsulate this functionality 
-            url = tts_es.get_urls()[0]
-            network_utils = NetworkUtils()
-            if await network_utils.check_connection_status_for_site(url) == 200:
-                await self.client.voice.reproduce_from_file(ctx.author, url)
-            else:
-                await ctx.send(StringConstants.SMTH_FUCKED_UP)
+            try:
+                tts_es = gTTS(text, lang=language)#TODO: encapsulate this functionality 
+                url = tts_es.get_urls()[0]
+                network_utils = NetworkUtils()
+                if await network_utils.check_connection_status_for_site(url) == 200:
+                    await self.client.voice.reproduce_from_file(ctx.author, url)
+                else:
+                    await ctx.send(StringConstants.SMTH_FUCKED_UP)
+            except Exception:
+                await ctx.send("El formato de idioma no existe")
 
     @commands.command(name="say")
     async def say(self, ctx, *, text):
         '''Texto a voz en español
         '''
-        await self.execute_voice_handling(ctx, "es-es", text)
-
-    @commands.command(name="say-en")
-    async def say_english(self, ctx, *, text):
-        '''Texto a voz en ingles
-        '''
-        await self.execute_voice_handling(ctx, "en-us", text)
+        try:
+            lang_index_first = text.index("/")
+            lang_index_sec = text.rindex("/")
+            if lang_index_first == lang_index_sec:
+                raise ValueError()
+            language = text[lang_index_first+1:lang_index_sec]
+            text = text.replace(f"/{language}/", "")
+            await self.execute_voice_handling(ctx, language, text)
+        except ValueError:
+            await self.execute_voice_handling(ctx, "es-es", text)
+        except Exception:
+            await ctx.send("Si escribes el idioma, tiene que ser entre `//` , huevon")
         
     @commands.command(aliases=["radios"], name="show-radios")
     async def show_radios(self, ctx):

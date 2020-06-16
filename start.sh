@@ -1,1 +1,2 @@
-nohup python3 -u  main.py > output.log &
+#!/bin/bash
+sudo /usr/bin/python3.6 main.py > output.log
