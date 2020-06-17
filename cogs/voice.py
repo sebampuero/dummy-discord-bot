@@ -12,7 +12,6 @@ class voice(commands.Cog):
     '''
     def __init__(self, client):
         self.client = client
-        self.bot_be = BotBE()
 
     @commands.command(aliases=["off"], name="audio-off")
     async def audio_off(self, ctx):
@@ -41,6 +40,7 @@ class voice(commands.Cog):
                 await ctx.send("El formato de idioma no existe")
 
     @commands.command(name="say")
+    @commands.cooldown(1.0, 3.0, commands.BucketType.guild)
     async def say(self, ctx, *, text):
         '''Texto a voz en español
         '''
@@ -65,7 +65,7 @@ class voice(commands.Cog):
         await ctx.send(radios)
 
     @commands.command(aliases=["sr"], name="start-radio")
-    @commands.cooldown(1.0, 5.0, commands.BucketType.guild)
+    @commands.cooldown(1.0, 3.0, commands.BucketType.guild)
     async def start_radio(self, ctx, city, radio_id):
         '''Inicia la radio con la ciudad y su radio correspondiente
         `-start-radio o -sr [ciudad] [numero de radio]`
@@ -104,14 +104,13 @@ class voice(commands.Cog):
             await self.client.voice.disconnect_player(ctx)
 
     @commands.command(name="metele", aliases=["go", "pl"])
-    @commands.cooldown(1.0, 5.0, commands.BucketType.guild)
+    @commands.cooldown(1.0, 3.0, commands.BucketType.guild)
     async def play_for_stream(self, ctx, *query):
         '''Reproduce queries y links de Youtube asi como playlists de spotify.
         Ejemplo -metele https://open.spotify.com/playlist/37i9dQZEVXbLiRSasKsNU9
         O -metele https://www.youtube.com/watch?v=l00VTUYkebw
         O -metele chuchulun don omar
         '''
-        playing_state = self.client.voice.get_playing_state(ctx)
         if not query:
             return await ctx.bad_command_reaction()
         playing_state = self.client.voice.get_playing_state(ctx)
@@ -126,7 +125,7 @@ class voice(commands.Cog):
                 await ctx.send(f"No tengo soporte aun para {str(query)}")
 
     @commands.command(name="sig", aliases=["the-next"])
-    @commands.cooldown(1.0, 5.0, commands.BucketType.guild)
+    @commands.cooldown(1.0, 3.0, commands.BucketType.guild)
     async def next_song_in_queue(self, ctx):
         '''Va a la siguiente cancion en la lista de canciones de Spotify o Youtube
         '''
@@ -236,7 +235,7 @@ class voice(commands.Cog):
         url = str(url)
         name = str(name)
         if "https://open.spotify.com" in url and "playlist" in url:
-            ack = self.bot_be.save_playlist_for_user(str(ctx.author.id), url, name)
+            ack = self.client.bot_be.save_playlist_for_user(str(ctx.author.id), url, name)
             await ctx.send(ack)
         else:
             await ctx.send("No es una playlist de spotify")
@@ -245,11 +244,24 @@ class voice(commands.Cog):
     async def playlist_read(self, ctx):
         '''Muestra las playlists guardadas
         '''
-        playlists_list = self.bot_be.read_user_playlists(str(ctx.author.id))
+        playlists_list = self.client.bot_be.read_user_playlists(str(ctx.author.id))
         msg = ""
         for idx, playlist_dict in enumerate(playlists_list):
             msg += f"`{idx+1}` {playlist_dict['name']} {playlist_dict['url']}"
-        await ctx.send(msg) if msg != "" else await ctx.send("Aun no has guardado playlists de spotify")
+        await ctx.send(msg) if msg != "" else await ctx.send("Aun no has guardado playlists de spotify, usa `-playlist save [url] [nombre de playlist]`")
+
+    @playlist.command(name="play")
+    @commands.cooldown(1.0, 3.0, commands.BucketType.guild)
+    async def playlist_playback(self, ctx, playlist_number):
+        '''Reproduce una lista seleccionada
+        '''
+        try:
+            playlist_number = int(playlist_number)
+            playlists_list = self.client.bot_be.read_user_playlists(str(ctx.author.id))
+            playlist_url = playlists_list[playlist_number - 1]['url']
+            await self.play_for_stream(ctx, playlist_url)
+        except:
+            await ctx.send("No tienes una playlist guardada con ese numero, usa `-playlist read`")
 
     @commands.command(name="add-audio", aliases=["audio"])
     async def add_audio_for_user(self, ctx):
@@ -272,7 +284,7 @@ class voice(commands.Cog):
             user_id_filename_placeholder += 1
             filename_to_save = f"./assets/audio/{user_id_filename_placeholder}.mp3"
         await ctx.message.attachments[0].save(filename_to_save)
-        self.bot_be.save_audio_for_user(filename_to_save, user_id, ctx.guild.id)
+        self.client.bot_be.save_audio_for_user(filename_to_save, user_id, ctx.guild.id)
         await ctx.send("Agregado papu")
 
 def setup(client):
