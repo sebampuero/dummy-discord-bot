@@ -32,7 +32,8 @@ class voice(commands.Cog):
                 tts_es = gTTS(text, lang=language)#TODO: encapsulate this functionality 
                 url = tts_es.get_urls()[0]
                 network_utils = NetworkUtils()
-                if await network_utils.check_connection_status_for_site(url) == 200:
+                status, content_type = await network_utils.website_check(url)
+                if status == 200:
                     await self.client.voice.reproduce_from_file(ctx.author, url)
                 else:
                     await ctx.send(StringConstants.SMTH_FUCKED_UP)
@@ -84,10 +85,18 @@ class voice(commands.Cog):
             
     
     @commands.command(name="save-radio", aliases=["svr"])
-    @commands.has_guild_permissions(administrator=True)
-    async def save_radio(self, ctx, city, url):
-        pass
-
+    async def save_radio(self, ctx, url, city_key, city_big, name):
+        """Agregar una radio a la lista de radios
+        `-save-radio o -svr [url] [palabra clave de ciudad] [ciudad] [nombre de la radio]`
+        """
+        network_utils = NetworkUtils()
+        status, content_type = await network_utils.website_check(str(url))
+        if status == 200 and (content_type == "audio/mpeg" or content_type == "audio/aacp" or content_type == "audio/aac"):
+            self.client.bot_be.save_radios(url, city_key, city_big, name)
+            await ctx.good_command_reaction()
+        else:
+            await ctx.send("No es el link de una radio valida")
+            
     async def _is_user_in_voice_channel(self, ctx):
         if ctx.author.voice:
             return True
@@ -229,7 +238,7 @@ class voice(commands.Cog):
             await ctx.send('Especifica una accion')
 
     @playlist.command(name="save")
-    async def playlist_save(self, ctx, url, name=None):
+    async def playlist_save(self, ctx, url, name):
         '''Guarda una url de playlist
         '''
         url = str(url)
@@ -245,9 +254,9 @@ class voice(commands.Cog):
         '''Muestra las playlists guardadas
         '''
         playlists_list = self.client.bot_be.read_user_playlists(str(ctx.author.id))
-        msg = ""
+        msg = f"Playlists de {ctx.author.display_name}\n"
         for idx, playlist_dict in enumerate(playlists_list):
-            msg += f"`{idx+1}` {playlist_dict['name']} {playlist_dict['url']}"
+            msg += f"`{idx+1}` {playlist_dict['name']}\n"
         await ctx.send(msg) if msg != "" else await ctx.send("Aun no has guardado playlists de spotify, usa `-playlist save [url] [nombre de playlist]`")
 
     @playlist.command(name="play")

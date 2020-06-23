@@ -7,24 +7,8 @@
                 "link": "http://198.148.103.200:8052/;?listening-from-radio-garden"
             },
             {
-                "name": "Sobrevivientes Rock Pop",
-                "link": "http://node-05.zeno.fm/b4822k4m8mzuv?listening-from-radio-garden=1590104330498&rj-tok=AAABcjmjuXIAipviR_B5lD0D_g&rj-ttl=5"
-            },
-            {
                 "name": "Radio Programas del Peru",
                 "link": "https://18533.live.streamtheworld.com/RADIO_RPP.mp3?listening-from-radio-garden"
-            },
-            {
-                "name": "Radio Melodia FM",
-                "link": "http://184.154.28.210:8214/;?listening-from-radio-garden"
-            },
-            {
-                "name": "Radio Megatron Mix",
-                "link": "http://node-14.zeno.fm/rw67aty148quv?listening-from-radio-garden=1590104863093&rj-tok=AAABcjmr23EAGnC0kRsRTXMx1Q&rj-ttl=5"
-            },
-            {
-                "name": "Radio Aereostereo FM",
-                "link": "http://node-11.zeno.fm/8u6kahy9b9quv?listening-from-radio-garden=1590104920814&rj-tok=AAABcjmsu5IAqDzV96J6-FeGHg&rj-ttl=5"
             }
         ]
     },
@@ -38,39 +22,18 @@
             {
                 "name": "Radio Onda Cero",
                 "link": "http://192.99.148.184:6720/stream?listening-from-radio-garden"
-            }
-            ,
+            },
             {
                 "name": "Radio Juerga Total",
                 "link": "http://streaming.playerhd.net:9990/;?listening-from-radio-garden"
-            }
-            ,
+            },
             {
                 "name": "Radio Planeta",
                 "link": "http://16643.live.streamtheworld.com/CRP_PLAAAC.aac"
-            }
-            ,
+            },
             {
                 "name": "Radio Studio 92",
                 "link": "https://18613.live.streamtheworld.com/RADIO_STUDIO92.mp3?listening-from-radio-garden"
-            }
-        ]
-    },
-    "cusco": {
-        "city": "Cusco",
-        "items": [
-            {
-                "name": "Radio Rock",
-                "link": "http://172.104.217.55:9300/;?listening-from-radio-garden"
-            }
-        ]
-    },
-    "tacna": {
-        "city": "Tacna",
-        "items": [
-            {
-                "name": "Radio Retro",
-                "link": "https://player.datalivehd.com/proxy/7068/;/live?listening-from-radio-garden"
             }
         ]
     },
@@ -118,8 +81,7 @@
                 "link": "http://64.71.79.181:6045/stream?listening-from-radio-garden"
             }
         ]
-    }
-    ,
+    },
     "toulouse": {
         "city": "Toulouse",
         "items": [
@@ -128,8 +90,7 @@
                 "link": "http://mediam.streamakaci.com/toulousefm.mp3?listening-from-radio-garden"
             }
         ]
-    }
-    ,
+    },
     "tarapoto": {
         "city": "Tarapoto",
         "items": [
@@ -140,6 +101,15 @@
             {
                 "name": "Full Cumbia potos tragoo",
                 "link": "https://whmsonic.playerfullhd.com:7311/;?listening-from-radio-garden"
+            }
+        ]
+    },
+    "cab": {
+        "city": "Cabreuva",
+        "items": [
+            {
+                "name": "LoveHits",
+                "link": "http://hts02.kshost.com.br:8770/live"
             }
         ]
     }

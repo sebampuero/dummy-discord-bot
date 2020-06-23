@@ -146,11 +146,24 @@ class BotBE(): #TODO: make this class Singleton
 		finally:
 			self.save_users_welcome_audios(welcome_audios)
 
-	def save_radios(self, radios_new):
+	def save_radios(self, url, city, city_big, name):
+		radios_old = self.load_radios_config()
 		try:
-			self.bot_svc.save_radios(radios_new)
-		except Exception as e:
-			print(str(e))
+			radios_old[str(city)]["items"].append({
+				"name": str(name),
+				"link": str(url)
+			})
+		except KeyError:
+			radios_old[str(city)] = {
+				"city": str(city_big),
+				"items": [
+					{
+						"name": str(name),
+						"link": str(url)
+					}
+				]
+			}
+		self.bot_svc.save_radios(radios_old)
 
 	def save_users_welcome_audios(self, new_):
 		try:
@@ -165,7 +178,7 @@ class BotBE(): #TODO: make this class Singleton
 			for row in alerts:
 				current_price = await self.get_store_price_for_prefix(row[1], row[5]) # url, currency
 				price_range = str(row[2])
-				print(f"{datetime.datetime.now()} Current price {current_price} for {row} with range {price_range}")
+				logging.warning(f"Current price {current_price} for {row} with range {price_range}")
 				lower_ = float(price_range.split("-")[0])
 				upper_ = float(price_range.split("-")[1])
 				self.bot_svc.update_last_checked_at_alert(row[0])

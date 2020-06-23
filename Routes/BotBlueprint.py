@@ -15,7 +15,8 @@ async def say(data, guild, text_channel, voice):
             network_utils = NetworkUtils()
             tts_es = gTTS(text, lang=language)
             url = tts_es.get_urls()[0]
-            if await network_utils.check_connection_status_for_site(url) == 200:
+            status, content_type = await network_utils.website_check(url)
+            if status == 200:
                 await voice.reproduce_from_file(member, url)
             else:
                 await text_channel.send(f"No se pudo reproducir '{text}'")

@@ -200,11 +200,9 @@ class VoiceManager:
 
     async def disconnect(self):
         if self.voice_client and self.voice_client.is_connected():
-            self.state.cleanup()
             logging.warning(f"Disconnected from channel {self.voice_client.channel}")
+            self.state.cleanup()
             await self.voice_client.disconnect(force=True)
-            self.state = self.off
-            self.prev_state = self.state
             self.voice_client = None
                 
 
@@ -287,7 +285,7 @@ class Radio(State):
 
     def handle_error(self, error):
         if error:
-            self.client.loop.create_task(self.vmanager.current_context.send("Se produjo un error"))
+            self.client.loop.create_task(self.current_context.send("Se produjo un error"))
         if not self.should_exit_from_loop:
             self.cleanup()
         self.should_exit_from_loop = False
@@ -605,7 +603,8 @@ class Voice():
                 if not await self._voice_state_check(vc, vmanager, ctx):
                     return
                 net_utils = NetworkUtils()
-                if await net_utils.check_connection_status_for_site(url) != 200:
+                status, content_type = await net_utils.website_check(url)
+                if status != 200:
                     await ctx.send(f"Se jodio esta radio {url}")
                     return
                 if isinstance(vmanager.state, Stream) or isinstance(vmanager.state, Radio):
