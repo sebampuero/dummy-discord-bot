@@ -124,7 +124,8 @@
         "451813158290587649": {
             "active": "true",
             "audios": [
-                "./assets/audio/tavo.mp3"
+                "./assets/audio/tavo.mp3",
+                "./assets/audio/307665795767336962.mp3"
             ]
         }
     },

@@ -56,7 +56,7 @@ class voice(commands.Cog):
         except ValueError:
             await self.execute_voice_handling(ctx, "es-es", text)
         except Exception:
-            await ctx.send("Si escribes el idioma, tiene que ser entre `//` , huevon")
+            await ctx.send("Si escribes el idioma, tiene que ser entre `//`")
         
     @commands.command(aliases=["radios"], name="show-radios")
     async def show_radios(self, ctx):
@@ -81,7 +81,7 @@ class voice(commands.Cog):
                 await self.client.voice.play_radio(selected_radio_url, ctx, selected_radio_name)
                 await ctx.processing_command_reaction()
             except IndexError:
-                await ctx.send("Escribe bien cojudo, usa `-radios`")
+                await ctx.send("Esa radio no existe, usa `-radios`")
             
     
     @commands.command(name="save-radio", aliases=["svr"])
@@ -230,7 +230,7 @@ class voice(commands.Cog):
                 msg += f"`{start_idx + 1 + idx}` {entry}\n"
             return await ctx.send(msg) if msg != "" else await ctx.send(f"No hay resultados para pagina {page}")
 
-    @commands.group(name="playlist")
+    @commands.group(name="playl")
     async def playlist(self, ctx):
         '''Comandos para guardar y ver playlists guardadas
         '''

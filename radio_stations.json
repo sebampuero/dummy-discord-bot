@@ -103,14 +103,5 @@
                 "link": "https://whmsonic.playerfullhd.com:7311/;?listening-from-radio-garden"
             }
         ]
-    },
-    "cab": {
-        "city": "Cabreuva",
-        "items": [
-            {
-                "name": "LoveHits",
-                "link": "http://hts02.kshost.com.br:8770/live"
-            }
-        ]
     }
 }

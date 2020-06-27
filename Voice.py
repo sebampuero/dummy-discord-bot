@@ -199,7 +199,7 @@ class VoiceManager:
         self.state.set_volume(volume)
 
     async def disconnect(self):
-        if self.voice_client and self.voice_client.is_connected():
+        if self.voice_client:
             logging.warning(f"Disconnected from channel {self.voice_client.channel}")
             self.state.cleanup()
             await self.voice_client.disconnect(force=True)
@@ -583,6 +583,7 @@ class Voice():
             random_idx = random.randint(0, len(audio_files_list) - 1)
             audio_file_name = audio_files_list[random_idx]
             if discord.opus.is_loaded():
+                await self._attempt_to_connect_to_voice(voice_channel, vmanager)
                 if not await self._voice_state_check(voice_channel, vmanager):
                     return
                 if isinstance(vmanager.state, Stream) or isinstance(vmanager.state, Radio):
@@ -600,6 +601,7 @@ class Voice():
         try:
             vc = ctx.author.voice.channel
             if discord.opus.is_loaded():
+                await self._attempt_to_connect_to_voice(vc, vmanager)
                 if not await self._voice_state_check(vc, vmanager, ctx):
                     return
                 net_utils = NetworkUtils()
@@ -624,6 +626,7 @@ class Voice():
         try:
             vc = ctx.author.voice.channel
             if discord.opus.is_loaded():
+                await self._attempt_to_connect_to_voice(vc, vmanager)
                 if not await self._voice_state_check(vc, vmanager, ctx):
                     return
                 if isinstance(vmanager.state, Radio):
@@ -655,10 +658,16 @@ class Voice():
             vmanager.prev_state = vmanager.off
             vmanager.change_state(vmanager.off)
 
+    async def _attempt_to_connect_to_voice(self, voice_channel, vmanager):
+        vc_found = False
+        for vc in self.client.voice_clients:
+            if vc.guild.id == voice_channel.guild.id:
+                vc_found = True
+        if not vc_found:
+            vmanager.voice_client = await voice_channel.connect()
+
     async def _voice_state_check(self, voice_channel, vmanager,  ctx=None):
         valid = True
-        if vmanager.voice_client == None or not vmanager.voice_client.is_connected():
-            vmanager.voice_client = await voice_channel.connect()
         if vmanager.voice_client.channel != voice_channel:
             if ctx:
                 await ctx.send(f"No estoy en el canal {voice_channel}")
