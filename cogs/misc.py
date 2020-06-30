@@ -48,10 +48,10 @@ class misc(commands.Cog):
             await ctx.send(f"Intenta denuevo en {round(error.retry_after, 2)} segundos")
         elif isinstance(error, commands.MissingRequiredArgument):
             await ctx.send(f"Te falta un parametro a este comando: {error.param}")
+        elif isinstance(error, commands.UnexpectedQuoteError):
+            await ctx.send(f"No incluyas `\"` en tus comandos")
         else:
-            logging.error(str(error), exc_info=True)
-                
-    
+            logging.error(f"Error: {str(error)} of type {type(error)}", exc_info=True)
 
 def setup(client):
     client.add_cog(misc(client))

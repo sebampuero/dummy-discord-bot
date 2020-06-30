@@ -36,7 +36,7 @@ class YoutubeQuery(Query):
         super().__init__(the_query)
 
     def __repr__(self):
-        return f"Busqueda de youtube: `{' '.join(self.the_query)}`"
+        return f'Busqueda de youtube: `{" ".join(self.the_query)}`'
 
 class SpotifyQuery(Query):
 
@@ -119,7 +119,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
     @classmethod
     def from_query(cls, query, loop=None, volume=0.3):
         loop = loop or asyncio.get_event_loop()
-        query = ' '.join(query)
+        query = " ".join(query)
         with YoutubeDL(YTDLSource.ytdl_opts) as ydl:
             info = ydl.extract_info(query, download=False)
             if 'entries' in info:  # grab the first video
@@ -559,6 +559,7 @@ class Voice():
         try:
             vc = member.voice.channel
             if discord.opus.is_loaded():
+                await self._attempt_to_connect_to_voice(vc, vmanager)
                 if not await self._voice_state_check(vc, vmanager):
                     return
                 if isinstance(vmanager.state, Stream) or isinstance(vmanager.state, Radio):
@@ -592,6 +593,8 @@ class Voice():
                 if not isinstance(vmanager.state, Speak):
                     vmanager.change_state(vmanager.salute)
                     vmanager.play(audio_file_name)
+        except KeyError:
+            pass
         except discord.ClientException as e:
             await vmanager.disconnect()
             logging.error("While playing welcome audio", exc_info=True)
@@ -663,11 +666,14 @@ class Voice():
         for vc in self.client.voice_clients:
             if vc.guild.id == voice_channel.guild.id:
                 vc_found = True
+                break
         if not vc_found:
             vmanager.voice_client = await voice_channel.connect()
 
     async def _voice_state_check(self, voice_channel, vmanager,  ctx=None):
         valid = True
+        if not vmanager.voice_client:
+            return False
         if vmanager.voice_client.channel != voice_channel:
             if ctx:
                 await ctx.send(f"No estoy en el canal {voice_channel}")
@@ -697,9 +703,11 @@ class Voice():
         for opus_lib in opus_libs:
             try:
                 discord.opus.load_opus(opus_lib)
-                return
+                return True
             except OSError:
-                pass         
+                pass
+        logging.error("Could not load opus lib")
+        return False
 
     def entered_voice_channel(self, before, after):
         if after.channel and before.channel:

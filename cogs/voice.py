@@ -7,6 +7,7 @@ from embeds.custom import VoiceEmbeds
 from Voice import Off, Speak, Salute, Radio, Stream, StreamingType
 from BE.BotBE import BotBE
 from gtts import gTTS
+import logging
 class voice(commands.Cog):
     '''Todo lo necesario para hacer que el bot hable y reproduzca musiquita
     '''
@@ -37,7 +38,8 @@ class voice(commands.Cog):
                     await self.client.voice.reproduce_from_file(ctx.author, url)
                 else:
                     await ctx.send(StringConstants.SMTH_FUCKED_UP)
-            except Exception:
+            except Exception as e:
+                logging.error("while reproducing tts", exc_info=True)
                 await ctx.send("El formato de idioma no existe")
 
     @commands.command(name="say")
@@ -133,7 +135,7 @@ class voice(commands.Cog):
             else:
                 await ctx.send(f"No tengo soporte aun para {str(query)}")
 
-    @commands.command(name="sig", aliases=["the-next"])
+    @commands.command(name="sig", aliases=["next", "s"])
     @commands.cooldown(1.0, 3.0, commands.BucketType.guild)
     async def next_song_in_queue(self, ctx):
         '''Va a la siguiente cancion en la lista de canciones de Spotify o Youtube
@@ -254,23 +256,39 @@ class voice(commands.Cog):
         '''Muestra las playlists guardadas
         '''
         playlists_list = self.client.bot_be.read_user_playlists(str(ctx.author.id))
-        msg = f"Playlists de {ctx.author.display_name}\n"
+        msg = f"Playlists de {ctx.author.name}\n"
         for idx, playlist_dict in enumerate(playlists_list):
             msg += f"`{idx+1}` {playlist_dict['name']}\n"
         await ctx.send(msg) if msg != "" else await ctx.send("Aun no has guardado playlists de spotify, usa `-playlist save [url] [nombre de playlist]`")
 
     @playlist.command(name="play")
     @commands.cooldown(1.0, 3.0, commands.BucketType.guild)
-    async def playlist_playback(self, ctx, playlist_number):
+    async def playlist_playback(self, ctx, playlist):
         '''Reproduce una lista seleccionada
         '''
         try:
-            playlist_number = int(playlist_number)
+            playlist_id = int(playlist)
+            await self._search_playlist(playlist_id, ctx)
+        except ValueError:
+            playlist_id = str(playlist)
+            await self._search_playlist(playlist_id, ctx)
+
+    async def _search_playlist(self, playlist_id, ctx):
+        try:
             playlists_list = self.client.bot_be.read_user_playlists(str(ctx.author.id))
-            playlist_url = playlists_list[playlist_number - 1]['url']
+            playlist_url = ""
+            if isinstance(playlist_id, int):
+                playlist_url = playlists_list[playlist_id - 1]['url']
+            elif isinstance(playlist_id, str):
+                for a_dict in playlists_list:
+                    if a_dict["name"] == playlist_id:
+                        playlist_url = a_dict["url"]
+                        break
+                if playlist_url == "":
+                    raise KeyError("List name not found in list")
             await self.play_for_stream(ctx, playlist_url)
-        except:
-            await ctx.send("No tienes una playlist guardada con ese numero, usa `-playlist read`")
+        except KeyError:
+            await ctx.send("No tienes una playlist guardada con ese numero o nombre, para guardar listas usa `-playl save`")
 
     @commands.command(name="add-audio", aliases=["audio"])
     async def add_audio_for_user(self, ctx):
