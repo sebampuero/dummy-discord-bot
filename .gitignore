@@ -4,6 +4,7 @@ password.txt
 spotify.txt
 *.mp3
 music_cache/
+assets/ttboard/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

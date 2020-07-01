@@ -1,6 +1,7 @@
 """
 Tic Tac Toe Player
 """
+
 import math
 import copy
 import sys
@@ -124,26 +125,33 @@ def minimax(board):
     """
     Returns the optimal action for the current player on the board.
     """
+    if terminal(board):
+        return None
     if player(board) == X:
+        score = -math.inf
+        best_action = None
+        cont = 0
         for action in actions(board):
             v = minvalue(result(board, action))
-            if v == 1:
-                return action
-            if v == 0:
-                return action
+            if v > score:
+                score = v
+                best_action = action
+        return best_action
     elif player(board) == O:
+        score = math.inf
+        best_action = None
         for action in actions(board):
             v = maxvalue(result(board, action))
-            if v == -1:
-                return action
-            if v == 0:
-                return action
+            if v < score:
+                score = v
+                best_action = action
+        return best_action
         
 
 def maxvalue(board):
     if terminal(board):
         return utility(board)
-    v = -1
+    v = -math.inf
     for action in actions(board):
         v = max(v, minvalue(result(board, action)))
     return v
@@ -151,7 +159,7 @@ def maxvalue(board):
 def minvalue(board):
     if terminal(board):
         return utility(board)
-    v = 1
+    v = math.inf
     for action in actions(board):
         v = min(v, maxvalue(result(board, action)))
     return v
