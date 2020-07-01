@@ -130,7 +130,6 @@ def minimax(board):
     if player(board) == X:
         score = -math.inf
         best_action = None
-        cont = 0
         for action in actions(board):
             v = minvalue(result(board, action))
             if v > score:

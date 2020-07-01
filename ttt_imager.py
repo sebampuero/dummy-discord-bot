@@ -5,9 +5,9 @@ import copy
 
 class Imager:
 
-    IMG_WIDTH = 256
-    IMG_HEIGHT = 256
-    FONT = ImageFont.truetype('OpenSans-Regular.ttf', size=20)
+    IMG_WIDTH = 200
+    IMG_HEIGHT = 200
+    FONT = ImageFont.truetype('OpenSans-Regular.ttf', size=15)
     COLOR = 'rgb(0,0,0)'
 
     def __init__(self, guild_id):
@@ -15,7 +15,7 @@ class Imager:
 
     def create_initial_board(self, color=COLOR, font=FONT):
         """
-        Creates a board that contains each field identifier (1-9). Returns a list of bytes containing the image.
+        Creates a board that contains each field identifier (1-9). Returns the filename of the saved board image
         """
         im = self.create_blank_board()
         draw = ImageDraw.Draw(im)
@@ -44,7 +44,7 @@ class Imager:
 
     def create_dirty_board(self, board, color=COLOR, font=FONT):
         """
-        Creates a dirty board. Empty spaces are represented as numbers 1-9. Returns a list of bytes containing the image.
+        Creates a dirty board. Empty spaces are represented as numbers 1-9. Returns the filename of the saved board image
         """
         tmp_board = copy.deepcopy(board)
         tmp_board = [j for sub in tmp_board for j in sub]
