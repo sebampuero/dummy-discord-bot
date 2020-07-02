@@ -10,7 +10,7 @@ import threading
 import logging
 
 class tttgame(commands.Cog):
-    '''Para juegos
+    '''Tic tac toe
     '''
 
     MOVE_TO_COORD_MAP = {
@@ -52,6 +52,9 @@ class tttgame(commands.Cog):
     
     @commands.command(name="challenge")
     async def challenge(self, ctx):
+        '''Reta a alguien para jugar tic tac toe con `-challenge [tag]`
+        Usa solo `-challenge` para jugar contra la AI
+        '''
         if ctx.guild.id not in self.guild_to_game_map:
             if len(ctx.message.mentions) == 1:
                 self.guild_to_game_map[ctx.guild.id] = {
@@ -81,7 +84,7 @@ class tttgame(commands.Cog):
                     "timeout_counter": 0
                 }
             await self._start_timeout(ctx)
-            await ctx.send(f"Escoge tu simbolo X u O {ctx.author.mention} escrbiendo `-symbol X` or `-symbol O`")
+            await ctx.send(f"Escoge tu simbolo X o O {ctx.author.mention} escrbiendo `-symbol X` o `-symbol O`")
         else:
             await ctx.send("Ya hay un juego en progreso.")
 
@@ -97,6 +100,8 @@ class tttgame(commands.Cog):
 
     @commands.command(name="accept")
     async def accept_game(self, ctx):
+        '''Comando para aceptar cuando se ha sido retado a jugar tic tac toe
+        '''
         game_map = self.guild_to_game_map
         if ctx.guild.id in game_map:
             if ctx.author.id == game_map[ctx.guild.id]["player2"]["id"]:
@@ -140,6 +145,8 @@ class tttgame(commands.Cog):
 
     @commands.command(name="move")
     async def play_move(self, ctx, move:int):
+        '''Comando para hacer un moviento con `X` o `O` en tic tac toe
+        '''
         game_map = self.guild_to_game_map
         if not move > 0 and not move < 10:
             return
@@ -171,13 +178,15 @@ class tttgame(commands.Cog):
             await ctx.send("Ese movimiento no es valido")
 
     @commands.command(name="symbol")
-    async def move_choose(self, ctx, symbol:str):
+    async def symbol_choose(self, ctx, symbol:str):
+        '''Comando para escoger `X` o `O` despues de haber iniciado un juego
+        '''
         move = symbol.upper()
         if move != X and move != O:
             return
         game_map = self.guild_to_game_map
         if ctx.guild.id in game_map:
-            if self._is_move_choose_valid(ctx, game_map):
+            if self._is_symbol_choose_valid(ctx, game_map):
                 game_map[ctx.guild.id]["player1"]["move"] = move
                 if not game_map[ctx.guild.id]["against_ai"]:
                     game_map[ctx.guild.id]["player2"]["move"] = X if move == O else O
@@ -186,6 +195,8 @@ class tttgame(commands.Cog):
 
     @commands.command(name="quit")
     async def stop_game(self, ctx):
+        '''Termina el juego tic tac toe
+        '''
         game_map = self.guild_to_game_map
         if ctx.guild.id in game_map:
             if ctx.author.id == game_map[ctx.guild.id]["player1"]["id"] or \
@@ -193,7 +204,7 @@ class tttgame(commands.Cog):
                 del game_map[ctx.guild.id]
                 await ctx.send("bye bye")
 
-    def _is_move_choose_valid(self, ctx, game_map):
+    def _is_symbol_choose_valid(self, ctx, game_map):
         game_map = self.guild_to_game_map
         if ctx.guild.id not in game_map:
             return False
