@@ -1,12 +1,12 @@
 from flask import Flask, request, Response, render_template
-from Concurrent.OurThread import OurThread
 from Routes.BotBlueprint import get_bot_blueprint
 import asyncio
+import threading
 
-class Server(OurThread):
+class Server(threading.Thread):
     
     def __init__(self, name):
-        super(Server, self).__init__()
+        super().__init__()
         self.name = name
         self.loop = asyncio.get_event_loop()
         self.daemon = True

@@ -1,7 +1,7 @@
 """
 Tic Tac Toe Player
 """
-
+from exceptions import CustomException
 import math
 import copy
 import sys
@@ -61,7 +61,7 @@ def result(board, action):
             new_board[action[0]][action[1]] = player(new_board)
         return new_board
     except:
-        raise Exception("This action is invalid")
+        raise CustomException.InvalidTTTMoveException("This action is invalid")
 
 
 def winner(board):
@@ -127,38 +127,44 @@ def minimax(board):
     """
     if terminal(board):
         return None
+    pruning_var = 0
+    best_action = None
     if player(board) == X:
         score = -math.inf
-        best_action = None
         for action in actions(board):
-            v = minvalue(result(board, action))
+            v = minvalue(result(board, action), pruning_var)
             if v > score:
                 score = v
                 best_action = action
         return best_action
     elif player(board) == O:
         score = math.inf
-        best_action = None
         for action in actions(board):
-            v = maxvalue(result(board, action))
+            v = maxvalue(result(board, action), pruning_var)
             if v < score:
                 score = v
                 best_action = action
         return best_action
         
 
-def maxvalue(board):
+def maxvalue(board, pruning_var):
     if terminal(board):
         return utility(board)
     v = -math.inf
     for action in actions(board):
-        v = max(v, minvalue(result(board, action)))
+        v = max(v, minvalue(result(board, action), pruning_var))
+        if v > pruning_var:
+            return v
+    pruning_var = v
     return v
 
-def minvalue(board):
+def minvalue(board, pruning_var):
     if terminal(board):
         return utility(board)
     v = math.inf
     for action in actions(board):
-        v = min(v, maxvalue(result(board, action)))
+        v = min(v, maxvalue(result(board, action), pruning_var))
+        if v < pruning_var:
+            return v
+    pruning_var = v
     return v
