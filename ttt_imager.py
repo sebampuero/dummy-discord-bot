@@ -5,16 +5,16 @@ import copy
 
 class Imager:
 
-    IMG_WIDTH = 150
-    IMG_HEIGHT = 150
-    FONT = ImageFont.truetype('OpenSans-Regular.ttf', size=15)
+    IMG_WIDTH = 250
+    IMG_HEIGHT = 250
+    FONT = ImageFont.truetype('./assets/fonts/OpenSans-Regular.ttf', size=15)
     COLOR_MOVE = 'rgb(0,0,0)'
     COLOR_EMPTY = 'rgb(255,0,0)'
 
     def __init__(self, guild_id):
         self.guild_id = guild_id
 
-    def create_initial_board(self, color=COLOR_MOVE, font=FONT):
+    def create_initial_board(self, color=COLOR_EMPTY, font=FONT):
         """
         Creates a board that contains each field identifier (1-9). Returns the filename of the saved board image
         """
