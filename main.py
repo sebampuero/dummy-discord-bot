@@ -94,7 +94,7 @@ class ChismositoBot(commands.Bot):
         if member == self.user:
             return
         if self.voice.entered_voice_channel(before, after):
-            await self.voice.notify_subscribers_user_joined_voice_chat(member, after.channel, self)
+            await self.voice.notify_subscribers_user_joined_voice_chat(member, after.channel)
             await self.voice.play_welcome_audio(member, after.channel)
 
 

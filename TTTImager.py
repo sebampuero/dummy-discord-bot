@@ -3,7 +3,10 @@ import tictactoe as ttt
 from tictactoe import EMPTY, X, O
 import copy
 
-class Imager:
+class TTTImager:
+    '''
+    Creates graphic representations of a tic tac toe board with images
+    '''
 
     IMG_WIDTH = 250
     IMG_HEIGHT = 250

@@ -500,10 +500,10 @@ class Voice():
     async def activate_welcome_audio(self, chat_channel):
         await self._set_welcome_audio_status(chat_channel, True)
             
-    async def notify_subscribers_user_joined_voice_chat(self, member, voice_channel, client):
+    async def notify_subscribers_user_joined_voice_chat(self, member, voice_channel):
         members_to_notify = self.bot_be.retrieve_subscribers_from_subscribee(str(member.id))
         for member_id in members_to_notify:
-            a_member = await client.fetch_user(member_id)
+            a_member = await self.client.fetch_user(member_id)
             if a_member != None:
                 dm_channel = await a_member.create_dm()
                 await dm_channel.send(f"{member.display_name} {Constants.HAS_ENTERED_CHANNEL} {voice_channel.name}")
