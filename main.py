@@ -99,10 +99,10 @@ class ChismositoBot(commands.Bot):
 
 
 logging.basicConfig(format='%(asctime)s %(message)s')
-token = open("token.txt", "r").read()
 client = ChismositoBot(command_prefix=commands.when_mentioned_or("-"),
                    description='El bot mas pendejo de todos', case_insensitive=True)
 for filename in os.listdir('./cogs'):
     if filename.endswith(".py"):
         client.load_extension(f'cogs.{filename[:-3]}')
-client.run(token)
+with open("token.txt", "r") as f:
+    client.run(f.read())

@@ -125,7 +125,8 @@
             "active": "true",
             "audios": [
                 "./assets/audio/tavo.mp3",
-                "./assets/audio/307665795767336962.mp3"
+                "./assets/audio/307665795767336962.mp3",
+                "./assets/audio/307665795767336963.mp3"
             ]
         }
     },

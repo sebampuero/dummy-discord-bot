@@ -187,7 +187,7 @@ class VoiceManager:
             self.voice_client.resume()
 
     def trigger_shuffle(self):
-        self.state.shuffle_for_queue = not self.state.shuffle_for_queue
+        self.state.shuffle_queue()
 
     def trigger_loop(self):
         self.state.trigger_loop = not self.state.trigger_loop
@@ -217,7 +217,6 @@ class State(object):
     def __init__(self, voice_manager, client):
         self.voice_manager = voice_manager
         self.client = client
-        self.shuffle_for_queue = False
         self.should_exit_from_loop = False
         self.trigger_loop = False
 
@@ -312,6 +311,10 @@ class Stream(State):
         if not self.voice_manager.is_voice_client_playing():
             self.music_loop(error=None)
 
+    def shuffle_queue(self):
+        if len(self.queue) > 0:
+            random.shuffle(self.queue)
+
     def resume(self):
         if self.voice_manager.current_player:
             self.voice_manager.current_player.resume()
@@ -325,11 +328,7 @@ class Stream(State):
     def retrieve_query_for_source(self):
         if self.trigger_loop:
             return self.last_query
-        if not self.shuffle_for_queue:
-            return self.queue.pop()
-        rand_idx = random.randint(0, len(self.queue) - 1)
-        return self.queue.pop(rand_idx)
-            
+        return self.queue.pop()
 
     def remove_video_file(self):
         if isinstance(self.voice_manager.voice_client.source, YTDLSource):
@@ -523,7 +522,6 @@ class Voice():
     def trigger_shuffle(self, ctx):
         vmanager = self.guild_to_voice_manager_map.get(ctx.guild.id)
         vmanager.trigger_shuffle()
-        return vmanager.state.shuffle_for_queue
 
     def trigger_loop_for_song(self, ctx):
         vmanager = self.guild_to_voice_manager_map.get(ctx.guild.id)

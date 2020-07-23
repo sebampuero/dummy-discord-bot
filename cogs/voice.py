@@ -175,12 +175,12 @@ class voice(commands.Cog):
 
     @commands.command(aliases=["sh"], name="shuffle")
     async def set_shuffle_for_queue(self, ctx):
-        '''Activa o desactiva el shuffle de una lista de reproduccion
+        '''Le mete su shuffle a la lista de reproduccion
         '''
         playing_state = self.client.voice.get_playing_state(ctx)
         if await self._is_user_in_voice_channel(ctx) and (isinstance(playing_state, Stream)):
-            is_shuffle = self.client.voice.trigger_shuffle(ctx)
-            msg = "Shuffle activado" if is_shuffle else "Shuffle desactivado"
+            self.client.voice.trigger_shuffle(ctx)
+            msg = "Metiendole su shuffle csm!!"
             await ctx.send(msg)
 
     @commands.command(name="loop")
