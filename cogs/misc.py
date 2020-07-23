@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 import random
 import logging
+import os
 
 class misc(commands.Cog):
 
@@ -16,6 +17,14 @@ class misc(commands.Cog):
         '''A cuantos `ms` estoy del servidor de Discord
         '''
         await ctx.send(f"Estoy a {round(self.client.latency * 1000)}ms")
+
+    @commands.command(name="restart")
+    async def restart_bot(self, ctx):
+        '''Reinicia el bot. Unicamente el lord papu puede hacerlo
+        '''
+        if ctx.author.id == 279796600308498434:
+            await ctx.send("Reiniciando...")
+            os.system("systemctl restart discord-py.service")
 
     @commands.command(aliases=["quien", "quien-lol"])
     async def who(self, ctx, *args):
