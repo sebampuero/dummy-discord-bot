@@ -74,7 +74,7 @@ class ChismositoBot(commands.Bot):
         self.load_config()
         for guild in self.guilds:
             if guild.system_channel:
-                await guild.system_channel.send("Hola.")
+                await guild.system_channel.send("Volvi")
 
     def load_config(self):
         f = open("./config/config.json", "r")

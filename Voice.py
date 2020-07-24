@@ -12,6 +12,7 @@ from spotipy.oauth2 import SpotifyClientCredentials
 from embeds.custom import VoiceEmbeds
 from enum import Enum
 from Utils.FileUtils import FileUtils
+from Utils.LoggerSaver import *
 """
  Implementation of the music functionality of the Bot. Handles radio streaming, youtube/spotify streaming and playback of local mp3 files. 
 """
@@ -385,14 +386,18 @@ class Stream(State):
             self.voice_manager.voice_client.play(YTDLSource.from_query(query.the_query, self.client.loop, self.current_volume), after=lambda e: self.music_loop(e))
             self.voice_manager.current_player = self.voice_manager.voice_client._player
             self.edit_msg()
-        except discord.ClientException:
+        except discord.ClientException as e:
             self.cleanup()
-            logging.error("while streaming", exc_info=True)
-        except Exception:
+            log = "while streaming"
+            logging.error(log, exc_info=True)
+            LoggerSaver.save_log(f"{log} {str(e)}", WhatsappLogger())
+        except Exception as e:
             error_msg = f"Se produjo un error reproduciendo {self.voice_manager.voice_client.source.title}, intentando reproducir siguiente canción en lista"
             asyncio.run_coroutine_threadsafe(self.voice_manager.current_context.send(error_msg), self.client.loop)
             self.music_loop(error=None)
-            logging.error("while streaming, skipping to next song", exc_info=True)
+            log = "while streaming, skipping to next song"
+            logging.error(log, exc_info=True)
+            LoggerSaver.save_log(f"{log} {str(e)}", WhatsappLogger())
 
     def cleanup(self):
         super(Stream, self).cleanup()
@@ -457,6 +462,9 @@ class Salute(State):
         try:
             self.voice_manager.voice_client.play(source, after=lambda e: self.salute_loop(e))
         except discord.ClientException:
+            log = "while welcoming audio"
+            logging.error(log, exc_info=True)
+            LoggerSaver.save_log(f"{log} {str(e)}", WhatsappLogger())
             self.cleanup()
 
     def resume_playing_for_prev_state(self, error):
@@ -567,7 +575,9 @@ class Voice():
                     vmanager.change_state(vmanager.speak)
                     vmanager.play(audio_filename)
         except discord.ClientException as e:
-            logging.error("While reproducing from file", exc_info=True)
+            log = "While reproducing from file"
+            logging.error(log, exc_info=True)
+            LoggerSaver.save_log(f"{log} {str(e)}", WhatsappLogger())
             await vmanager.disconnect()
 
     async def play_welcome_audio(self, member, voice_channel):
@@ -595,7 +605,9 @@ class Voice():
             pass
         except discord.ClientException as e:
             await vmanager.disconnect()
-            logging.error("While playing welcome audio", exc_info=True)
+            log = "While welcoming audio"
+            logging.error(log, exc_info=True)
+            LoggerSaver.save_log(f"{log} {str(e)}", WhatsappLogger())
 
     async def play_radio(self, url, ctx, radio_name):
         vmanager = self.guild_to_voice_manager_map.get(ctx.guild.id)
@@ -620,7 +632,9 @@ class Voice():
                 vmanager.play(url, **{ "original_msg": msg, "radio_name": radio_name })
         except discord.ClientException as e:
             await vmanager.disconnect()
-            logging.error("While streaming radio", exc_info=True)
+            log = "While playing radio"
+            logging.error(log, exc_info=True)
+            LoggerSaver.save_log(f"{log} {str(e)}", WhatsappLogger())
 
     async def play_streaming(self, query, streaming_type, ctx):
         vmanager = self.guild_to_voice_manager_map.get(ctx.guild.id)
@@ -641,7 +655,9 @@ class Voice():
                     await self._play_streaming_youtube(query, vmanager, ctx)
         except discord.ClientException as e:
             await vmanager.disconnect()
-            logging.error("While streaming", exc_info=True)
+            log = "While attempting to stream"
+            logging.error(log, exc_info=True)
+            LoggerSaver.save_log(f"{log} {str(e)}", WhatsappLogger())
                 
     async def _play_streaming_youtube(self, query, vmanager, ctx):
         embed_options = {'title': f'Agregando a lista de reproduccion con busqueda: {" ".join(query)}'}
@@ -692,7 +708,9 @@ class Voice():
                 query_tracks_list.append(SpotifyQuery(query_for_yt))
             return query_tracks_list
         except Exception as e:
-            logging.error("While retrieving spotify playlist info", exc_info=True)
+            log = "While parsing spotify playlist"
+            logging.error(log, exc_info=True)
+            LoggerSaver.save_log(f"{log} {str(e)}", WhatsappLogger())
             return query_tracks_list
 
     def load_opus_libs(self, opus_libs=OPUS_LIBS):

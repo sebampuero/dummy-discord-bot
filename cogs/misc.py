@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands
+from Utils.LoggerSaver import *
 import random
 import logging
 import os
@@ -23,7 +24,9 @@ class misc(commands.Cog):
         '''Reinicia el bot. Unicamente el lord papu puede hacerlo
         '''
         if ctx.author.id == 279796600308498434:
-            await ctx.send("Reiniciando...")
+            for guild in self.client.guilds:
+                if guild.system_channel:
+                    await guild.system_channel.send("Reiniciando...")
             os.system("systemctl restart discord-py.service")
 
     @commands.command(aliases=["quien", "quien-lol"])
@@ -60,7 +63,9 @@ class misc(commands.Cog):
         elif isinstance(error, commands.UnexpectedQuoteError):
             await ctx.send(f"No incluyas `\"` en tus comandos")
         else:
-            logging.error(f"Error: {str(error)} of type {type(error)}", exc_info=True)
+            log = f"Error: {str(error)} of type {type(error)}"
+            logging.error(log, exc_info=True)
+            LoggerSaver.save_log(log, WhatsappLogger())
 
 def setup(client):
     client.add_cog(misc(client))

@@ -1,7 +1,5 @@
-nohup.out
-token.txt
-password.txt
-spotify.txt
+phone_numbers.json
+*.txt
 *.mp3
 music_cache/
 # Byte-compiled / optimized / DLL files

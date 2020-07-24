@@ -1,5 +1,6 @@
 from Services.BotService import BotService
 from BE.Soup import Soup
+from Utils.LoggerSaver import *
 import Constants.StringConstants as Constants
 import random
 import time
@@ -34,7 +35,9 @@ class BotBE(): #TODO: make this class Singleton
 			self.bot_svc.add_quote(quote, member_id, guild_id)
 			return Constants.ADDED
 		except Exception as e:
-			logging.error(f"{str(e)} while saving quote", exc_info=True)
+			log = f"{str(e)} while saving quote"
+			logging.error(log, exc_info=True)
+			LoggerSaver.save_log(log, WhatsappLogger())
 			return Constants.COULD_NOT_DO_IT
 
 
@@ -44,7 +47,9 @@ class BotBE(): #TODO: make this class Singleton
 			self.bot_svc.subscribe_member(subscribees_formatted, subscriber)
 			return Constants.DONE
 		except Exception as e:
-			logging.error(f"{str(e)} while subscribing member", exc_info=True)
+			log = f"{str(e)} while subscribing member"
+			logging.error(log, exc_info=True)
+			LoggerSaver.save_log(log, WhatsappLogger())
 			return Constants.COULD_NOT_DO_IT
 
 	def unsubscribe_member(self, subscribees, subscriber):
@@ -53,7 +58,9 @@ class BotBE(): #TODO: make this class Singleton
 			self.bot_svc.unsubscribe_member(subscribees_formatted, subscriber)
 			return Constants.DONE
 		except Exception as e:
-			logging.error(f"{str(e)} while unsubscribing member", exc_info=True)
+			log = f"{str(e)} while unsubscribing member"
+			logging.error(log, exc_info=True)
+			LoggerSaver.save_log(log, WhatsappLogger())
 			return Constants.COULD_NOT_DO_IT
 
 	def retrieve_subscribers_from_subscribee(self, subscribee):
@@ -78,7 +85,8 @@ class BotBE(): #TODO: make this class Singleton
 			self.bot_svc.set_alert(url, price_range, currency, user_id)
 			return f"Agregue tu alerta del item en {url} con rango de precios {price_range} y moneda {currency}"
 		except Exception as e:
-			logging.error(f"{str(e)}", exc_info=True)
+			logging.error(str(e), exc_info=True)
+			LoggerSaver.save_log(str(e), WhatsappLogger())
 			return Constants.COULD_NOT_DO_IT
 
 	def unset_alert(self, url, user_id):
@@ -86,7 +94,8 @@ class BotBE(): #TODO: make this class Singleton
 			self.bot_svc.unset_alert(url, user_id)
 			return f"Listo mande a la mierda tu alarma con link {url}"
 		except Exception as e:
-			print(str(e))
+			logging.error(str(e), exc_info=True)
+			LoggerSaver.save_log(str(e), WhatsappLogger())
 			return Constants.COULD_NOT_DO_IT
 
 	def load_radios_msg(self):
@@ -101,21 +110,24 @@ class BotBE(): #TODO: make this class Singleton
 						msg = msg + f" `{loop}` " + radio["name"] + "\n"
 			return msg
 		except Exception as e:
-			print(str(e))
+			logging.error(str(e), exc_info=True)
+			LoggerSaver.save_log(str(e), WhatsappLogger())
 			return ""
 	
 	def load_radios_config(self):
 		try:
 			return self.bot_svc.get_radios()
 		except Exception as e:
-			print(str(e))
+			logging.error(str(e), exc_info=True)
+			LoggerSaver.save_log(str(e), WhatsappLogger())
 			return {}
 
 	def load_users_welcome_audios(self):
 		try:
 			return self.bot_svc.get_users_welcome_audios()
 		except Exception as e:
-			print(str(e))
+			logging.error(str(e), exc_info=True)
+			LoggerSaver.save_log(str(e), WhatsappLogger())
 			return {}
 
 	def save_audio_for_user(self, filename, user_id, guild_id):
@@ -169,7 +181,8 @@ class BotBE(): #TODO: make this class Singleton
 		try:
 			self.bot_svc.save_users_welcome_audios(new_)
 		except Exception as e:
-			print(str(e))
+			logging.error(str(e), exc_info=True)
+			LoggerSaver.save_log(str(e), WhatsappLogger())
 
 	async def check_alerts(self):
 		try: 
@@ -187,7 +200,8 @@ class BotBE(): #TODO: make this class Singleton
 					alerts_with_price_limits_reached.append( (row[4], row[1]) ) # user_id, url
 			return alerts_with_price_limits_reached
 		except Exception as e:
-			logging.error(f"{str(e)}", exc_info=True)
+			logging.error(str(e), exc_info=True)
+			LoggerSaver.save_log(f"{str(e)}", WhatsappLogger())
 			return []
 
 	async def get_store_price_for_prefix(self, url, currency):
@@ -202,7 +216,9 @@ class BotBE(): #TODO: make this class Singleton
 			playlists_dict_list = [{"name": pl[1], "url": pl[0]} for pl in result]
 			return playlists_dict_list
 		except Exception as e:
-			logging.error(f"{str(e)} reading playlist", exc_info=True)
+			log = "reading playlist"
+			logging.error(log, exc_info=True)
+			LoggerSaver.save_log(f"{log} {str(e)}", WhatsappLogger())
 			return []
 
 	def save_playlist_for_user(self, user_id, url, name):
@@ -210,5 +226,7 @@ class BotBE(): #TODO: make this class Singleton
 			self.bot_svc.save_playlist_for_user(user_id, url, name)
 			return "Agregado"
 		except Exception as e:
-			logging.error(f"{str(e)} saving playlist", exc_info=True)
+			log = "saving playlist"
+			logging.error(log, exc_info=True)
+			LoggerSaver.save_log(f"{log} {str(e)}", WhatsappLogger())
 			return "Se produjo un error"
