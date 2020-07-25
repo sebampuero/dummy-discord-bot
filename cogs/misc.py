@@ -23,7 +23,8 @@ class misc(commands.Cog):
     async def restart_bot(self, ctx):
         '''Reinicia el bot. Unicamente el lord papu puede hacerlo
         '''
-        if ctx.author.id == 279796600308498434:
+        self.client.load_config()
+        if ctx.author.id == self.client.config["restarter"]["id"]:
             for guild in self.client.guilds:
                 if guild.system_channel:
                     await guild.system_channel.send("Reiniciando...")
@@ -48,8 +49,6 @@ class misc(commands.Cog):
             options = self.client.config["messages"]["quieres"]
             random_idx = random.randint(0, len(options) - 1)
             await message.channel.send(f"{options[random_idx]}")
-        elif "buenas noches" == message.content.lower():
-            await message.channel.send("Usa ahora `-say buenas noches`")
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx, error):

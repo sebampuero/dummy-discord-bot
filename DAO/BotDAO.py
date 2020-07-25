@@ -31,14 +31,6 @@ class BotDAO():
 		sql = f"SELECT subscriber FROM subscriptions WHERE subscribee = '{subscribee}'"
 		return self.db.execute_query_with_result(sql)
 
-	def add_quote(self, quote, member_id, guild_id):
-		sql = f"INSERT INTO quotes(timestamp, value, discord_user_id, guild_id) VALUES(UNIX_TIMESTAMP(), '{quote}', '{member_id}', '{guild_id}')"
-		self.db.execute_query(sql)
-
-	def get_all_quotes(self):
-		sql = "SELECT * FROM quotes"
-		return self.db.execute_query_with_result(sql)
-
 	def set_alert(self, url, price_range, currency, user_id):
 		self.db.execute_query(f"DELETE FROM alerts WHERE url = '{url}' AND discord_user_id = '{user_id}'")
 		sql = f"INSERT INTO alerts(url, price_limit, last_checked_at, discord_user_id, currency) VALUES('{url}', '{price_range}', UNIX_TIMESTAMP(), '{user_id}', '{currency}')"

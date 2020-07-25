@@ -1,3 +1,4 @@
+from Utils.LoggerSaver import *
 import requests
 import hashlib
 import aiohttp
@@ -42,7 +43,9 @@ class NetworkUtils():
                         content = await response.text()
                         return content
                     except Exception as e:
-                        logging.error(f"While fetching page content from {url}", exc_info=True)
+                        log = f"While fetching page content from {url} {str(e)}"
+                        logging.error(log, exc_info=True)
+                        LoggerSaver.save_log(log, WhatsappLogger())
                         return ""
                 else:
                     return ""

@@ -18,29 +18,6 @@ class BotBE(): #TODO: make this class Singleton
 		self.bot_svc = BotService()
 		self.soup = Soup()
 
-	def select_random_daily_quote(self):
-		quotes = self.bot_svc.get_all_quotes()
-		size = len(quotes)
-		if size > 0:
-			random_quote_idx = random.randint(0, size - 1)
-			quote_msg = quotes[random_quote_idx][2]
-			member_id = quotes[random_quote_idx][3]
-			guild_id = quotes[random_quote_idx][4]
-			return str(quote_msg), member_id, guild_id
-		else:
-			return ""
-
-	def save_quote(self, quote, member_id, guild_id):
-		try:
-			self.bot_svc.add_quote(quote, member_id, guild_id)
-			return Constants.ADDED
-		except Exception as e:
-			log = f"{str(e)} while saving quote"
-			logging.error(log, exc_info=True)
-			LoggerSaver.save_log(log, WhatsappLogger())
-			return Constants.COULD_NOT_DO_IT
-
-
 	def subscribe_member(self, subscribees, subscriber):
 		try:
 			subscribees_formatted = [str(s.id) for s in subscribees]

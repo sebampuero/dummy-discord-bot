@@ -1,9 +1,12 @@
 {
     "version": "0.1.30",
-    "description": "Discord bot that does stupid things",
+    "description": "Discord bot that does multiple things",
     "messages": {
         "quieres": [
             "si", "no", "tal vez", "estas cagado del cerebro", "obvio", "si pe webon"
         ]
+    },
+    "restarter": {
+        "id": "279796600308498434"
     }
 }

@@ -14,7 +14,7 @@ class WhatsappLogger(Logger):
             account_sid = creds[0]
             auth_token = creds[1]
 
-        with open("./phone_numbers.json", "r") as f:
+        with open("./config/phone_numbers.json", "r") as f:
             numbers = json.loads(f.read())
             self.to = numbers["OWN"]["number"]
             self.from_ = numbers["TWILIO"]["number"]

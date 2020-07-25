@@ -7,7 +7,6 @@ import Constants.StringConstants as StringConstants
 from Voice import Voice
 from Subscription import Subscription
 from Alert import Alert
-from Quote import Quote
 from Concurrent.Server import Server
 from BE.BotBE import BotBE
 from discord.ext import commands
@@ -67,7 +66,6 @@ class ChismositoBot(commands.Bot):
         print(f'We have logged in as {self.user}')  # notification of login.
         self.voice = Voice(self)
         self.subscription = Subscription()
-        self.quote = Quote()
         self.alert = Alert()
         self.bot_be = BotBE()
         self.start_bg_tasks()
@@ -77,9 +75,8 @@ class ChismositoBot(commands.Bot):
                 await guild.system_channel.send("Volvi")
 
     def load_config(self):
-        f = open("./config/config.json", "r")
-        self.config = json.load(f)
-        f.close()
+        with open("./config/config.json", "r") as f:
+            self.config = json.load(f)
 
     async def on_guild_join(self, guild):
         self.voice.populate_voice_managers()

@@ -1,3 +1,4 @@
+from Utils.LoggerSaver import *
 import os, re, os.path
 import logging
 
@@ -23,6 +24,8 @@ class FileUtils():
                 logging.warning(f'Could not find delete {filename} as it was not found. Skipping.', exc_info=True)
                 return False
             except Exception:
-                logging.error(f"Error trying to delete {filename}", exc_info=True)
+                log = f"Error trying to delete {filename}"
+                logging.error(log, exc_info=True)
+                LoggerSaver.save_log(log, WhatsappLogger())
                 return False
         return False

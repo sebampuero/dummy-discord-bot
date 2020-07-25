@@ -1,6 +1,8 @@
 from BE.BotBE import BotBE
+from Utils.LoggerSaver import *
 import asyncio
 import Constants.StringConstants as Constants
+import logging
 """
  This class is responsible for managing alert commands
 """
@@ -33,5 +35,6 @@ class Alert():
                         await dm_channel.send(f"{Constants.PRICE_ALERT_REACHED} {url} <@!{user_id}>")
                 await asyncio.sleep(10)
             except Exception as e:
-                print(str(e) + " but no problem for check alerts")
+                logging.error(str(e), exc_info=True)
+                LoggerSaver.save_log(f"While checking alert {str(e)}", WhatsappLogger())
                 await asyncio.sleep(5)
