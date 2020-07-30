@@ -24,7 +24,6 @@
             "active": "true",
             "audios": [
                 "./assets/audio/pastruti.mp3",
-                "./assets/audio/320244614512640001.mp3",
                 "./assets/audio/320244614512640002.mp3"
             ]
         }

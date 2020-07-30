@@ -19,7 +19,7 @@ class misc(commands.Cog):
         '''
         await ctx.send(f"Estoy a {round(self.client.latency * 1000)}ms")
 
-    @commands.command(name="restart")
+    @commands.command(name="r")
     async def restart_bot(self, ctx):
         '''Reinicia el bot. Unicamente el lord papu puede hacerlo
         '''

@@ -269,9 +269,10 @@ class Radio(State):
 
     def __init__(self, voice_manager, client):
         super().__init__(voice_manager, client)
+        self.current_volume = 0.3
 
     def reproduce(self, query, **kwargs):
-        self.voice_manager.voice_client.play(RadioSource(query, kwargs["radio_name"]), after=lambda e: self.handle_error(e))
+        self.voice_manager.voice_client.play(RadioSource(query, kwargs["radio_name"], volume=self.current_volume), after=lambda e: self.handle_error(e))
         self.voice_manager.current_player = self.voice_manager.voice_client._player
 
     def resume(self):
@@ -282,10 +283,11 @@ class Radio(State):
     def set_volume(self, volume):
         if self.voice_manager.current_player:
             self.voice_manager.current_player.source.volume = volume
+            self.current_volume = volume
 
     def handle_error(self, error):
         if error:
-            self.client.loop.create_task(self.current_context.send("Se produjo un error"))
+            self.client.loop.create_task(self.voice_manager.current_context.send("Se produjo un error"))
         if not self.should_exit_from_loop:
             self.cleanup()
         self.should_exit_from_loop = False
