@@ -7,7 +7,7 @@ class FileUtils():
     @classmethod
     def remove_files_in_dir(cls, path, pattern):
         for root, dirs, files in os.walk(path):
-            for file in filter(lambda x: re.match(pattern, x), files):
+            for file in filter(lambda x: re.match(pattern, x), files):                
                 os.remove(os.path.join(root, file))
 
     @classmethod
