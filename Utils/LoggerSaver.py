@@ -21,14 +21,15 @@ class WhatsappLogger(Logger):
         self.client = Client(account_sid, auth_token)
 
     def save_log(self, log: str):
-        self.client.messages.create(
+        msg = self.client.messages.create(
             body=log,
             from_='whatsapp:'+str(self.from_),
             to='whatsapp:'+str(self.to)
         )
+        return msg
 
 class LoggerSaver:
 
     @classmethod
     def save_log(cls, log: str, logger: Logger):
-        logger.save_log(log)
+        return logger.save_log(log)
