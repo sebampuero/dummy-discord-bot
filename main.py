@@ -54,9 +54,7 @@ class ChismositoBot(commands.Bot):
         self.init_server()
 
     def init_server(self):
-        server_thread = Server("FlaskServerThread")
-        server_thread.set_voice(self.voice)
-        server_thread.set_client(self)
+        server_thread = Server(name="FlaskServerThread", client=self)
         server_thread.start()
 
     async def get_context(self, message, *, cls=CustomContext):

@@ -21,8 +21,10 @@ async def say(data, guild, text_channel, voice):
             else:
                 await text_channel.send(f"No se pudo reproducir '{text}'")
     
-def get_bot_blueprint(client, voice, event_loop):
+def get_bot_blueprint(client):
     
+    voice = client.voice
+    event_loop = client.loop
     guild = client.get_guild(451813158290587649)
     text_channel = client.get_channel(451813158747635723)
 
