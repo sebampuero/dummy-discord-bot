@@ -15,3 +15,15 @@ Future wishes:
 * Tests coverage to at least 80% (current: 0%)
 
 Feel free to clone the project and test the bot locally or in a remote server. 
+
+# Installation
+
+* First, clone the repo and install the requirements with `pip install -r requirements.txt`
+* You'll need a token to run the bot. Store the token under a file called `token.txt` in the root directory.
+* Other services used require credentials. Spotify credentials under `spotify.txt`, the password for the MySQL DB under `password.txt` and (optional) Twillio credentials under `twillio.txt`, also under the root directory.
+* If using Twillio for the Whatsapp API which is used for logging, a `phone_numbers.json` file will be needed under `config/phone_numbers.json`
+
+# Tests
+
+* For DB testing, Docker is to be used.
+* Go to `Tests/` and run `docker run -d -p 3307:3306 .` to initialize the MySQL Container
