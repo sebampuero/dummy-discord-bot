@@ -19,8 +19,8 @@ Feel free to clone the project and test the bot locally or in a remote server.
 # Installation
 
 * First, clone the repo and install the requirements with `pip install -r requirements.txt`
-* You'll need a token to run the bot. Store the token under a file called `token.txt` in the root directory.
-* Other services used require credentials. Spotify credentials under `spotify.txt`, the password for the MySQL DB under `password.txt` and (optional) Twillio credentials under `twillio.txt`, also under the root directory.
+* You'll need a token to run the bot. Store the token under a file called `token.txt` in the root directory. The DB password will be stored under `password.txt`
+* Other services used require credentials. Spotify, soundclound and Twillio credentials are stored in `config/creds.json`.
 * If using Twillio for the Whatsapp API which is used for logging, a `phone_numbers.json` file will be needed under `config/phone_numbers.json`
 
 # Tests

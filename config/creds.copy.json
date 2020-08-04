@@ -1,0 +1,11 @@
+{
+    "spotify":{
+        "client_id": "CLIENT ID",
+        "client_secret": "CLIENT SECRET"
+    },
+    "twillio": {
+        "account_sid": "ACCOUNT SID",
+        "token": "AUTH TOKEN"
+    },
+    "soundcloud": "CLIENT ID"
+}

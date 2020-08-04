@@ -1,6 +1,7 @@
 phone_numbers.json
 *.txt
 *.mp3
+creds.json
 music_cache/
 # Byte-compiled / optimized / DLL files
 __pycache__/

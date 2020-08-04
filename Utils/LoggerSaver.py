@@ -9,10 +9,10 @@ class Logger:
 class WhatsappLogger(Logger):
 
     def __init__(self):
-        with open("./twilio.txt", "r") as f:
-            creds = f.read().split(",")
-            account_sid = creds[0]
-            auth_token = creds[1]
+        with open("./config/creds.json", "r") as f:
+            creds = json.loads(f.read())
+            account_sid = creds["twillio"]["account_sid"]
+            auth_token = creds["twillio"]["token"]
 
         with open("./config/phone_numbers.json", "r") as f:
             numbers = json.loads(f.read())

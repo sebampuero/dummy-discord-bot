@@ -3,7 +3,7 @@ import discord
 import random
 import logging
 import spotipy
-import os
+import json
 import Constants.StringConstants as Constants
 from BE.BotBE import BotBE
 from Utils.NetworkUtils import NetworkUtils
@@ -17,11 +17,10 @@ from Utils.LoggerSaver import *
  Implementation of the music functionality of the Bot. Handles radio streaming, youtube/spotify streaming and playback of local mp3 files. 
 """
 
-f = open("spotify.txt", "r")
-creds = f.read().split(",")
-client_credentials_manager = SpotifyClientCredentials(client_id=creds[0], client_secret=creds[1])
-sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
-f.close()
+with open("./config/creds.json", "r") as f:
+    creds = json.loads(f.read())
+    client_credentials_manager = SpotifyClientCredentials(client_id=creds["spotify"]["client_id"], client_secret=creds["spotify"]["client_secret"])
+    sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
 
 class Query:
 
