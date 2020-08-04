@@ -4,6 +4,9 @@ import random
 import logging
 import spotipy
 import json
+import soundcloud
+import requests
+from requests import exceptions
 import Constants.StringConstants as Constants
 from BE.BotBE import BotBE
 from Utils.NetworkUtils import NetworkUtils
@@ -21,6 +24,7 @@ with open("./config/creds.json", "r") as f:
     creds = json.loads(f.read())
     client_credentials_manager = SpotifyClientCredentials(client_id=creds["spotify"]["client_id"], client_secret=creds["spotify"]["client_secret"])
     sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
+    soundcloud_client = soundcloud.Client(client_id=creds["soundcloud"])
 
 class Query:
 
@@ -43,10 +47,16 @@ class SpotifyQuery(Query):
     def __init__(self, the_query):
         super().__init__(the_query)
 
+class SoundcloudQuery(Query):
+
+    def __init__(self, the_query):
+        super().__init__(the_query)
+
 
 class StreamingType(Enum):
     YOUTUBE = 1
     SPOTIFY = 2
+    SOUNDCLOUD = 3
 
 class LocalfileSource(discord.PCMVolumeTransformer):
     
@@ -61,13 +71,61 @@ class StreamSource(discord.PCMVolumeTransformer):
         super().__init__(source, volume)
         self.url = url
 
+    @staticmethod
+    def parse_duration(duration: int):
+        minutes, seconds = divmod(duration, 60)
+        hours, minutes = divmod(minutes, 60)
+        days, hours = divmod(hours, 24)
+
+        duration = []
+        if days > 0:
+            duration.append('{} dias'.format(days))
+        if hours > 0:
+            duration.append('{} horas'.format(hours))
+        if minutes > 0:
+            duration.append('{} minutos'.format(minutes))
+        if seconds > 0:
+            duration.append('{} segundos'.format(seconds))
+
+        return ', '.join(duration)
+
 class RadioSource(StreamSource):
 
     def __init__(self, url, radio_name, volume=0.3):
         self.name = radio_name
         super().__init__(discord.FFmpegPCMAudio(url), url, volume=0.3)
 
-class YTDLSource(discord.PCMVolumeTransformer):
+class SoundcloudSource(StreamSource):
+
+    def __init__(self, url, volume, track):
+        super().__init__(discord.FFmpegPCMAudio(url), url, volume)
+        self.title = track.title
+        self.duration = self.parse_duration(int(track.full_duration / 1000))
+        self.url = track.uri
+
+    @classmethod
+    def from_query(cls, query, volume=0.3):
+        try:
+            the_track = soundcloud_client.get("resolve", url=query)
+            track = soundcloud_client.get(f"tracks/{the_track.id}")
+            if not track.streamable or track.kind != "track":
+                raise discord.ClientException("Invalid track")
+            stream = None
+            for transcoding in track.media["transcodings"]:
+                if transcoding["format"]["protocol"] == "progressive":
+                    stream = soundcloud_client.get(transcoding["url"], allow_redirects=True)
+            if stream:
+                obj = requests.get(stream.url)
+                return cls(json.loads(obj.text)["url"], volume, track)
+            else:
+                raise discord.ClientException("Not streamable track")
+        except exceptions.HTTPError:
+            raise discord.ClientException("Possibly bad formatted link")
+        except Exception as e:
+            LoggerSaver.save_log(str(e), WhatsappLogger())
+            raise discord.ClientException("Unexpected error")
+
+class YTDLSource(StreamSource):
     ytdl_opts = {
         'quiet': True,
         'format': 'bestaudio/best',
@@ -92,33 +150,14 @@ class YTDLSource(discord.PCMVolumeTransformer):
     }
 
     def __init__(self, source, data, volume=0.3):
-        super().__init__(source, volume)
+        super().__init__(source, data.get('filename_vid'), volume)
         self.title = data.get('title')
         self.duration = self.parse_duration(int(data.get('duration')))
         self.url = data.get('webpage_url')
         self.filename = data.get('filename_vid')
 
-    @staticmethod
-    def parse_duration(duration: int):
-        minutes, seconds = divmod(duration, 60)
-        hours, minutes = divmod(minutes, 60)
-        days, hours = divmod(hours, 24)
-
-        duration = []
-        if days > 0:
-            duration.append('{} dias'.format(days))
-        if hours > 0:
-            duration.append('{} horas'.format(hours))
-        if minutes > 0:
-            duration.append('{} minutos'.format(minutes))
-        if seconds > 0:
-            duration.append('{} segundos'.format(seconds))
-
-        return ', '.join(duration)
-
     @classmethod
-    def from_query(cls, query, loop=None, volume=0.3):
-        loop = loop or asyncio.get_event_loop()
+    def from_query(cls, query, volume=0.3):
         query = " ".join(query)
         with YoutubeDL(YTDLSource.ytdl_opts) as ydl:
             info = ydl.extract_info(query, download=False)
@@ -384,7 +423,9 @@ class Stream(State):
         query = self.retrieve_query_for_source()
         self.last_query = query
         try:
-            self.voice_manager.voice_client.play(YTDLSource.from_query(query.the_query, self.client.loop, self.current_volume), after=lambda e: self.music_loop(e))
+            source = SoundcloudSource.from_query(query.the_query, self.current_volume) if isinstance(query, SoundcloudQuery) else \
+                YTDLSource.from_query(query.the_query, self.current_volume)
+            self.voice_manager.voice_client.play(source, after=lambda e: self.music_loop(e))
             self.voice_manager.current_player = self.voice_manager.voice_client._player
             self.edit_msg()
         except discord.ClientException as e:
@@ -654,7 +695,10 @@ class Voice():
                     await self._play_streaming_spotify(query, vmanager, ctx)
                 elif streaming_type == StreamingType.YOUTUBE:
                     await self._play_streaming_youtube(query, vmanager, ctx)
+                elif streaming_type == StreamingType.SOUNDCLOUD:
+                    await self._play_streaming_soundcloud(query, vmanager, ctx)
         except discord.ClientException as e:
+            await ctx.send("Se produjo un error, intenta denuevo")
             await vmanager.disconnect()
             log = "While attempting to stream"
             logging.error(log, exc_info=True)
@@ -665,6 +709,11 @@ class Voice():
         msg = await ctx.send(embed=VoiceEmbeds(author=ctx.author, **embed_options))
         vmanager.play(YoutubeQuery(query), **{"original_msg": msg})
 
+    async def _play_streaming_soundcloud(self, query, vmanager, ctx):
+        embed_options = {'title': f'Agregando a lista de reproduccion con busqueda: {query}'}
+        msg = await ctx.send(embed=VoiceEmbeds(author=ctx.author, **embed_options))
+        vmanager.play(SoundcloudQuery(query), **{"original_msg": msg})
+
     async def _play_streaming_spotify(self, query, vmanager, ctx):
         query_list = self._process_query_object_for_spotify_playlist(query)
         if len(query_list) > 0:
@@ -672,9 +721,8 @@ class Voice():
             msg = await ctx.send(embed=VoiceEmbeds(ctx.author,**options))
             vmanager.play(query_list, **{"original_msg": msg})
         else:
-            await ctx.send("Hubo un error")
-            vmanager.prev_state = vmanager.off
-            vmanager.change_state(vmanager.off)
+            await ctx.send("Error leyendo la lista de spotify")
+            raise discord.ClientException("Error querying spotify playlist")
 
     async def _attempt_to_connect_to_voice(self, voice_channel, vmanager):
         vc_found = False

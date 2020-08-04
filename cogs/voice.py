@@ -117,8 +117,9 @@ class voice(commands.Cog):
     @commands.command(name="metele", aliases=["go", "pl"])
     @commands.cooldown(1.0, 3.0, commands.BucketType.guild)
     async def play_for_stream(self, ctx, *query):
-        '''Reproduce queries y links de Youtube asi como playlists de spotify.
+        '''Reproduce queries y links de Youtube asi como playlists de spotify y soundcloud.
         Ejemplo -metele https://open.spotify.com/playlist/37i9dQZEVXbLiRSasKsNU9
+        -metele https://soundcloud.com/djasto-1/dj-asto-ft-dj-deeper-flamingo-mix
         O -metele https://www.youtube.com/watch?v=l00VTUYkebw
         O -metele chuchulun don omar
         '''
@@ -131,6 +132,9 @@ class voice(commands.Cog):
                 await ctx.processing_command_reaction()
             elif "youtube.com" in str(query) or ".com" not in str(query):
                 await self.client.voice.play_streaming(query, StreamingType.YOUTUBE,  ctx)
+                await ctx.processing_command_reaction()
+            elif "https://soundcloud.com" in str(query[0]):
+                await self.client.voice.play_streaming(str(query[0]), StreamingType.SOUNDCLOUD, ctx)
                 await ctx.processing_command_reaction()
             else:
                 await ctx.send(f"No tengo soporte aun para {str(query)}")
