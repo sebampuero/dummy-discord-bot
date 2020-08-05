@@ -16,6 +16,7 @@ from embeds.custom import VoiceEmbeds
 from enum import Enum
 from Utils.FileUtils import FileUtils
 from Utils.LoggerSaver import *
+from exceptions.CustomException import CustomClientException
 """
  Implementation of the music functionality of the Bot. Handles radio streaming, youtube/spotify streaming and playback of local mp3 files. 
 """
@@ -109,7 +110,7 @@ class SoundcloudSource(StreamSource):
             the_track = soundcloud_client.get("resolve", url=query)
             track = soundcloud_client.get(f"tracks/{the_track.id}")
             if not track.streamable or track.kind != "track":
-                raise discord.ClientException("Invalid track")
+                raise CustomClientException("Track no valida")
             stream = None
             for transcoding in track.media["transcodings"]:
                 if transcoding["format"]["protocol"] == "progressive":
@@ -118,12 +119,12 @@ class SoundcloudSource(StreamSource):
                 obj = requests.get(stream.url)
                 return cls(json.loads(obj.text)["url"], volume, track)
             else:
-                raise discord.ClientException("Not streamable track")
+                raise CustomClientException("Track no es streameable")
         except exceptions.HTTPError:
-            raise discord.ClientException("Possibly bad formatted link")
+            raise CustomClientException("Link posiblemente mal formateado")
         except Exception as e:
             LoggerSaver.save_log(str(e), WhatsappLogger())
-            raise discord.ClientException("Unexpected error")
+            raise CustomClientException("Error inesperado")
 
 class YTDLSource(StreamSource):
     ytdl_opts = {
@@ -283,6 +284,7 @@ class State(object):
     def cleanup(self):
         self.switch(self.voice_manager.off)
         self.voice_manager.prev_state = self.voice_manager.state
+        asyncio.run_coroutine_threadsafe(self.voice_manager.disconnect(), self.client.loop)
 
     def __str__(self):
         return self.name 
@@ -310,8 +312,15 @@ class Radio(State):
         self.current_volume = 0.3
 
     def reproduce(self, query, **kwargs):
-        self.voice_manager.voice_client.play(RadioSource(query, kwargs["radio_name"], volume=self.current_volume), after=lambda e: self.handle_error(e))
-        self.voice_manager.current_player = self.voice_manager.voice_client._player
+        try:
+            self.voice_manager.voice_client.play(RadioSource(query, kwargs["radio_name"], volume=self.current_volume), after=lambda e: self.handle_error(e))
+            self.voice_manager.current_player = self.voice_manager.voice_client._player
+        except Exception as e:
+            log = "while radio streaming"
+            logging.error(log, exc_info=True)
+            LoggerSaver.save_log(f"{log} {str(e)}", WhatsappLogger())
+            asyncio.run_coroutine_threadsafe(self.voice_manager.current_context.send("Error inesperado"), self.client.loop)
+            self.cleanup()
 
     def resume(self):
         if self.voice_manager.current_player:
@@ -411,13 +420,10 @@ class Stream(State):
         if self.should_exit_from_loop:
             return
         if error:
-            self.cleanup()
-            return
+            return self.cleanup()
         if len(self.queue) == 0:
-            msg = "Fin de la lista de reproduccion"
-            asyncio.run_coroutine_threadsafe(self.voice_manager.current_context.send(msg), self.client.loop)
-            asyncio.run_coroutine_threadsafe(self.voice_manager.disconnect(), self.client.loop)
-            return
+            asyncio.run_coroutine_threadsafe(self.voice_manager.current_context.send("Fin de la lista de reproduccion"), self.client.loop)
+            return self.cleanup()
         if self.voice_manager.voice_client.source:
             self.remove_video_file()
         query = self.retrieve_query_for_source()
@@ -429,10 +435,15 @@ class Stream(State):
             self.voice_manager.current_player = self.voice_manager.voice_client._player
             self.edit_msg()
         except discord.ClientException as e:
-            self.cleanup()
             log = "while streaming"
             logging.error(log, exc_info=True)
             LoggerSaver.save_log(f"{log} {str(e)}", WhatsappLogger())
+            asyncio.run_coroutine_threadsafe(self.voice_manager.current_context.send("Error inesperado"), self.client.loop)
+            self.cleanup()
+        except CustomClientException as e:
+            asyncio.run_coroutine_threadsafe(self.voice_manager.current_context.send(str(e)), self.client.loop)
+            LoggerSaver.save_log(str(e), WhatsappLogger())
+            self.cleanup()
         except Exception as e:
             error_msg = f"Se produjo un error reproduciendo {self.voice_manager.voice_client.source.title}, intentando reproducir siguiente canción en lista"
             asyncio.run_coroutine_threadsafe(self.voice_manager.current_context.send(error_msg), self.client.loop)
@@ -448,6 +459,7 @@ class Stream(State):
         self.trigger_loop = False
         self.shuffle_for_queue = False
 
+
 class Speak(State):
 
     name = "speak"
@@ -457,15 +469,21 @@ class Speak(State):
 
     def reproduce(self, url, **kwargs):
         voice_client = self.voice_manager.voice_client
-        if isinstance(self.voice_manager.prev_state, Off):
-            voice_client.play(StreamSource(discord.FFmpegPCMAudio(url), url), after= lambda e: self.switch(self.voice_manager.off))
-        else:
-            voice_client.play(StreamSource(discord.FFmpegPCMAudio(url), url), after= lambda e: self.resume_playing_for_prev_state(e))
+        try:
+            if isinstance(self.voice_manager.prev_state, Off):
+                voice_client.play(StreamSource(discord.FFmpegPCMAudio(url), url), after= lambda e: self.switch(self.voice_manager.off))
+            else:
+                voice_client.play(StreamSource(discord.FFmpegPCMAudio(url), url), after= lambda e: self.resume_playing_for_prev_state(e))
+        except Exception as e:
+            log = "while speaking"
+            logging.error(log, exc_info=True)
+            LoggerSaver.save_log(f"{log} {str(e)}", WhatsappLogger())
+            asyncio.run_coroutine_threadsafe(self.voice_manager.current_context.send("Error inesperado"), self.client.loop)
+            self.cleanup()
 
     def resume_playing_for_prev_state(self, error):
         if error:
-            self.switch(self.voice_manager.off)
-            return
+            return self.switch(self.voice_manager.off)
         self.switch(self.voice_manager.prev_state)
         self.voice_manager.resume_previous()
 
@@ -490,20 +508,17 @@ class Salute(State):
         
     def salute_loop(self, error):
         if error:
-            self.cleanup()
-            return
+            return self.cleanup()
         if len(self.welcome_audios_queue) == 0:
             if isinstance(self.voice_manager.prev_state, Off):
-                asyncio.run_coroutine_threadsafe(self.voice_manager.disconnect(), self.client.loop)
-                return
+                return self.cleanup()
             else:
                 self.switch(self.voice_manager.prev_state)
-                self.resume_playing_for_prev_state(error)
-                return
+                return self.resume_playing_for_prev_state(error)
         source = self.welcome_audios_queue.pop()
         try:
             self.voice_manager.voice_client.play(source, after=lambda e: self.salute_loop(e))
-        except discord.ClientException:
+        except Exception as e:
             log = "while welcoming audio"
             logging.error(log, exc_info=True)
             LoggerSaver.save_log(f"{log} {str(e)}", WhatsappLogger())
@@ -511,8 +526,7 @@ class Salute(State):
 
     def resume_playing_for_prev_state(self, error):
         if error:
-            self.cleanup()
-            return
+            return self.cleanup()
         self.switch(self.voice_manager.prev_state)
         self.voice_manager.resume_previous()
 
@@ -537,11 +551,13 @@ class Voice():
         user_ids_to_audio_map = self.bot_be.load_users_welcome_audios()
         user_id = str(message.author.id)
         guild_id = str(message.author.guild.id)
-        if user_id in user_ids_to_audio_map:
+        try:
             user_ids_to_audio_map[user_id][guild_id]["active"] = status
             self.bot_be.save_users_welcome_audios(user_ids_to_audio_map)
             await chat_channel.send(Constants.SALUTE) if status else \
                 await chat_channel.send(Constants.NOT_MORE_SALUTE)
+        except KeyError:
+            await chat_channel.send("No tienes un saludo configurado")
 
     async def deactivate_welcome_audio(self, chat_channel):
         await self._set_welcome_audio_status(chat_channel, False)
@@ -604,31 +620,24 @@ class Voice():
 
     async def reproduce_from_file(self, member, audio_filename):
         vmanager = self.guild_to_voice_manager_map.get(member.guild.id)
-        try:
-            vc = member.voice.channel
-            if discord.opus.is_loaded():
-                await self._attempt_to_connect_to_voice(vc, vmanager)
-                if not await self._voice_state_check(vc, vmanager):
-                    return
-                if isinstance(vmanager.state, Stream) or isinstance(vmanager.state, Radio):
-                    vmanager.pause_player()
-                    vmanager.prev_state = vmanager.state
-                if not isinstance(vmanager.state, Speak) or not isinstance(vmanager.state, Salute):
-                    vmanager.change_state(vmanager.speak)
-                    vmanager.play(audio_filename)
-        except discord.ClientException as e:
-            log = "While reproducing from file"
-            logging.error(log, exc_info=True)
-            LoggerSaver.save_log(f"{log} {str(e)}", WhatsappLogger())
-            await vmanager.disconnect()
+        vc = member.voice.channel
+        if discord.opus.is_loaded():
+            await self._attempt_to_connect_to_voice(vc, vmanager)
+            if not await self._voice_state_check(vc, vmanager):
+                return
+            if isinstance(vmanager.state, Stream) or isinstance(vmanager.state, Radio):
+                vmanager.pause_player()
+                vmanager.prev_state = vmanager.state
+            if not isinstance(vmanager.state, Speak) or not isinstance(vmanager.state, Salute):
+                vmanager.change_state(vmanager.speak)
+                vmanager.play(audio_filename)
 
     async def play_welcome_audio(self, member, voice_channel):
         guild_id = member.guild.id
         vmanager = self.guild_to_voice_manager_map.get(guild_id)
         try:  
             user_ids_to_audio_map = self.bot_be.load_users_welcome_audios()
-            if not str(member.id) in user_ids_to_audio_map or not user_ids_to_audio_map[str(member.id)][str(guild_id)]["active"] \
-                    or not str(guild_id) in user_ids_to_audio_map[str(member.id)]:
+            if not user_ids_to_audio_map[str(member.id)][str(guild_id)]["active"]:
                 return
             audio_files_list = user_ids_to_audio_map[str(member.id)][str(guild_id)]["audios"]
             random_idx = random.randint(0, len(audio_files_list) - 1)
@@ -645,64 +654,45 @@ class Voice():
                     vmanager.play(audio_file_name)
         except KeyError:
             pass
-        except discord.ClientException as e:
-            await vmanager.disconnect()
-            log = "While welcoming audio"
-            logging.error(log, exc_info=True)
-            LoggerSaver.save_log(f"{log} {str(e)}", WhatsappLogger())
 
     async def play_radio(self, url, ctx, radio_name):
         vmanager = self.guild_to_voice_manager_map.get(ctx.guild.id)
-        try:
-            vc = ctx.author.voice.channel
-            if discord.opus.is_loaded():
-                await self._attempt_to_connect_to_voice(vc, vmanager)
-                if not await self._voice_state_check(vc, vmanager, ctx):
-                    return
-                net_utils = NetworkUtils()
-                status, content_type = await net_utils.website_check(url)
-                if status != 200:
-                    await ctx.send(f"Se jodio esta radio {url}")
-                    return
-                if isinstance(vmanager.state, Stream) or isinstance(vmanager.state, Radio):
-                    vmanager.interrupt_player()
-                vmanager.prev_state = vmanager.state
-                vmanager.change_state(vmanager.radio)
-                vmanager.current_context = ctx
-                options = {'title': f'Reproduciendo radio {radio_name}'}
-                msg = await ctx.send(embed=VoiceEmbeds(ctx.author,**options)) 
-                vmanager.play(url, **{ "original_msg": msg, "radio_name": radio_name })
-        except discord.ClientException as e:
-            await vmanager.disconnect()
-            log = "While playing radio"
-            logging.error(log, exc_info=True)
-            LoggerSaver.save_log(f"{log} {str(e)}", WhatsappLogger())
+        vc = ctx.author.voice.channel
+        if discord.opus.is_loaded():
+            await self._attempt_to_connect_to_voice(vc, vmanager)
+            if not await self._voice_state_check(vc, vmanager, ctx):
+                return
+            net_utils = NetworkUtils()
+            status, content_type = await net_utils.website_check(url)
+            if status != 200:
+                return await ctx.send(f"Se jodio esta radio {url}")
+            if isinstance(vmanager.state, Stream) or isinstance(vmanager.state, Radio):
+                vmanager.interrupt_player()
+            vmanager.prev_state = vmanager.state
+            vmanager.change_state(vmanager.radio)
+            vmanager.current_context = ctx
+            options = {'title': f'Reproduciendo radio {radio_name}'}
+            msg = await ctx.send(embed=VoiceEmbeds(ctx.author,**options)) 
+            vmanager.play(url, **{ "original_msg": msg, "radio_name": radio_name })
 
     async def play_streaming(self, query, streaming_type, ctx):
         vmanager = self.guild_to_voice_manager_map.get(ctx.guild.id)
-        try:
-            vc = ctx.author.voice.channel
-            if discord.opus.is_loaded():
-                await self._attempt_to_connect_to_voice(vc, vmanager)
-                if not await self._voice_state_check(vc, vmanager, ctx):
-                    return
-                if isinstance(vmanager.state, Radio):
-                    vmanager.interrupt_player()
-                vmanager.prev_state = vmanager.state
-                vmanager.change_state(vmanager.stream)
-                vmanager.current_context = ctx
-                if streaming_type == StreamingType.SPOTIFY:
-                    await self._play_streaming_spotify(query, vmanager, ctx)
-                elif streaming_type == StreamingType.YOUTUBE:
-                    await self._play_streaming_youtube(query, vmanager, ctx)
-                elif streaming_type == StreamingType.SOUNDCLOUD:
-                    await self._play_streaming_soundcloud(query, vmanager, ctx)
-        except discord.ClientException as e:
-            await ctx.send("Se produjo un error, intenta denuevo")
-            await vmanager.disconnect()
-            log = "While attempting to stream"
-            logging.error(log, exc_info=True)
-            LoggerSaver.save_log(f"{log} {str(e)}", WhatsappLogger())
+        vc = ctx.author.voice.channel
+        if discord.opus.is_loaded():
+            await self._attempt_to_connect_to_voice(vc, vmanager)
+            if not await self._voice_state_check(vc, vmanager, ctx):
+                return
+            if isinstance(vmanager.state, Radio):
+                vmanager.interrupt_player()
+            vmanager.prev_state = vmanager.state
+            vmanager.change_state(vmanager.stream)
+            vmanager.current_context = ctx
+            if streaming_type == StreamingType.SPOTIFY:
+                await self._play_streaming_spotify(query, vmanager, ctx)
+            elif streaming_type == StreamingType.YOUTUBE:
+                await self._play_streaming_youtube(query, vmanager, ctx)
+            elif streaming_type == StreamingType.SOUNDCLOUD:
+                await self._play_streaming_soundcloud(query, vmanager, ctx)
                 
     async def _play_streaming_youtube(self, query, vmanager, ctx):
         embed_options = {'title': f'Agregando a lista de reproduccion con busqueda: {" ".join(query)}'}
@@ -722,7 +712,6 @@ class Voice():
             vmanager.play(query_list, **{"original_msg": msg})
         else:
             await ctx.send("Error leyendo la lista de spotify")
-            raise discord.ClientException("Error querying spotify playlist")
 
     async def _attempt_to_connect_to_voice(self, voice_channel, vmanager):
         vc_found = False

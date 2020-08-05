@@ -65,6 +65,7 @@ class misc(commands.Cog):
             log = f"Error: {str(error)} of type {type(error)}"
             logging.error(log, exc_info=True)
             LoggerSaver.save_log(log, WhatsappLogger())
+            await ctx.send("Se produjo un error inesperado")
 
 def setup(client):
     client.add_cog(misc(client))
