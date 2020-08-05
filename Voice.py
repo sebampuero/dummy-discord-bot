@@ -241,7 +241,6 @@ class VoiceManager:
     async def disconnect(self):
         if self.voice_client:
             logging.warning(f"Disconnected from channel {self.voice_client.channel}")
-            self.state.cleanup()
             await self.voice_client.disconnect(force=True)
             self.voice_client = None
                 
@@ -471,7 +470,7 @@ class Speak(State):
         voice_client = self.voice_manager.voice_client
         try:
             if isinstance(self.voice_manager.prev_state, Off):
-                voice_client.play(StreamSource(discord.FFmpegPCMAudio(url), url), after= lambda e: self.switch(self.voice_manager.off))
+                voice_client.play(StreamSource(discord.FFmpegPCMAudio(url), url), after= lambda e: self.cleanup())
             else:
                 voice_client.play(StreamSource(discord.FFmpegPCMAudio(url), url), after= lambda e: self.resume_playing_for_prev_state(e))
         except Exception as e:
@@ -486,11 +485,6 @@ class Speak(State):
             return self.switch(self.voice_manager.off)
         self.switch(self.voice_manager.prev_state)
         self.voice_manager.resume_previous()
-
-    def switch(self, state):
-        super(Speak, self).switch(state)
-        if isinstance(state, Off):
-            self.client.loop.create_task(self.voice_manager.disconnect())
 
 class Salute(State):
 

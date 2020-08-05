@@ -12,10 +12,10 @@ The Bot Business Entity is responsible for the business logic of the Bot regardi
 like Quotes, Subscriptions and Alerts. Acts as a Facade to all subsequent layers
 """
 
-class BotBE(): #TODO: make this class Singleton
+class BotBE(): 
 
-	def __init__(self):
-		self.bot_svc = BotService()
+	def __init__(self, test_db=None):
+		self.bot_svc = BotService() if not test_db else BotService(test_db)
 		self.soup = Soup()
 
 	def subscribe_member(self, subscribees, subscriber):

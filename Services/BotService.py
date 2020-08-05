@@ -7,8 +7,8 @@ Service Layer for connecting to a DAO
 
 class BotService():
 	
-	def __init__(self):
-		self.dao = BotDAO()
+	def __init__(self, test_db=None):
+		self.dao = BotDAO() if not test_db else BotDAO(test_db)
 		self.dao_file = BotDAOFile()
 		
 	def subscribe_member(self, subscribees, subscriber):

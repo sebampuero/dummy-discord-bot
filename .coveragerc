@@ -1,5 +1,6 @@
 [run]
 omit =
         /usr/local/lib*
+        /usr/lib/*
         */.local/*
         Tests/*

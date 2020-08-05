@@ -1,4 +1,4 @@
-from DB.db import DB
+from DB.db import MySQLDB, MySQLTESTDB, DB
 import json
 
 """
@@ -7,8 +7,8 @@ The Bot Data Access Object is responsible for accessing the data stored in the D
 
 class BotDAO():
 	
-	def __init__(self):
-		self.db = DB()
+	def __init__(self, test_db=None):
+		self.db = DB() if not test_db else DB(test_db)
 		
 	def subscribe_member(self, subscribees, subscriber):
 		self.unsubscribe_member(subscribees, subscriber)
@@ -16,15 +16,11 @@ class BotDAO():
 		data = []
 		for subscribee in subscribees:
 			data.append((subscribee, subscriber))
-		#self.db.execute_query(sql)
 		self.db.execute_query_with_data(sql, data)
 
 	def unsubscribe_member(self, to_unsubscribees, subscriber):
 		formatted_str = ','.join(map(str, to_unsubscribees))
-		print(formatted_str)
-		print(subscriber)
 		sql = f"DELETE FROM subscriptions WHERE subscribee in ({formatted_str}) AND subscriber = '{subscriber}' "
-		print(sql)
 		self.db.execute_query(sql)
 
 	def get_subscribers_from_subscribee(self, subscribee):
