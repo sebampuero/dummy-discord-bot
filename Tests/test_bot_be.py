@@ -31,6 +31,7 @@ class TestBotBE(unittest.TestCase):
         db.cursor.execute(f"SELECT * FROM subscriptions WHERE subscriber = '{subscriber.id}'")
         query = db.cursor.fetchall()
         self.assertIsNotNone(query, "Result is None")
+        self.assertEqual(5, len(query), "Not all subscriptions were made")
 
     def test_unsubscribe_member(self):
         pass

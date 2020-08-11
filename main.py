@@ -4,9 +4,9 @@ import asyncio
 import logging
 import os
 import Constants.StringConstants as StringConstants
-from Voice import Voice
-from Subscription import Subscription
-from Alert import Alert
+from Functionalities.Voice.Voice import Voice
+from Functionalities.Subscription.Subscription import Subscription
+from Functionalities.Alert.Alert import Alert
 from Concurrent.Server import Server
 from BE.BotBE import BotBE
 from discord.ext import commands

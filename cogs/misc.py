@@ -23,6 +23,8 @@ class misc(commands.Cog):
     async def restart_bot(self, ctx):
         '''Reinicia el bot. Unicamente el lord papu puede hacerlo
         '''
+        if len(self.client.voice_clients) != 0:
+            return await ctx.send("El bot esta reproduciendo audio y no puede reiniciarse ahora")
         self.client.load_config()
         if ctx.author.id == self.client.config["restarter"]["id"]:
             for guild in self.client.guilds:
@@ -32,8 +34,10 @@ class misc(commands.Cog):
 
     @commands.command(aliases=["quien", "quien-lol"])
     async def who(self, ctx, *args):
-        value = random.randint(0, len(args) - 1)
-        await ctx.send(args[value])
+        if len(args) == 0:
+            return
+        value = random.choice(args)
+        await ctx.send(value)
 
     @commands.Cog.listener()
     async def on_member_join(self, member):
@@ -47,8 +51,8 @@ class misc(commands.Cog):
         if "quieres" in message.content.lower():
             self.client.load_config()
             options = self.client.config["messages"]["quieres"]
-            random_idx = random.randint(0, len(options) - 1)
-            await message.channel.send(f"{options[random_idx]}")
+            random_msg = random.choice(options)
+            await message.channel.send(random_msg)
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx, error):

@@ -1,9 +1,9 @@
 import discord
 from discord.ext import commands
 from discord import File
-from TTTImager import TTTImager
-import tictactoe as ttt
-from tictactoe import EMPTY, X, O
+from Functionalities.TicTacToe.TTTImager import TTTImager
+import Functionalities.TicTacToe.tictactoe as ttt
+from Functionalities.TicTacToe.tictactoe import EMPTY, X, O
 from exceptions import CustomException
 import time
 import threading
@@ -52,15 +52,18 @@ class GameManager:
             }
 
     def _timeout(self, ctx, timeout=TERMINATE_TIMEOUT):
-        game_map = self.guild_to_game_map[ctx.guild.id]
-        try:
-            while game_map["timeout_counter"] != timeout:
+        guild_id = ctx.guild.id
+        while True:
+            try:
+                game_map = self.guild_to_game_map[guild_id]
+                if game_map["timeout_counter"] == timeout:
+                    break
                 time.sleep(1.0)
                 game_map["timeout_counter"] += 1
-            del self.guild_to_game_map[ctx.guild.id]
-            logging.warning("Timeout for ttt reached")
-        except:
-            pass
+            except KeyError:
+                return False # game was deleted because it ended, therefore nothing to do
+        del self.guild_to_game_map[ctx.guild.id]
+        logging.warning("Timeout for ttt reached")
 
     def game_exists(self, guild_id):
         return guild_id in self.guild_to_game_map

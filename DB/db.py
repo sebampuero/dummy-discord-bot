@@ -25,7 +25,7 @@ class MySQLTESTDB(MySQLDB):
 class DB():
 	
 	def __init__(self, test_db=None):
-		mysql_db = MySQLDB() if not test_db else MySQLTESTDB()
+		mysql_db = MySQLDB() if not test_db else test_db
 		self.cursor = mysql_db.cursor
 		self.db = mysql_db.db
 		print("Connected to the Database")

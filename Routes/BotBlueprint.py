@@ -3,7 +3,7 @@ from Utils.NetworkUtils import NetworkUtils
 import Constants.StringConstants as Constants
 from BE.BotBE import BotBE
 from types import SimpleNamespace
-from Voice import Speak, Salute
+from Functionalities.Voice.VoiceState import Speak, Salute
 from gtts import gTTS
 
 async def say(data, guild, text_channel, voice):

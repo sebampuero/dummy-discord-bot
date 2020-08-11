@@ -1,6 +1,6 @@
 from PIL import Image, ImageFont, ImageDraw
-import tictactoe as ttt
-from tictactoe import EMPTY, X, O
+import Functionalities.TicTacToe.tictactoe as ttt
+from Functionalities.TicTacToe.tictactoe import EMPTY, X, O
 import copy
 
 class TTTImager:

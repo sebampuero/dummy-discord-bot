@@ -1,13 +1,8 @@
 from Utils.LoggerSaver import *
 import requests
-import hashlib
 import aiohttp
 import asyncio
 import logging
-import discord
-import io
-import subprocess
-import time
 import discord
 """
 NetworkUtils is responsible for managing and processing all network related requests

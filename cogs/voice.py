@@ -4,7 +4,8 @@ from discord.ext import commands
 import Constants.StringConstants as StringConstants
 from Utils.NetworkUtils import NetworkUtils
 from embeds.custom import VoiceEmbeds
-from Voice import Off, Speak, Salute, Radio, Stream, StreamingType
+from Functionalities.Voice.VoiceState import *
+from Functionalities.Voice.Voice import StreamingType
 from BE.BotBE import BotBE
 from gtts import gTTS
 import logging
