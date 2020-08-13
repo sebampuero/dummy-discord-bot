@@ -16,5 +16,11 @@ class pricealert(commands.Cog):
     async def unset_alert(self, ctx, url):
         await self.client.alert.handle_unset_alert(url, ctx)
 
+    @commands.command(name="alerts")
+    async def show_alerts(self, ctx):
+        '''Muestra las alertas guardadas
+        '''
+        pass # should list all alerts that were saved in this format: price range, currency, url
+
 def setup(client):
     client.add_cog(pricealert(client))

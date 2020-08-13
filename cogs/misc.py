@@ -73,3 +73,4 @@ class misc(commands.Cog):
 
 def setup(client):
     client.add_cog(misc(client))
+    client.get_command('r').hidden = True

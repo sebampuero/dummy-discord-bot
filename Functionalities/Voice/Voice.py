@@ -169,7 +169,7 @@ class Voice():
 
     async def next_in_queue(self, ctx):
         vmanager = self.guild_to_voice_manager_map.get(ctx.guild.id)
-        msg = await vmanager.state.next_interim_msg()
+        await vmanager.state.next_interim_msg()
         return vmanager.next_for_queue()
 
     def set_volume(self, volume, ctx):

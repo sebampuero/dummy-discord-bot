@@ -110,7 +110,6 @@ class voice(commands.Cog):
     async def stop(self, ctx):
         '''Para lo que sea que dice el bot y lo bota del canal
         '''
-        playing_state = self.client.voice.get_playing_state(ctx)
         if await self._is_user_in_voice_channel(ctx):
             await ctx.sad_reaction()
             await self.client.voice.disconnect_player(ctx)
@@ -143,7 +142,7 @@ class voice(commands.Cog):
     @commands.command(name="sig", aliases=["next", "s"])
     @commands.cooldown(1.0, 3.0, commands.BucketType.guild)
     async def next_song_in_queue(self, ctx):
-        '''Va a la siguiente cancion en la lista de canciones de Spotify o Youtube
+        '''Va a la siguiente cancion en la lista de canciones
         '''
         playing_state = self.client.voice.get_playing_state(ctx)
         if await self._is_user_in_voice_channel(ctx) and (isinstance(playing_state, Stream)):
@@ -215,6 +214,22 @@ class voice(commands.Cog):
         else:
             return await ctx.send("No se esta reproduciendo ninguna lista")
 
+    @queue.command(name="p")
+    async def queue_play(self, ctx, song_number):
+        '''Reproduce una cancion de la lista con el numero asignado
+        '''
+        playing_state = self.client.voice.get_playing_state(ctx)
+        if isinstance(playing_state, Stream):
+            try:
+                song_number = int(song_number)
+                queue = self.client.voice.get_queue(ctx)
+                searched_song = queue[song_number - 1]
+                queue.append(searched_song)
+                queue.pop(song_number - 1)
+                await self.next_song_in_queue(ctx)
+            except (IndexError, ValueError):
+                await ctx.send("Ese numero de cancion no existe")
+
     @queue.command(name="l")
     async def queue_songs_list(self, ctx, page):
         '''Muestra las busquedas y canciones que estan actualmente en la lista de reproduccion.
@@ -277,6 +292,13 @@ class voice(commands.Cog):
         except ValueError:
             playlist_id = str(playlist)
             await self._search_playlist(playlist_id, ctx)
+
+    @playlist.command(name="del")
+    @commands.cooldown(1.0, 3.0, commands.BucketType.guild)
+    async def playlist_delete(self, ctx, playlist):
+        '''Elimina una playlist
+        '''
+        pass
 
     async def _search_playlist(self, playlist_id, ctx):
         try:

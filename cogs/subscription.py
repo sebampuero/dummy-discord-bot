@@ -32,6 +32,12 @@ class subscription(commands.Cog):
             raise commands.BadArgument
         await self.client.subscription.handle_unsubscribe(ctx.message.mentions, ctx)
 
+    @commands.command(aliases=["subs"])
+    async def show_subscriptions(self, ctx):
+        '''Muestra todas las subscripciones que hayas hecho
+        '''
+        pass
+
 
 def setup(client):
     client.add_cog(subscription(client))
