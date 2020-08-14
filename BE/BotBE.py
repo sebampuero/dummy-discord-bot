@@ -42,8 +42,6 @@ class BotBE():
 
 	def retrieve_subscribers_from_subscribee(self, subscribee):
 		subscribers = [s[0] for s in self.bot_svc.get_subscribers_from_subscribee(subscribee) ]
-		print(f"List of subscribers: {subscribers} {subscribee}") # tuple in format (id,)
-		# format message containing the quotes
 		return subscribers
 
 	def set_alert(self, url, price_range, currency, user_id):
@@ -74,6 +72,16 @@ class BotBE():
 			logging.error(str(e), exc_info=True)
 			LoggerSaver.save_log(str(e), WhatsappLogger())
 			return Constants.COULD_NOT_DO_IT
+
+	def retrieve_user_alerts(self, user_id):
+		alerts = self.bot_svc.get_all_alerts_for_user(user_id)
+		alerts_dict = dict()
+		for alert in alerts:
+			alerts_dict[alert[0]] = {
+				"price": alert[1],
+				"currency": alert[2]
+			}
+		return alerts_dict
 
 	def load_radios_msg(self):
 		try:
@@ -204,6 +212,16 @@ class BotBE():
 			return "Agregado"
 		except Exception as e:
 			log = "saving playlist"
+			logging.error(log, exc_info=True)
+			LoggerSaver.save_log(f"{log} {str(e)}", WhatsappLogger())
+			return "Se produjo un error"
+
+	def delete_playlist_for_user(self, user_id, name):
+		try:
+			self.bot_svc.delete_playlist_for_user(user_id, name)
+			return f"Playlist {name} eliminada"
+		except Exception as e:
+			log = "deleting playlist"
 			logging.error(log, exc_info=True)
 			LoggerSaver.save_log(f"{log} {str(e)}", WhatsappLogger())
 			return "Se produjo un error"

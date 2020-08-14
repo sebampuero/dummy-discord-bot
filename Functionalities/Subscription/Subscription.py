@@ -20,3 +20,7 @@ class Subscription():
         subscribees = mentions
         ack = self.bot_be.unsubscribe_member(subscribees, subscriber)
         await ctx.send(ack)
+
+    def handle_show_subscriptions(self, ctx):
+        subscriptions = self.bot_be.retrieve_subscribers_from_subscribee(str(ctx.author.id))
+        return subscriptions

@@ -178,7 +178,7 @@ class Voice():
 
     async def disconnect_player(self, ctx):
         vmanager = self.guild_to_voice_manager_map.get(ctx.guild.id)
-        await vmanager.disconnect()
+        vmanager.state.cleanup()
 
     def pause_player(self, ctx):
         vmanager = self.guild_to_voice_manager_map.get(ctx.guild.id)

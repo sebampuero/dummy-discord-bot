@@ -41,6 +41,10 @@ class BotDAO():
 		#sql = "SELECT * FROM alerts"
 		return self.db.execute_query_with_result(sql)
 
+	def get_all_alerts_for_user(self, user_id):
+		sql = f"SELECT url, price_limit, currency FROM alerts WHERE discord_user_id = '{user_id}'"
+		return self.db.execute_query_with_result(sql)
+
 	def update_last_checked_at_alert(self, alert_id):
 		sql = f"UPDATE alerts SET last_checked_at = UNIX_TIMESTAMP() WHERE id = {alert_id}"
 		self.db.execute_query(sql)
@@ -58,3 +62,7 @@ class BotDAO():
 	def read_playlists_for_user(self, user_id):
 		sql = f"SELECT * FROM playlist WHERE discord_id = '{user_id}'"
 		return self.db.execute_query_with_result(sql)
+
+	def delete_playlist_for_user(self, user_id, playlist_name):
+		sql = f"DELETE FROM playlist WHERE discord_id = '{user_id}' AND name like '{playlist_name}'"
+		self.db.execute_query(sql)

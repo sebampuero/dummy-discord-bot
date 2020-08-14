@@ -20,7 +20,7 @@ class pricealert(commands.Cog):
     async def show_alerts(self, ctx):
         '''Muestra las alertas guardadas
         '''
-        pass # should list all alerts that were saved in this format: price range, currency, url
+        await self.client.alert.handle_show_alerts(ctx)
 
 def setup(client):
     client.add_cog(pricealert(client))

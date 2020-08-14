@@ -182,7 +182,7 @@ class Stream(State):
             return
         if error:
             return self.cleanup()
-        if len(self.queue) == 0:
+        if len(self.queue) == 0 and not self.trigger_loop:
             asyncio.run_coroutine_threadsafe(self.voice_manager.current_context.send("Fin de la lista de reproduccion"), self.client.loop)
             return self.cleanup()
         if self.voice_manager.voice_client.source:
@@ -213,12 +213,13 @@ class Stream(State):
             logging.error(log, exc_info=True)
             LoggerSaver.save_log(f"{log} {str(e)}", WhatsappLogger())
 
-    def cleanup(self):
-        super(Stream, self).cleanup()
+    def cleanup(self):        
+        self.voice_manager.pause_player()
         self.remove_video_file()
         self.queue = []
         self.trigger_loop = False
         self.shuffle_for_queue = False
+        super(Stream, self).cleanup()
 
 
 class Speak(State):

@@ -19,6 +19,13 @@ class Alert():
     async def handle_unset_alert(self, url, ctx):
         ack = self.bot_be.unset_alert(str(url), str(ctx.author.id))
         await ctx.send(ack)
+
+    async def handle_show_alerts(self, ctx):
+        alerts_dict = self.bot_be.retrieve_user_alerts(str(ctx.author.id))
+        msg = "Alertas: \n"
+        for url, alert in alerts_dict.items():
+            msg += f"URL: {url}\nPrecio: {alert['price']}\nMoneda: {alert['currency']}\n"
+        await ctx.send(msg)
             
     async def check_alerts(self, client):
         await client.wait_until_ready()

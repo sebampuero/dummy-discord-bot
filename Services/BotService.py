@@ -29,6 +29,9 @@ class BotService():
 	def get_all_alerts(self):
 		return self.dao.get_all_alerts()
 
+	def get_all_alerts_for_user(self, user_id):
+		return self.dao.get_all_alerts_for_user(user_id)
+
 	def update_last_checked_at_alert(self, alert_id):
 		self.dao.update_last_checked_at_alert(alert_id)
   
@@ -52,3 +55,6 @@ class BotService():
 
 	def read_playlists_for_user(self, user_id):
 		return self.dao.read_playlists_for_user(user_id)
+
+	def delete_playlist_for_user(self, user_id, playlist_name):
+		return self.dao.delete_playlist_for_user(user_id, playlist_name)

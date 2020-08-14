@@ -32,9 +32,21 @@ class subscription(commands.Cog):
             raise commands.BadArgument
         await self.client.subscription.handle_unsubscribe(ctx.message.mentions, ctx)
 
+    @commands.command(aliases=["mysubs"])
+    async def show_subscribers(self, ctx):
+        '''Muestra todos tus suscriptores
+        '''
+        subscriptions = self.client.subscription.handle_show_subscriptions(ctx)
+        msg = "Lista de suscritos: "
+        for subscriber in subscriptions:
+            member = await self.client.fetch_user(member_id)
+            if member != None:
+                msg += f"{member.display_name} "
+        await ctx.send(msg)
+
     @commands.command(aliases=["subs"])
-    async def show_subscriptions(self, ctx):
-        '''Muestra todas las subscripciones que hayas hecho
+    async def show_subscribers(self, ctx):
+        '''Muestra todos tus suscriptores
         '''
         pass
 

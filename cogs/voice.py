@@ -298,7 +298,8 @@ class voice(commands.Cog):
     async def playlist_delete(self, ctx, playlist):
         '''Elimina una playlist
         '''
-        pass
+        return_msg = self.client.bot_be.delete_playlist_for_user(str(ctx.author.id), playlist)
+        await ctx.send(return_msg)
 
     async def _search_playlist(self, playlist_id, ctx):
         try:
