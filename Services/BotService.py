@@ -20,6 +20,9 @@ class BotService():
 	def get_subscribers_from_subscribee(self, subscribee):
 		return self.dao.get_subscribers_from_subscribee(subscribee)
 
+	def get_subscribees_from_subscriber(self, subscriber):
+		return self.dao.get_subscribees_from_subscriber(subscriber)
+
 	def set_alert(self, url, price_range, currency, user_id):
 		self.dao.set_alert(url, price_range, currency, user_id)
   

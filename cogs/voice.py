@@ -233,7 +233,7 @@ class voice(commands.Cog):
     @queue.command(name="l")
     async def queue_songs_list(self, ctx, page):
         '''Muestra las busquedas y canciones que estan actualmente en la lista de reproduccion.
-        Ejemplo `-lista l [numero de pagina]` 10 resultados por busqueda
+           Ejemplo `-lista l [numero de pagina]` 10 resultados por busqueda
         '''
         page = int(page)
         if page < 1:

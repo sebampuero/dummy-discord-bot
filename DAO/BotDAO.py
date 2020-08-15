@@ -27,6 +27,10 @@ class BotDAO():
 		sql = f"SELECT subscriber FROM subscriptions WHERE subscribee = '{subscribee}'"
 		return self.db.execute_query_with_result(sql)
 
+	def get_subscribees_from_subscriber(self, subscriber):
+		sql = f"SELECT subscribee FROM subscriptions WHERE subscriber = '{subscriber}'"
+		return self.db.execute_query_with_result(sql)
+
 	def set_alert(self, url, price_range, currency, user_id):
 		self.db.execute_query(f"DELETE FROM alerts WHERE url = '{url}' AND discord_user_id = '{user_id}'")
 		sql = f"INSERT INTO alerts(url, price_limit, last_checked_at, discord_user_id, currency) VALUES('{url}', '{price_range}', UNIX_TIMESTAMP(), '{user_id}', '{currency}')"

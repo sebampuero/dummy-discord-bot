@@ -1,9 +1,9 @@
-import discord
+from discord import Colour, Embed
 
-class VoiceEmbeds(discord.Embed):
+class VoiceEmbeds(Embed):
 
     def __init__(self, author, **options):
-        kwargs = {'colour': discord.Color.blue()}
+        kwargs = {'colour': Colour.blue().value}
         kwargs.update(options)
         super().__init__(**kwargs)
         self.set_author(name=author.display_name)
@@ -11,7 +11,17 @@ class VoiceEmbeds(discord.Embed):
     @classmethod
     def from_dict(cls, data):
         options_voice = {
-            'color': 1127128
+            'color': Colour.blue().value
         }
         options_voice.update(data)
         return super().from_dict(options_voice)
+
+class HelpEmbed(Embed):
+
+    @classmethod
+    def from_dict(cls, data):
+        help_data = {
+            'color': Colour.green().value
+        }
+        help_data.update(data)
+        return super().from_dict(help_data)

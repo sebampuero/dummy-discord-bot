@@ -44,6 +44,10 @@ class BotBE():
 		subscribers = [s[0] for s in self.bot_svc.get_subscribers_from_subscribee(subscribee) ]
 		return subscribers
 
+	def retrieve_subscribees_from_subscriber(self, subscriber):
+		subscribees = [s[0] for s in self.bot_svc.get_subscribees_from_subscriber(subscriber) ]
+		return subscribees
+
 	def set_alert(self, url, price_range, currency, user_id):
 		try:
 			prices = price_range.split("-")

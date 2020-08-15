@@ -39,16 +39,22 @@ class subscription(commands.Cog):
         subscriptions = self.client.subscription.handle_show_subscriptions(ctx)
         msg = "Lista de suscritos: "
         for subscriber in subscriptions:
-            member = await self.client.fetch_user(member_id)
+            member = await self.client.fetch_user(subscriber)
             if member != None:
                 msg += f"{member.display_name} "
         await ctx.send(msg)
 
     @commands.command(aliases=["subs"])
-    async def show_subscribers(self, ctx):
-        '''Muestra todos tus suscriptores
+    async def show_subscribees(self, ctx):
+        '''Muestra a quienes estas suscrito
         '''
-        pass
+        subscribees = self.client.subscription.handle_show_subscribees(ctx)
+        msg = "Lista de a quienes estas suscrito: "
+        for subscribee in subscribees:
+            member = await self.client.fetch_user(subscribee)
+            if member != None:
+                msg += f"{member.display_name} "
+        await ctx.send(msg)
 
 
 def setup(client):

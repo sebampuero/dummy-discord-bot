@@ -24,3 +24,7 @@ class Subscription():
     def handle_show_subscriptions(self, ctx):
         subscriptions = self.bot_be.retrieve_subscribers_from_subscribee(str(ctx.author.id))
         return subscriptions
+
+    def handle_show_subscribees(self, ctx):
+        subscribees = self.bot_be.retrieve_subscribees_from_subscriber(str(ctx.author.id))
+        return subscribees
