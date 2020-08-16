@@ -54,15 +54,15 @@ class GameManager:
     def _timeout(self, ctx, timeout=TERMINATE_TIMEOUT):
         guild_id = ctx.guild.id
         while True:
-            try:
+            if guild_id in self.guild_to_game_map:
                 game_map = self.guild_to_game_map[guild_id]
                 if game_map["timeout_counter"] == timeout:
                     break
                 time.sleep(1.0)
                 game_map["timeout_counter"] += 1
-            except KeyError:
-                return False # game was deleted because it ended, therefore nothing to do
-        del self.guild_to_game_map[ctx.guild.id]
+            else:
+                return False
+        self.delete_game(guild_id)
         logging.warning("Timeout for ttt reached")
 
     def game_exists(self, guild_id):

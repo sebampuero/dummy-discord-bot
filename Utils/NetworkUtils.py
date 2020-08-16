@@ -8,7 +8,7 @@ import discord
 NetworkUtils is responsible for managing and processing all network related requests
 """
 
-class NetworkUtils():
+class NetworkUtils(): #TODO: convert this to static class
 
     def __init__(self):
         self.base_headers = {

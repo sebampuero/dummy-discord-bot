@@ -7,7 +7,7 @@ from embeds.custom import VoiceEmbeds
 from Functionalities.Voice.VoiceState import *
 from Functionalities.Voice.Voice import StreamingType
 from BE.BotBE import BotBE
-from gtts import gTTS
+from Utils.TTS import TTS
 import logging
 class voice(commands.Cog):
     '''Todo lo necesario para hacer que el bot hable y reproduzca musiquita
@@ -31,8 +31,7 @@ class voice(commands.Cog):
         playing_state = self.client.voice.get_playing_state(ctx)
         if (not isinstance(playing_state, Speak) and not isinstance(playing_state, Salute)) and await self._is_user_in_voice_channel(ctx):
             try:
-                tts_es = gTTS(text, lang=language)#TODO: encapsulate this functionality 
-                url = tts_es.get_urls()[0]
+                url = TTS.get_tts_url(text, language)
                 network_utils = NetworkUtils()
                 status, content_type = await network_utils.website_check(url)
                 if status == 200:
@@ -40,7 +39,7 @@ class voice(commands.Cog):
                 else:
                     await ctx.send(StringConstants.SMTH_FUCKED_UP)
             except Exception as e:
-                logging.error("while reproducing tts", exc_info=True)
+                logging.error("while reproducing get_tts_url", exc_info=True)
                 await ctx.send("El formato de idioma no existe")
 
     @commands.command(name="say")

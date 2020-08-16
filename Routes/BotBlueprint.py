@@ -4,7 +4,7 @@ import Constants.StringConstants as Constants
 from BE.BotBE import BotBE
 from types import SimpleNamespace
 from Functionalities.Voice.VoiceState import Speak, Salute
-from gtts import gTTS
+from Utils.TTS import TTS
 
 async def say(data, guild, text_channel, voice):
     text = str(data["text"]).lower()
@@ -13,8 +13,7 @@ async def say(data, guild, text_channel, voice):
     for member in guild.members:
         if member_name in str(member.display_name.lower()) and member.voice != None:
             network_utils = NetworkUtils()
-            tts_es = gTTS(text, lang=language)
-            url = tts_es.get_urls()[0]
+            url = TTS.get_tts_url(text, language)
             status, content_type = await network_utils.website_check(url)
             if status == 200:
                 await voice.reproduce_from_file(member, url)
