@@ -89,19 +89,11 @@ class BotBE():
 
 	def load_radios_msg(self):
 		try:
-			radios = self.bot_svc.get_radios()
-			msg = ""
-			for key, value in radios.items():
-					msg = msg + f"Ciudad: `{str(key)}` \n"
-					loop = 0
-					for radio in value["items"]:
-						loop += 1
-						msg = msg + f" `{loop}` " + radio["name"] + "\n"
-			return msg
+			return self.bot_svc.get_radios()
 		except Exception as e:
 			logging.error(str(e), exc_info=True)
 			LoggerSaver.save_log(str(e), WhatsappLogger())
-			return ""
+			return {}
 	
 	def load_radios_config(self):
 		try:

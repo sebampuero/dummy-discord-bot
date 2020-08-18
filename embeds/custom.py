@@ -25,3 +25,14 @@ class HelpEmbed(Embed):
         }
         help_data.update(data)
         return super().from_dict(help_data)
+
+class GeneralEmbed(Embed):
+
+    @classmethod
+    def from_dict(cls, data):
+        the_data = {
+            'color': Colour.dark_purple().value
+        }
+        the_data.update(data)
+        return super().from_dict(the_data)
+    

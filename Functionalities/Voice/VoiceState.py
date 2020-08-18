@@ -142,7 +142,7 @@ class Stream(State):
         return self.queue.pop()
 
     def remove_video_file(self):
-        if isinstance(self.voice_manager.voice_client.source, YTDLSource):
+        if self.voice_manager.voice_client and isinstance(self.voice_manager.voice_client.source, YTDLSource):
             to_delete_source = self.voice_manager.voice_client.source
             logging.debug(f"Deleting source filename {to_delete_source.filename}")
             FileUtils.delete_file(to_delete_source.filename)
@@ -206,7 +206,7 @@ class Stream(State):
             LoggerSaver.save_log(str(e), WhatsappLogger())
             self.cleanup()
         except Exception as e:
-            error_msg = f"Se produjo un error reproduciendo {self.voice_manager.voice_client.source.title}, intentando reproducir siguiente canción en lista"
+            error_msg = "Se produjo un error reproduciendo cancion actual, intentando reproducir siguiente canción en lista"
             asyncio.run_coroutine_threadsafe(self.voice_manager.current_context.send(error_msg), self.client.loop)
             self.music_loop(error=None)
             log = "while streaming, skipping to next song"
@@ -214,7 +214,7 @@ class Stream(State):
             LoggerSaver.save_log(f"{log} {str(e)}", WhatsappLogger())
 
     def cleanup(self):        
-        self.voice_manager.pause_player()
+        #self.voice_manager.pause_player()
         self.remove_video_file()
         self.queue = []
         self.trigger_loop = False

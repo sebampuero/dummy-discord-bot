@@ -26,6 +26,12 @@
                 "./assets/audio/pastruti.mp3",
                 "./assets/audio/320244614512640002.mp3"
             ]
+        },
+        "744313744351559700": {
+            "active": true,
+            "audios": [
+                "./assets/audio/320244614512640003.mp3"
+            ]
         }
     },
     "320244975235235840": {

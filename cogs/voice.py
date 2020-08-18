@@ -8,6 +8,7 @@ from Functionalities.Voice.VoiceState import *
 from Functionalities.Voice.Voice import StreamingType
 from BE.BotBE import BotBE
 from Utils.TTS import TTS
+from embeds.custom import GeneralEmbed
 import logging
 class voice(commands.Cog):
     '''Todo lo necesario para hacer que el bot hable y reproduzca musiquita
@@ -64,8 +65,20 @@ class voice(commands.Cog):
     async def show_radios(self, ctx):
         '''Muestra todas las radios disponibles
         '''
-        radios = self.client.bot_be.load_radios_msg() #TODO: add pagination
-        await ctx.send(radios)
+        radios = self.client.bot_be.load_radios_msg()
+        options = {
+                'title': 'Radios disponibles',
+                'fields': []
+            }
+        for key, value in radios.items():
+            field = dict()
+            field["name"] = str(key)
+            field["value"] = ""
+            for idx, radio in enumerate(value["items"]):
+                field["value"] += f" `{idx+1}` " + radio["name"] + "\n"
+            field["inline"] = True
+            options["fields"].append(field)
+        return await ctx.send(embed=GeneralEmbed.from_dict(options)) if bool(radios) else await ctx.send("No hay radios")
 
     @commands.command(aliases=["sr"], name="start-radio")
     @commands.cooldown(1.0, 3.0, commands.BucketType.guild)
@@ -167,7 +180,7 @@ class voice(commands.Cog):
     @commands.command(aliases=["vol"], name="volume")
     async def set_voice_volume(self, ctx, volume):
         '''Setea el volumen a un %
-        `-volumen [0-100]`'''
+        `-volume [0-100]`'''
         volume = float(volume)
         if volume < 0 or volume > 100:
             return await ctx.send("No seas pendejo")
@@ -246,10 +259,17 @@ class voice(commands.Cog):
             if not queue or len(queue) == 0:
                 return await ctx.send("No hay una lista de reproduccion")
             paginated_queue = queue[start_idx:end_idx+1]
-            msg = ""
+            options = {
+                'title': 'Canciones en lista',
+                'fields': []
+            }
             for idx, entry in enumerate(paginated_queue):
-                msg += f"`{start_idx + 1 + idx}` {entry}\n"
-            return await ctx.send(msg) if msg != "" else await ctx.send(f"No hay resultados para pagina {page}")
+                field = dict()
+                field["name"] = str(entry)
+                field["value"] = f"Numero: `{start_idx + 1 + idx}`"
+                field["inline"] = True
+                options["fields"].append(field)
+            return await ctx.send(embed=GeneralEmbed.from_dict(options)) if len(paginated_queue) != 0 else await ctx.send(f"No hay resultados para pagina {page}")
 
     @commands.group(name="playl")
     async def playlist(self, ctx):
@@ -275,10 +295,17 @@ class voice(commands.Cog):
         '''Muestra las playlists guardadas
         '''
         playlists_list = self.client.bot_be.read_user_playlists(str(ctx.author.id))
-        msg = f"Playlists de {ctx.author.name}\n"
+        options = {
+            "title": f"Playlists de {ctx.author.name}\n",
+            "fields" : []
+        }
         for idx, playlist_dict in enumerate(playlists_list):
-            msg += f"`{idx+1}` {playlist_dict['name']}\n"
-        await ctx.send(msg) if msg != "" else await ctx.send("Aun no has guardado playlists de spotify, usa `-playlist save [url] [nombre de playlist]`")
+            field = dict()
+            field["name"] = playlist_dict['name']
+            field["value"] = f"Numero: `{idx+1}`"
+            field["inline"] = True
+            options["fields"].append(field)
+        await ctx.send(embed=GeneralEmbed.from_dict(options)) if len(playlists_list) != 0 else await ctx.send("Aun no has guardado playlists de spotify, usa `-playlist save [url] [nombre de playlist]`")
 
     @playlist.command(name="play")
     @commands.cooldown(1.0, 3.0, commands.BucketType.guild)
@@ -320,7 +347,7 @@ class voice(commands.Cog):
     @commands.command(name="add-audio", aliases=["audio"])
     async def add_audio_for_user(self, ctx):
         '''Agrega un saludo
-        `-saludo` o `-agregar-saludo [@miembro]`
+        `-audio [@miembro]`
         El audio insertado debe ser MP3 y no ser mas grande de 300KB
         '''
         if len(ctx.message.attachments) != 1:

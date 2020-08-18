@@ -4,12 +4,9 @@ import random
 import logging
 import spotipy
 import json
-import soundcloud
-import requests
 from Functionalities.Voice.VoiceQuery import *
 from Functionalities.Voice.VoiceSource import *
 from Functionalities.Voice.VoiceState import *
-from requests import exceptions
 import Constants.StringConstants as Constants
 from BE.BotBE import BotBE
 from Utils.NetworkUtils import NetworkUtils

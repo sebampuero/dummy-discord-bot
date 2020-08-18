@@ -3,6 +3,13 @@ import logging
 from youtube_dl import YoutubeDL
 from Utils.LoggerSaver import *
 from exceptions.CustomException import CustomClientException
+from requests import exceptions
+import requests
+import soundcloud
+
+with open("./config/creds.json", "r") as f:
+    creds = json.loads(f.read())
+    soundcloud_client = soundcloud.Client(client_id=creds["soundcloud"])
 
 class LocalfileSource(discord.PCMVolumeTransformer):
     
