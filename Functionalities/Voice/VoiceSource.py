@@ -76,7 +76,7 @@ class SoundcloudSource(StreamSource):
             raise CustomClientException("Link posiblemente mal formateado")
         except Exception as e:
             LoggerSaver.save_log(str(e), WhatsappLogger())
-            raise CustomClientException("Error inesperado")
+            raise CustomClientException(str(e))
 
 class YTDLSource(StreamSource):
     ytdl_opts = {

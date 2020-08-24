@@ -158,7 +158,7 @@ class Stream(State):
                     {
                         "name": "Duracion",
                         "value": str(self.voice_manager.voice_client.source.duration),
-                        "inline": True
+                        "inline": False
                     },
                     {
                         "name": "Canciones en lista",
@@ -168,6 +168,12 @@ class Stream(State):
                 ]
 
             }
+        if len(self.queue) > 0:
+            data["fields"].append({
+                "name": "Siguiente cancion en lista: ",
+                "value": str(self.queue[len(self.queue) - 1]),
+                "inline": False
+            })
         return VoiceEmbeds.from_dict(data)
 
     def edit_msg(self):
