@@ -20,8 +20,17 @@ class TestBotBE(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        conn = cls.test_db.pool.get_conn()
         for table in cls.tables:
-            cls.test_db.cursor.execute(f"DELETE FROM {table}")
+            conn.cursor().execute(f"DELETE FROM {table}")
+        cls.test_db.pool.release(conn)
+
+    def setUp(self):
+        self.conn = TestBotBE.test_db.pool.get_conn()
+        self.cursor = self.conn.cursor()
+
+    def tearDown(self):
+        TestBotBE.test_db.pool.release(self.conn)
 
     def _subscribe_member(self):
         subscriber = TestSubscriber(12345)
@@ -37,43 +46,39 @@ class TestBotBE(unittest.TestCase):
         return result, url
 
     def test_subscribe_member(self):
-        db = TestBotBE.test_db
         result, subscriber = self._subscribe_member()
         self.assertEqual(Constants.DONE, result, "Not OK")
-        db.cursor.execute(f"SELECT * FROM subscriptions WHERE subscriber = '{subscriber.id}'")
-        query = db.cursor.fetchall()
+        self.cursor.execute(f"SELECT * FROM subscriptions WHERE subscriber = '{subscriber.id}'")
+        query = self.cursor.fetchall()
         self.assertIsNotNone(query, "Result is None")
         self.assertEqual(5, len(query), "Not all subscriptions were made")
 
     def test_unsubscribe_member(self):
-        db = TestBotBE.test_db
         result, subscriber = self._subscribe_member()
         self.assertEqual(Constants.DONE, result, "Not OK")
         result = TestBotBE.bot_be.unsubscribe_member([TestSubscriber(i) for i in range(0, 5)], subscriber.id)
         self.assertEqual(Constants.DONE, result, "Not OK")
-        db.cursor.execute(f"SELECT * FROM subscriptions WHERE subscriber = '{subscriber.id}'")
-        query = db.cursor.fetchall()
+        self.cursor.execute(f"SELECT * FROM subscriptions WHERE subscriber = '{subscriber.id}'")
+        query = self.cursor.fetchall()
         self.assertIsNotNone(query, "Result is None")
         self.assertEqual(0, len(query), "Unsubscriptions were not executed")
 
     def test_retrieve_subscribers_from_subscribee(self):
-        db = TestBotBE.test_db
         result, subscriber = self._subscribe_member()
         self.assertEqual(Constants.DONE, result, "Not OK")
-        db.cursor.execute(f"SELECT subscribee FROM subscriptions WHERE subscriber = '{subscriber.id}'")
-        query = db.cursor.fetchall()
+        self.cursor.execute(f"SELECT subscribee FROM subscriptions WHERE subscriber = '{subscriber.id}'")
+        query = self.cursor.fetchall()
         self.assertIsNotNone(query, "Result is None")
         self.assertEqual(5, len(query), "Subscriber has no subscriptions")
-        self.assertListEqual([subscribee[0] for subscribee in query], ['0','1','2','3','4'], "List of subscribers does not coincide")
+        self.assertListEqual([subscribee['subscribee'] for subscribee in query], ['0','1','2','3','4'], "List of subscribers does not coincide")
 
     def test_set_alert(self):
-        db = TestBotBE.test_db
         result, url = self._set_alert()
         self.assertNotEqual(Constants.COULD_NOT_DO_IT, result, "Not OK")
-        db.cursor.execute(f"SELECT url FROM alerts WHERE url = '{url}'")
-        query = db.cursor.fetchall()
+        self.cursor.execute(f"SELECT url FROM alerts WHERE url = '{url}'")
+        query = self.cursor.fetchall()
         self.assertIsNotNone(query, "Result is None")
-        self.assertEqual(query[0][0], url, "URL is not the one saved")
+        self.assertEqual(query[0]['url'], url, "URL is not the one saved")
 
     def test_unset_alert(self):
         pass

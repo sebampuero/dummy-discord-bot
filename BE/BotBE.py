@@ -41,11 +41,11 @@ class BotBE():
 			return Constants.COULD_NOT_DO_IT
 
 	def retrieve_subscribers_from_subscribee(self, subscribee):
-		subscribers = [s[0] for s in self.bot_svc.get_subscribers_from_subscribee(subscribee) ]
+		subscribers = [s['subscribee'] for s in self.bot_svc.get_subscribers_from_subscribee(subscribee) ]
 		return subscribers
 
 	def retrieve_subscribees_from_subscriber(self, subscriber):
-		subscribees = [s[0] for s in self.bot_svc.get_subscribees_from_subscriber(subscriber) ]
+		subscribees = [s['subscribee'] for s in self.bot_svc.get_subscribees_from_subscriber(subscriber) ]
 		return subscribees
 
 	def set_alert(self, url, price_range, currency, user_id):
@@ -81,9 +81,9 @@ class BotBE():
 		alerts = self.bot_svc.get_all_alerts_for_user(user_id)
 		alerts_dict = dict()
 		for alert in alerts:
-			alerts_dict[alert[0]] = {
-				"price": alert[1],
-				"currency": alert[2]
+			alerts_dict[alert['url']] = {
+				"price": alert['price_limit'],
+				"currency": alert['currency']
 			}
 		return alerts_dict
 
@@ -170,15 +170,15 @@ class BotBE():
 			alerts = self.bot_svc.get_all_alerts()
 			alerts_with_price_limits_reached = []
 			for row in alerts:
-				current_price = await self.get_store_price_for_prefix(row[1], row[5]) # url, currency
-				price_range = str(row[2])
+				current_price = await self.get_store_price_for_prefix(row['url'], row['currency'])
+				price_range = str(row['price_limit'])
 				logging.warning(f"Current price {current_price} for {row} with range {price_range}")
 				lower_ = float(price_range.split("-")[0])
 				upper_ = float(price_range.split("-")[1])
-				self.bot_svc.update_last_checked_at_alert(row[0])
+				self.bot_svc.update_last_checked_at_alert(row['last_checked_at'])
 				if current_price > lower_ and current_price < upper_:
-					self.bot_svc.delete_alert(row[0])
-					alerts_with_price_limits_reached.append( (row[4], row[1]) ) # user_id, url
+					self.bot_svc.delete_alert(row['id'])
+					alerts_with_price_limits_reached.append( (row['user_id'], row['url']) )
 			return alerts_with_price_limits_reached
 		except Exception as e:
 			logging.error(str(e), exc_info=True)
@@ -194,7 +194,7 @@ class BotBE():
 	def read_user_playlists(self, user_id):
 		try: 
 			result = self.bot_svc.read_playlists_for_user(user_id)
-			playlists_dict_list = [{"name": pl[1], "url": pl[0]} for pl in result]
+			playlists_dict_list = [{"name": pl['name'], "url": pl['url']} for pl in result]
 			return playlists_dict_list
 		except Exception as e:
 			log = "reading playlist"
