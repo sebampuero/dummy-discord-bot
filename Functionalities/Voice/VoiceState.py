@@ -196,8 +196,12 @@ class Stream(State):
         query = self.retrieve_query_for_source()
         self.last_query = query
         try:
-            source = SoundcloudSource.from_query(query.the_query, self.current_volume) if isinstance(query, SoundcloudQuery) else \
-                YTDLSource.from_query(query.the_query, self.current_volume)
+            if isinstance(query, SoundcloudQuery):
+                source = SoundcloudSource.from_query(query.the_query, self.current_volume)
+            elif isinstance(query, LocalMP3Query):
+                source = MP3FileSource(query.the_query, query, self.current_volume)
+            else:
+                source = YTDLSource.from_query(query.the_query, self.current_volume)
             self.voice_manager.voice_client.play(source, after=lambda e: self.music_loop(e))
             self.voice_manager.current_player = self.voice_manager.voice_client._player
             self.edit_msg()

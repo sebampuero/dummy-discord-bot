@@ -28,6 +28,7 @@ class StreamingType(Enum):
     YOUTUBE = 1
     SPOTIFY = 2
     SOUNDCLOUD = 3
+    MP3_FILE = 4
 
 class VoiceManager:
 
@@ -260,7 +261,14 @@ class Voice():
                 await self._play_streaming_youtube(query, vmanager, ctx)
             elif streaming_type == StreamingType.SOUNDCLOUD:
                 await self._play_streaming_soundcloud(query, vmanager, ctx)
-                
+            elif streaming_type == StreamingType.MP3_FILE:
+                await self._play_streaming_mp3file(query, vmanager, ctx)
+
+    async def _play_streaming_mp3file(self, query, vmanager, ctx):
+        embed_options = {'title': f'Agregando audio de {ctx.author.display_name}'}
+        msg = await ctx.send(embed=VoiceEmbeds(author=ctx.author, **embed_options))
+        vmanager.play(LocalMP3Query(query, ctx.author.display_name), **{"original_msg": msg})
+          
     async def _play_streaming_youtube(self, query, vmanager, ctx):
         embed_options = {'title': f'Agregando a lista de reproduccion con busqueda: {" ".join(query)}'}
         msg = await ctx.send(embed=VoiceEmbeds(author=ctx.author, **embed_options))

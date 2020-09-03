@@ -135,11 +135,16 @@ class voice(commands.Cog):
         O -metele https://www.youtube.com/watch?v=l00VTUYkebw
         O -metele chuchulun don omar
         '''
-        if not query:
-            return await ctx.bad_command_reaction()
         playing_state = self.client.voice.get_playing_state(ctx)
         if (not isinstance(playing_state, Speak) and not isinstance(playing_state, Salute)) and await self._is_user_in_voice_channel(ctx):
-            if "https://open.spotify.com" in str(query[0]) and "playlist" in str(query[0]):
+            if not query:
+                if len(ctx.message.attachments) == 1:
+                    if str(ctx.message.attachments[0].filename).endswith(".mp3"):
+                        await self.client.voice.play_streaming(ctx.message.attachments[0].url, StreamingType.MP3_FILE, ctx)
+                        await ctx.processing_command_reaction()
+                else:
+                    await ctx.send("Adjunta un archivo mp3 si no escribes nada")
+            elif "https://open.spotify.com" in str(query[0]) and "playlist" in str(query[0]):
                 await self.client.voice.play_streaming(str(query[0]), StreamingType.SPOTIFY, ctx)
                 await ctx.processing_command_reaction()
             elif "youtube.com" in str(query) or ".com" not in str(query):

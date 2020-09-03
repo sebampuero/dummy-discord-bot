@@ -41,7 +41,7 @@ class BotBE():
 			return Constants.COULD_NOT_DO_IT
 
 	def retrieve_subscribers_from_subscribee(self, subscribee):
-		subscribers = [s['subscribee'] for s in self.bot_svc.get_subscribers_from_subscribee(subscribee) ]
+		subscribers = [s['subscriber'] for s in self.bot_svc.get_subscribers_from_subscribee(subscribee) ]
 		return subscribers
 
 	def retrieve_subscribees_from_subscriber(self, subscriber):
@@ -175,7 +175,7 @@ class BotBE():
 				logging.warning(f"Current price {current_price} for {row} with range {price_range}")
 				lower_ = float(price_range.split("-")[0])
 				upper_ = float(price_range.split("-")[1])
-				self.bot_svc.update_last_checked_at_alert(row['last_checked_at'])
+				self.bot_svc.update_last_checked_at_alert(row['id'])
 				if current_price > lower_ and current_price < upper_:
 					self.bot_svc.delete_alert(row['id'])
 					alerts_with_price_limits_reached.append( (row['user_id'], row['url']) )

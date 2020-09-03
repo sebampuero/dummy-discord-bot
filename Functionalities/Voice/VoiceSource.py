@@ -23,6 +23,8 @@ class StreamSource(discord.PCMVolumeTransformer):
     def __init__(self, source,url, volume=1.0):
         super().__init__(source, volume)
         self.url = url
+        self.title = ""
+        self.duration = 0
 
     @staticmethod
     def parse_duration(duration: int):
@@ -41,6 +43,13 @@ class StreamSource(discord.PCMVolumeTransformer):
             duration.append('{} segundos'.format(seconds))
 
         return ', '.join(duration)
+
+class MP3FileSource(StreamSource):
+
+    def __init__(self, url, title, volume=0.3):
+        self.title = title
+        self.duration = 0
+        super().__init__(discord.FFmpegPCMAudio(url), url, volume=volume)
 
 class RadioSource(StreamSource):
 
