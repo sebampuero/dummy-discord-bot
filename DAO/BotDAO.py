@@ -70,3 +70,15 @@ class BotDAO():
 	def delete_playlist_for_user(self, user_id, playlist_name):
 		sql = f"DELETE FROM playlist WHERE discord_id = '{user_id}' AND name like '{playlist_name}'"
 		self.db.execute_query(sql)
+
+	def save_favorite_song_for_user(self, user_id, song_query, query_type):
+		sql = f"INSERT INTO favorite_songs(discord_id, song_query, query_type) VALUES ('{user_id}', '{song_query}', '{query_type}')"
+		self.db.execute_query(sql)
+
+	def get_all_favorite_songs_for_user(self, user_id):
+		sql = f"SELECT * FROM favorite_songs WHERE discord_id = '{user_id}'"
+		return self.db.execute_query_with_result(sql)
+
+	def delete_favorite_song_of_user(self, song_id, user_id):
+		sql = f"DELETE FROM favorite_songs WHERE id = '{song_id}' AND discord_id = '{user_id}'"
+		self.db.execute_query(sql)

@@ -23,10 +23,7 @@ class BotBE():
 			subscribees_formatted = [str(s.id) for s in subscribees]
 			self.bot_svc.subscribe_member(subscribees_formatted, subscriber)
 			return Constants.DONE
-		except Exception as e:
-			log = f"{str(e)} while subscribing member"
-			logging.error(log, exc_info=True)
-			LoggerSaver.save_log(log, WhatsappLogger())
+		except:
 			return Constants.COULD_NOT_DO_IT
 
 	def unsubscribe_member(self, subscribees, subscriber):
@@ -34,10 +31,7 @@ class BotBE():
 			subscribees_formatted = [str(s.id) for s in subscribees]
 			self.bot_svc.unsubscribe_member(subscribees_formatted, subscriber)
 			return Constants.DONE
-		except Exception as e:
-			log = f"{str(e)} while unsubscribing member"
-			logging.error(log, exc_info=True)
-			LoggerSaver.save_log(log, WhatsappLogger())
+		except:
 			return Constants.COULD_NOT_DO_IT
 
 	def retrieve_subscribers_from_subscribee(self, subscribee):
@@ -64,8 +58,6 @@ class BotBE():
 			self.bot_svc.set_alert(url, price_range, currency, user_id)
 			return f"Agregue tu alerta del item en {url} con rango de precios {price_range} y moneda {currency}"
 		except Exception as e:
-			logging.error(str(e), exc_info=True)
-			LoggerSaver.save_log(str(e), WhatsappLogger())
 			return Constants.COULD_NOT_DO_IT
 
 	def unset_alert(self, url, user_id):
@@ -73,8 +65,6 @@ class BotBE():
 			self.bot_svc.unset_alert(url, user_id)
 			return f"Listo mande a la mierda tu alarma con link {url}"
 		except Exception as e:
-			logging.error(str(e), exc_info=True)
-			LoggerSaver.save_log(str(e), WhatsappLogger())
 			return Constants.COULD_NOT_DO_IT
 
 	def retrieve_user_alerts(self, user_id):
@@ -196,28 +186,41 @@ class BotBE():
 			result = self.bot_svc.read_playlists_for_user(user_id)
 			playlists_dict_list = [{"name": pl['name'], "url": pl['url']} for pl in result]
 			return playlists_dict_list
-		except Exception as e:
-			log = "reading playlist"
-			logging.error(log, exc_info=True)
-			LoggerSaver.save_log(f"{log} {str(e)}", WhatsappLogger())
+		except:
 			return []
 
 	def save_playlist_for_user(self, user_id, url, name):
 		try:
 			self.bot_svc.save_playlist_for_user(user_id, url, name)
 			return "Agregado"
-		except Exception as e:
-			log = "saving playlist"
-			logging.error(log, exc_info=True)
-			LoggerSaver.save_log(f"{log} {str(e)}", WhatsappLogger())
-			return "Se produjo un error"
+		except:
+			return Constants.COULD_NOT_DO_IT
 
 	def delete_playlist_for_user(self, user_id, name):
 		try:
 			self.bot_svc.delete_playlist_for_user(user_id, name)
 			return f"Playlist {name} eliminada"
-		except Exception as e:
-			log = "deleting playlist"
-			logging.error(log, exc_info=True)
-			LoggerSaver.save_log(f"{log} {str(e)}", WhatsappLogger())
-			return "Se produjo un error"
+		except:
+			return Constants.COULD_NOT_DO_IT
+
+	def save_fav_song(self, user_id, song_query, query_type):
+		try:
+			song_query = str(song_query).replace("'", "").replace('"', "")
+			self.bot_svc.save_favorite_song_for_user(user_id, song_query, query_type)
+			return f"{song_query} fue guardada con exito"
+		except:
+			return Constants.COULD_NOT_DO_IT
+
+	def get_favs(self, user_id):
+		try:
+			favs = self.bot_svc.get_all_favorite_songs_for_user(user_id)
+			return [{'song_id': fav['id'], 'song': fav['song_query'], 'query_type': fav['query_type']} for fav in favs]
+		except:
+			return []
+
+	def delete_fav(self, song_id, user_id):
+		try:
+			self.bot_svc.delete_favorite_song_of_user(song_id, user_id)
+			return "Listo"
+		except:
+			return Constants.COULD_NOT_DO_IT

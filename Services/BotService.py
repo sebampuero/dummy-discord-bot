@@ -61,3 +61,12 @@ class BotService():
 
 	def delete_playlist_for_user(self, user_id, playlist_name):
 		return self.dao.delete_playlist_for_user(user_id, playlist_name)
+
+	def save_favorite_song_for_user(self, user_id, song_query, query_type):
+		self.dao.save_favorite_song_for_user(user_id, song_query, query_type)
+
+	def get_all_favorite_songs_for_user(self, user_id):
+		return self.dao.get_all_favorite_songs_for_user(user_id)
+
+	def delete_favorite_song_of_user(self, song_id, user_id):
+		self.dao.delete_favorite_song_of_user(song_id, user_id)

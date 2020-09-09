@@ -42,6 +42,7 @@ class DB():
 		except Exception as e:
 			logging.error(str(e), exc_info=True)
 			LoggerSaver.save_log(f"While executing query {query}", WhatsappLogger())
+			raise e
 		finally:
 			self.db.pool.release(conn)
 
@@ -53,6 +54,7 @@ class DB():
 			logging.error(str(e), exc_info=True)
 			LoggerSaver.save_log(f"While executing query {query}", WhatsappLogger())
 			self.db.rollback()
+			raise e
 		finally:
 			self.db.pool.release(conn)
 
@@ -64,6 +66,6 @@ class DB():
 		except Exception as e:
 			logging.error(str(e), exc_info=True)
 			LoggerSaver.save_log(f"While executing query {query}", WhatsappLogger())
-			return []
+			raise e
 		finally:
 			self.db.pool.release(conn)

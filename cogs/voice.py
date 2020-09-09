@@ -140,7 +140,7 @@ class voice(commands.Cog):
             if not query:
                 if len(ctx.message.attachments) == 1:
                     if str(ctx.message.attachments[0].filename).endswith(".mp3"):
-                        await self.client.voice.play_streaming(ctx.message.attachments[0].url, StreamingType.MP3_FILE, ctx)
+                        await self.client.voice.play_streaming(ctx.message.attachments[0], StreamingType.MP3_FILE, ctx)
                         await ctx.processing_command_reaction()
                 else:
                     await ctx.send("Adjunta un archivo mp3 si no escribes nada")
@@ -331,6 +331,71 @@ class voice(commands.Cog):
         '''
         return_msg = self.client.bot_be.delete_playlist_for_user(str(ctx.author.id), playlist)
         await ctx.send(return_msg)
+
+    @commands.group(name="fav")
+    async def fav(self, ctx):
+        '''Comandos para guardar canciones favoritas
+        '''
+        if ctx.invoked_subcommand is None:
+            await ctx.send('Especifica una accion pues weberto, usa `-help fav`')
+
+    @fav.command(name="save", aliases=["s"])
+    @commands.cooldown(1.0, 3.0, commands.BucketType.guild)
+    async def fav_save(self, ctx):
+        '''Guarda la cancion actual reproduciendose en favoritos
+        '''
+        playing_state = self.client.voice.get_playing_state(ctx)
+        if isinstance(playing_state, Stream):
+            current_query = playing_state.last_query
+            if isinstance(current_query, SoundcloudQuery):
+                query_type = StreamingType.SOUNDCLOUD
+            else:
+                query_type = StreamingType.YOUTUBE
+            result_msg = self.client.bot_be.save_fav_song(str(ctx.author.id), current_query, query_type)
+            await ctx.send(result_msg)
+        else:
+            return await ctx.send("No hay ninguna cancion reproduciendose actualmente")
+
+    @fav.command(name="play", aliases=["p"])
+    @commands.cooldown(1.0, 3.0, commands.BucketType.guild)
+    async def fav_play(self, ctx):
+        '''Mete en lista de reproduccion las canciones de favoritos
+        '''
+        if await self._is_user_in_voice_channel(ctx):
+            favs_dict = self.client.bot_be.get_favs(str(ctx.author.id))
+            if len(favs_dict) == 0:
+                return await ctx.send("No hay favoritos guardados")
+            song_queries_dicts = [{'query': item['song'], 'type': item['query_type']} for item in favs_dict]
+            await self.client.voice.play_streaming(song_queries_dicts, StreamingType.BULK_FAVS, ctx)
+
+    @fav.command(name="del", aliases=["d"])
+    @commands.cooldown(1.0, 3.0, commands.BucketType.guild)
+    async def fav_delete(self, ctx, song_id):
+        '''Borra cancion favorita segun su numero
+        '''
+        try:
+            self.client.bot_be.delete_fav(str(song_id), str(ctx.author.id))
+            await ctx.send("Eliminada")
+        except:
+            await ctx.send("Hubo un error")
+
+    @fav.command(name="show", aliases=["sh"])
+    @commands.cooldown(1.0, 3.0, commands.BucketType.guild)
+    async def fav_show(self, ctx):
+        '''Muestra todas las canciones favoritas guardadas
+        '''
+        favs_dicts = self.client.bot_be.get_favs(str(ctx.author.id))
+        options = {
+            "title": f"Favoritos de {ctx.author.name}\n",
+            "fields" : []
+        }
+        for idx, favs_dict in enumerate(favs_dicts):
+            field = dict()
+            field["name"] = favs_dict['song']
+            field["value"] = f"Numero: {favs_dict['song_id']}"
+            field["inline"] = True
+            options["fields"].append(field)
+        await ctx.send(embed=GeneralEmbed.from_dict(options)) if len(favs_dicts) != 0 else await ctx.send("Aun no has guardado favoritos, usa `-help fav save`")
 
     async def _search_playlist(self, playlist_id, ctx):
         try:

@@ -90,18 +90,5 @@
                 "link": "http://mediam.streamakaci.com/toulousefm.mp3?listening-from-radio-garden"
             }
         ]
-    },
-    "tarapoto": {
-        "city": "Tarapoto",
-        "items": [
-            {
-                "name": "Red FM Tarapoto Full Techno",
-                "link": "https://whmsonic.playerfullhd.com:7310/;?listening-from-radio-garden"
-            },
-            {
-                "name": "Full Cumbia potos tragoo",
-                "link": "https://whmsonic.playerfullhd.com:7311/;?listening-from-radio-garden"
-            }
-        ]
     }
 }

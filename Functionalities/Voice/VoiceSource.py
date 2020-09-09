@@ -23,7 +23,6 @@ class StreamSource(discord.PCMVolumeTransformer):
     def __init__(self, source,url, volume=1.0):
         super().__init__(source, volume)
         self.url = url
-        self.title = ""
         self.duration = 0
 
     @staticmethod
@@ -47,15 +46,14 @@ class StreamSource(discord.PCMVolumeTransformer):
 class MP3FileSource(StreamSource):
 
     def __init__(self, url, title, volume=0.3):
-        self.title = title
-        self.duration = 0
         super().__init__(discord.FFmpegPCMAudio(url), url, volume=volume)
+        self.title = title
 
 class RadioSource(StreamSource):
 
     def __init__(self, url, radio_name, volume=0.3):
-        self.name = radio_name
         super().__init__(discord.FFmpegPCMAudio(url), url, volume=0.3)
+        self.name = radio_name
 
 class SoundcloudSource(StreamSource):
 
@@ -81,10 +79,10 @@ class SoundcloudSource(StreamSource):
                 return cls(json.loads(obj.text)["url"], volume, track)
             else:
                 raise CustomClientException("Track no es streameable")
-        except exceptions.HTTPError:
+        except exceptions.HTTPError as e:
+            LoggerSaver.save_log(str(e), WhatsappLogger())
             raise CustomClientException("Link posiblemente mal formateado")
         except Exception as e:
-            LoggerSaver.save_log(str(e), WhatsappLogger())
             raise CustomClientException(str(e))
 
 class YTDLSource(StreamSource):

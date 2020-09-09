@@ -25,10 +25,15 @@ with open("./config/creds.json", "r") as f:
     soundcloud_client = soundcloud.Client(client_id=creds["soundcloud"])
 
 class StreamingType(Enum):
+
+    def __str__(self):
+        return str(self.value)
+
     YOUTUBE = 1
     SPOTIFY = 2
     SOUNDCLOUD = 3
     MP3_FILE = 4
+    BULK_FAVS = 5
 
 class VoiceManager:
 
@@ -263,11 +268,28 @@ class Voice():
                 await self._play_streaming_soundcloud(query, vmanager, ctx)
             elif streaming_type == StreamingType.MP3_FILE:
                 await self._play_streaming_mp3file(query, vmanager, ctx)
+            elif streaming_type ==  StreamingType.BULK_FAVS:
+                await self._play_streaming_bulk_favs(query, vmanager, ctx)
+
+    async def _play_streaming_bulk_favs(self, query, vmanager, ctx):
+        query_list = self._process_favorite_song_queries(query)
+        embed_options = {'title': f'Agregando {len(query_list)} favoritos de {ctx.author.name}'}
+        msg = await ctx.send(embed=VoiceEmbeds(author=ctx.author, **embed_options))
+        vmanager.play(query_list, **{"original_msg": msg})
+
+    def _process_favorite_song_queries(self, queries):
+        query_list = []
+        for item_dict in queries:            
+            if int(item_dict["type"]) == int(StreamingType.SOUNDCLOUD.value):
+                query_list.append(SoundcloudQuery(item_dict["query"]))
+            else:
+                query_list.append(YoutubeQuery(item_dict["query"]))
+        return query_list
 
     async def _play_streaming_mp3file(self, query, vmanager, ctx):
         embed_options = {'title': f'Agregando audio de {ctx.author.display_name}'}
         msg = await ctx.send(embed=VoiceEmbeds(author=ctx.author, **embed_options))
-        vmanager.play(LocalMP3Query(query, ctx.author.display_name), **{"original_msg": msg})
+        vmanager.play(LocalMP3Query(query.filename, query.url, ctx.author.display_name), **{"original_msg": msg})
           
     async def _play_streaming_youtube(self, query, vmanager, ctx):
         embed_options = {'title': f'Agregando a lista de reproduccion con busqueda: {" ".join(query)}'}
