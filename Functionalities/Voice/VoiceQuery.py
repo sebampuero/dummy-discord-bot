@@ -23,7 +23,7 @@ class YoutubeQuery(Query):
         super().__init__(the_query)
 
     def __repr__(self):
-        return " ".join(self.the_query)
+        return " ".join(self.the_query) if isinstance(self.the_query, tuple) or isinstance(self.the_query, list) else self.the_query
 
 class SpotifyQuery(Query):
 

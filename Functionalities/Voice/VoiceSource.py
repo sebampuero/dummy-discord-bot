@@ -118,7 +118,7 @@ class YTDLSource(StreamSource):
 
     @classmethod
     def from_query(cls, query, volume=0.3):
-        query = " ".join(query)
+        query = " ".join(query) if not isinstance(query, str) else query
         with YoutubeDL(YTDLSource.ytdl_opts) as ydl:
             info = ydl.extract_info(query, download=False)
             if 'entries' in info:  # grab the first video

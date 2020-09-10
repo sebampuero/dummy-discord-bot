@@ -118,7 +118,7 @@ class Stream(State):
     def reproduce(self, query, **kwargs):
         self.should_exit_from_loop = False
         self.original_msg = kwargs["original_msg"]
-        self.queue.extend(query) if type(query) in [list] else self.queue.append(query)
+        self.queue.extend(query) if type(query) in [list] else self.queue.insert(0, query)
         if not self.voice_manager.is_voice_client_playing():
             self.music_loop(error=None)
 
@@ -268,7 +268,6 @@ class Salute(State):
         self.welcome_audios_queue = []
 
     def reproduce(self, query, **kwargs):
-        voice_client = self.voice_manager.voice_client
         self.welcome_audios_queue.append(LocalfileSource(query))
         if not self.voice_manager.is_voice_client_playing():
             self.salute_loop(error=None)
@@ -280,7 +279,6 @@ class Salute(State):
             if isinstance(self.voice_manager.prev_state, Off):
                 return self.cleanup()
             else:
-                self.switch(self.voice_manager.prev_state)
                 return self.resume_playing_for_prev_state(error)
         source = self.welcome_audios_queue.pop()
         try:

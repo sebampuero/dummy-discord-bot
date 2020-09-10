@@ -201,8 +201,7 @@ class voice(commands.Cog):
         playing_state = self.client.voice.get_playing_state(ctx)
         if await self._is_user_in_voice_channel(ctx) and (isinstance(playing_state, Stream)):
             self.client.voice.trigger_shuffle(ctx)
-            msg = "Metiendole su shuffle csm!!"
-            await ctx.send(msg)
+            await ctx.send("Metiendole su shuffle csm!!")
 
     @commands.command(name="loop")
     async def set_loop_for_song(self, ctx):
