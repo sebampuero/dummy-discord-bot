@@ -68,9 +68,6 @@ class ChismositoBot(commands.Bot):
         self.bot_be = BotBE()
         self.start_bg_tasks()
         self.load_config()
-        for guild in self.guilds:
-            if guild.system_channel:
-                await guild.system_channel.send("Volvi")
 
     def load_config(self):
         with open("./config/config.json", "r") as f:

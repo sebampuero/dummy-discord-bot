@@ -126,6 +126,23 @@ class voice(commands.Cog):
             await ctx.sad_reaction()
             await self.client.voice.disconnect_player(ctx)
 
+    @commands.command(name="seek", aliases=["sk"])
+    @commands.cooldown(1.0, 3.0, commands.BucketType.guild)
+    async def seek(self, ctx, second):
+        '''Avanza el stream hasta el segundo determinado
+        Ejemplo: `-seek 50`
+        '''
+        playing_state = self.client.voice.get_playing_state(ctx)
+        if isinstance(playing_state, Stream):
+            try:
+                second = int(second)
+                self.client.voice.seek(ctx, second)
+                await ctx.send(f"Yendo al segundo {second}, paciencia...")
+                await ctx.processing_command_reaction()
+            except Exception as e:
+                logging.warning(str(e), exc_info=True)
+                await ctx.send("No pes")
+
     @commands.command(name="metele", aliases=["go", "pl"])
     @commands.cooldown(1.0, 3.0, commands.BucketType.guild)
     async def play_for_stream(self, ctx, *query):

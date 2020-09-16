@@ -9,6 +9,10 @@ class BotDAO():
 	
 	def __init__(self, test_db=None):
 		self.db = DB() if not test_db else DB(test_db)
+
+	def insert_discord_user(self, user_id):
+		sql = f"INSERT IGNORE INTO user SET discord_id = '{user_id}'"
+		self.db.execute_query(sql)
 		
 	def subscribe_member(self, subscribees, subscriber):
 		self.unsubscribe_member(subscribees, subscriber)
@@ -58,8 +62,7 @@ class BotDAO():
 		self.db.execute_query(sql)
 
 	def save_playlist_for_user(self, user_id, url, name):
-		sql = f"INSERT IGNORE INTO user SET discord_id = '{user_id}'"
-		self.db.execute_query(sql)
+		self.insert_discord_user(user_id)
 		sql = f"INSERT INTO playlist(url, name, discord_id) VALUES('{url}', '{name}', '{user_id}')"
 		self.db.execute_query(sql)
 
@@ -72,6 +75,7 @@ class BotDAO():
 		self.db.execute_query(sql)
 
 	def save_favorite_song_for_user(self, user_id, song_query, query_type):
+		self.insert_discord_user(user_id)
 		sql = f"INSERT INTO favorite_songs(discord_id, song_query, query_type) VALUES ('{user_id}', '{song_query}', '{query_type}')"
 		self.db.execute_query(sql)
 

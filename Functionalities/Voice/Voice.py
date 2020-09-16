@@ -66,7 +66,7 @@ class VoiceManager:
 
     def interrupt_player(self):
         if self.voice_client and self.current_player:
-            self.state.should_exit_from_loop = True
+            self.current_player.after = None
             self.current_player.stop()
 
     def next_for_queue(self):
@@ -84,6 +84,10 @@ class VoiceManager:
     def resume(self):
         if self.voice_client != None:
             self.voice_client.resume()
+    
+    def stop(self):
+        if self.voice_client != None:
+            self.voice_client.stop()
 
     def trigger_shuffle(self):
         self.state.shuffle_queue()
@@ -190,6 +194,10 @@ class Voice():
     def resume_player(self, ctx):
         vmanager = self.guild_to_voice_manager_map.get(ctx.guild.id)
         vmanager.resume()
+
+    def seek(self, ctx, second):
+        vmanager = self.guild_to_voice_manager_map.get(ctx.guild.id)
+        vmanager.state.seek_to(second)
 
     async def reproduce_from_file(self, member, audio_filename):
         vmanager = self.guild_to_voice_manager_map.get(member.guild.id)

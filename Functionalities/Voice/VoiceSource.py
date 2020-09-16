@@ -13,8 +13,8 @@ with open("./config/creds.json", "r") as f:
 
 class LocalfileSource(discord.PCMVolumeTransformer):
     
-    def __init__(self, file_name):
-        super().__init__(discord.FFmpegPCMAudio(file_name), volume=1.0)
+    def __init__(self, file_name, options=None, before_options=None):
+        super().__init__(discord.FFmpegPCMAudio(file_name, options=options, before_options=before_options), volume=1.0)
 
         self.file_name = file_name
 
@@ -45,26 +45,26 @@ class StreamSource(discord.PCMVolumeTransformer):
 
 class MP3FileSource(StreamSource):
 
-    def __init__(self, url, title, volume=0.3):
-        super().__init__(discord.FFmpegPCMAudio(url), url, volume=volume)
+    def __init__(self, url, title, volume=0.3, options=None, before_options=None):
+        super().__init__(discord.FFmpegPCMAudio(url, options=options, before_options=before_options), url, volume=volume)
         self.title = title
 
 class RadioSource(StreamSource):
 
-    def __init__(self, url, radio_name, volume=0.3):
-        super().__init__(discord.FFmpegPCMAudio(url), url, volume=0.3)
+    def __init__(self, url, radio_name, volume=0.3, options=None, before_options=None):
+        super().__init__(discord.FFmpegPCMAudio(url, options=options, before_options=before_options), url, volume=0.3)
         self.name = radio_name
 
 class SoundcloudSource(StreamSource):
 
-    def __init__(self, url, volume, track):
-        super().__init__(discord.FFmpegPCMAudio(url), url, volume)
+    def __init__(self, url, volume, track, options=None, before_options=None):
+        super().__init__(discord.FFmpegPCMAudio(url, options=options, before_options=before_options), url, volume)
         self.title = track.title
         self.duration = self.parse_duration(int(track.full_duration / 1000))
         self.url = track.uri
 
     @classmethod
-    def from_query(cls, query, volume=0.3):
+    def from_query(cls, query, volume=0.3, options=None, before_options=None):
         try:
             the_track = soundcloud_client.get("resolve", url=query)
             track = soundcloud_client.get(f"tracks/{the_track.id}")
@@ -76,7 +76,7 @@ class SoundcloudSource(StreamSource):
                     stream = soundcloud_client.get(transcoding["url"], allow_redirects=True)
             if stream:
                 obj = requests.get(stream.url)
-                return cls(json.loads(obj.text)["url"], volume, track)
+                return cls(json.loads(obj.text)["url"], volume, track, options=options, before_options=before_options)
             else:
                 raise CustomClientException("Track no es streameable")
         except exceptions.HTTPError as e:
@@ -117,7 +117,9 @@ class YTDLSource(StreamSource):
         self.filename = data.get('filename_vid', '')
 
     @classmethod
-    def from_query(cls, query, volume=0.3):
+    def from_query(cls, query, volume=0.3, options=None, before_options=None):
+        if options:
+            cls.ytdl_opts.update(options)
         query = " ".join(query) if not isinstance(query, str) else query
         with YoutubeDL(YTDLSource.ytdl_opts) as ydl:
             info = ydl.extract_info(query, download=False)
@@ -133,4 +135,4 @@ class YTDLSource(StreamSource):
                 data = data['entries'][0]
             path = ydl.prepare_filename(data)
             data["filename_vid"] = path
-            return cls(discord.FFmpegPCMAudio(path, **YTDLSource.ffmpeg_options), data, volume)
+            return cls(discord.FFmpegPCMAudio(path, options=YTDLSource.ffmpeg_options, before_options=before_options), data, volume)

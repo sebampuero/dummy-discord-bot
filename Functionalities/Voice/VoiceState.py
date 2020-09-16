@@ -18,7 +18,6 @@ class State(object):
     def __init__(self, voice_manager, client):
         self.voice_manager = voice_manager
         self.client = client
-        self.should_exit_from_loop = False
         self.trigger_loop = False
 
     def switch(self, state):
@@ -46,6 +45,12 @@ class State(object):
         self.switch(self.voice_manager.off)
         self.voice_manager.prev_state = self.voice_manager.state
         asyncio.run_coroutine_threadsafe(self.voice_manager.disconnect(), self.client.loop)
+        self.delete_music_cache()
+
+    def delete_music_cache(self):
+        path = "./music_cache"
+        pattern = r".*\..*"
+        FileUtils.remove_files_in_dir(path, pattern)
 
     def __str__(self):
         return self.name 
@@ -96,9 +101,7 @@ class Radio(State):
     def handle_error(self, error):
         if error:
             self.client.loop.create_task(self.voice_manager.current_context.send("Se produjo un error"))
-        if not self.should_exit_from_loop:
-            self.cleanup()
-        self.should_exit_from_loop = False
+        self.cleanup()
             
     def switch(self, state):
         self.voice_manager.pause_player()
@@ -114,13 +117,20 @@ class Stream(State):
         self.queue = []
         self.last_query = None
         self.current_volume = 0.3
+        self.ffmpeg_options = {}
     
     def reproduce(self, query, **kwargs):
-        self.should_exit_from_loop = False
         self.original_msg = kwargs["original_msg"]
         self.queue.extend(query) if type(query) in [list] else self.queue.insert(0, query)
         if not self.voice_manager.is_voice_client_playing():
             self.music_loop(error=None)
+
+    def seek_to(self, second):
+        self.voice_manager.current_player.after = None
+        self.voice_manager.stop() 
+        self.ffmpeg_options = {'before_options': f"-ss {second}"}
+        self.queue.append(self.last_query)
+        self.music_loop(error=None)
 
     def shuffle_queue(self):
         if len(self.queue) > 0:
@@ -141,12 +151,6 @@ class Stream(State):
             return self.last_query
         return self.queue.pop()
 
-    def remove_video_file(self):
-        if self.voice_manager.voice_client and isinstance(self.voice_manager.voice_client.source, YTDLSource):
-            to_delete_source = self.voice_manager.voice_client.source
-            logging.debug(f"Deleting source filename {to_delete_source.filename}")
-            FileUtils.delete_file(to_delete_source.filename)
-
     def format_embed(self):
         data = {
                 'title': f'Reproduciendo {self.voice_manager.voice_client.source.title}',
@@ -164,6 +168,11 @@ class Stream(State):
                         "name": "Canciones en lista",
                         "value": str(len(self.queue)),
                         "inline": False
+                    },
+                    {
+                        "name": "Volumen",
+                        "value": str(self.current_volume * 100) + "%",
+                        "inline": True
                     }
                 ]
 
@@ -184,24 +193,20 @@ class Stream(State):
         self.original_msg = msg
 
     def music_loop(self, error):
-        if self.should_exit_from_loop:
-            return
         if error:
             return self.cleanup()
         if len(self.queue) == 0 and not self.trigger_loop:
             asyncio.run_coroutine_threadsafe(self.voice_manager.current_context.send("Fin de la lista de reproduccion"), self.client.loop)
             return self.cleanup()
-        if self.voice_manager.voice_client.source:
-            self.remove_video_file()
         query = self.retrieve_query_for_source()
         self.last_query = query
         try:
             if isinstance(query, SoundcloudQuery):
-                source = SoundcloudSource.from_query(query.the_query, self.current_volume)
+                source = SoundcloudSource.from_query(query.the_query, self.current_volume, **self.ffmpeg_options)
             elif isinstance(query, LocalMP3Query):
-                source = MP3FileSource(query.the_query, query.title, self.current_volume)
+                source = MP3FileSource(query.the_query, query.title, self.current_volume, **self.ffmpeg_options)
             else:
-                source = YTDLSource.from_query(query.the_query, self.current_volume)
+                source = YTDLSource.from_query(query.the_query, self.current_volume, **self.ffmpeg_options)
             self.voice_manager.voice_client.play(source, after=lambda e: self.music_loop(e))
             self.voice_manager.current_player = self.voice_manager.voice_client._player
             self.edit_msg()
@@ -222,13 +227,12 @@ class Stream(State):
             log = "while streaming, skipping to next song"
             logging.error(log, exc_info=True)
             LoggerSaver.save_log(f"{log} {str(e)}", WhatsappLogger())
+        else:
+            self.ffmpeg_options = {}
 
     def cleanup(self):        
-        #self.voice_manager.pause_player()
-        self.remove_video_file()
         self.queue = []
         self.trigger_loop = False
-        self.shuffle_for_queue = False
         super(Stream, self).cleanup()
 
 

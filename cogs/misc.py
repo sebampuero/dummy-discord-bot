@@ -27,22 +27,12 @@ class misc(commands.Cog):
             return await ctx.send("El bot esta reproduciendo audio y no puede reiniciarse ahora")
         self.client.load_config()
         if ctx.author.id == self.client.config["restarter"]["id"]:
-            for guild in self.client.guilds:
-                if guild.system_channel:
-                    await guild.system_channel.send("Reiniciando...")
             os.system("systemctl restart discord-py.service")
-
-    @commands.command(aliases=["quien", "quien-lol"])
-    async def who(self, ctx, *args):
-        if len(args) == 0:
-            return
-        value = random.choice(args)
-        await ctx.send(value)
 
     @commands.Cog.listener()
     async def on_member_join(self, member):
         if member.guild.system_channel:
-            await member.guild.system_channel.send(f"Hola {member.display_name}, bienvenido a este canal de mierda")
+            await member.guild.system_channel.send(f"Hola {member.display_name}, bienvenido/a a este canal de mierda")
 
     @commands.Cog.listener()
     async def on_message(self, message):
