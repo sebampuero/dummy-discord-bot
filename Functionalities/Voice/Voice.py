@@ -199,6 +199,14 @@ class Voice():
         vmanager = self.guild_to_voice_manager_map.get(ctx.guild.id)
         vmanager.state.seek_to(second)
 
+    def get_song_timestamp_progress(self, ctx):
+        vmanager = self.guild_to_voice_manager_map.get(ctx.guild.id)
+        return vmanager.state.song_progress()
+
+    def update_song_progress(self, ctx):
+        vmanager = self.guild_to_voice_manager_map.get(ctx.guild.id)
+        vmanager.state.update_song_progress()
+
     async def reproduce_from_file(self, member, audio_filename):
         vmanager = self.guild_to_voice_manager_map.get(member.guild.id)
         vc = member.voice.channel

@@ -8,6 +8,7 @@ from Functionalities.Voice.VoiceState import *
 from Functionalities.Voice.Voice import StreamingType
 from BE.BotBE import BotBE
 from Utils.TTS import TTS
+from Utils.TimeUtils import TimeUtils
 from embeds.custom import GeneralEmbed
 import logging
 class voice(commands.Cog):
@@ -137,11 +138,40 @@ class voice(commands.Cog):
             try:
                 second = int(second)
                 self.client.voice.seek(ctx, second)
-                await ctx.send(f"Yendo al segundo {second}, paciencia...")
                 await ctx.processing_command_reaction()
             except Exception as e:
                 logging.warning(str(e), exc_info=True)
                 await ctx.send("No pes")
+
+    @commands.command(name="rewind", aliases=["rwd"])
+    @commands.cooldown(1.0, 3.0, commands.BucketType.guild)
+    async def rewind(self, ctx):
+        '''Rewind de 10 segundos en la cancion actual
+        '''
+        playing_state = self.client.voice.get_playing_state(ctx)
+        if isinstance(playing_state, Stream):
+            current_second = self.client.voice.get_song_timestamp_progress(ctx)
+            await self.seek(ctx, current_second - 10)
+            await ctx.processing_command_reaction()
+
+    @commands.command(name="timestamp", aliases=["ts"])
+    @commands.cooldown(1.0, 3.0, commands.BucketType.guild)
+    async def song_progress(self, ctx):
+        '''Muestra por que hora, minuto y segundo esta la cancion actual'''
+        playing_state = self.client.voice.get_playing_state(ctx)
+        if isinstance(playing_state, Stream):
+            current_second = self.client.voice.get_song_timestamp_progress(ctx)
+            await ctx.send(TimeUtils.parse_seconds(current_second))
+
+    @commands.command(name="fast-forward", aliases=["fwd"])
+    @commands.cooldown(1.0, 3.0, commands.BucketType.guild)
+    async def fast_forward(self, ctx):
+        '''Fast forward de 10 segundos en la cancion actual'''
+        playing_state = self.client.voice.get_playing_state(ctx)
+        if isinstance(playing_state, Stream):
+            current_second = self.client.voice.get_song_timestamp_progress(ctx)
+            await self.seek(ctx, current_second + 10)
+            await ctx.processing_command_reaction()
 
     @commands.command(name="metele", aliases=["go", "pl"])
     @commands.cooldown(1.0, 3.0, commands.BucketType.guild)
@@ -387,7 +417,7 @@ class voice(commands.Cog):
     @fav.command(name="del", aliases=["d"])
     @commands.cooldown(1.0, 3.0, commands.BucketType.guild)
     async def fav_delete(self, ctx, song_id):
-        '''Borra cancion favorita segun su numero
+        '''Borra cancion favorita segun su identificador
         '''
         try:
             self.client.bot_be.delete_fav(str(song_id), str(ctx.author.id))
@@ -408,7 +438,7 @@ class voice(commands.Cog):
         for idx, favs_dict in enumerate(favs_dicts):
             field = dict()
             field["name"] = favs_dict['song']
-            field["value"] = f"Numero: {favs_dict['song_id']}"
+            field["value"] = f"Identificador: {favs_dict['song_id']}"
             field["inline"] = True
             options["fields"].append(field)
         await ctx.send(embed=GeneralEmbed.from_dict(options)) if len(favs_dicts) != 0 else await ctx.send("Aun no has guardado favoritos, usa `-help fav save`")

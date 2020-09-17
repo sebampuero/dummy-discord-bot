@@ -45,9 +45,9 @@ class State(object):
         self.switch(self.voice_manager.off)
         self.voice_manager.prev_state = self.voice_manager.state
         asyncio.run_coroutine_threadsafe(self.voice_manager.disconnect(), self.client.loop)
-        self.delete_music_cache()
+        self._delete_music_cache()
 
-    def delete_music_cache(self):
+    def _delete_music_cache(self):
         path = "./music_cache"
         pattern = r".*\..*"
         FileUtils.remove_files_in_dir(path, pattern)
@@ -126,11 +126,19 @@ class Stream(State):
             self.music_loop(error=None)
 
     def seek_to(self, second):
-        self.voice_manager.current_player.after = None
-        self.voice_manager.stop() 
+        self.voice_manager.interrupt_player()
         self.ffmpeg_options = {'before_options': f"-ss {second}"}
         self.queue.append(self.last_query)
         self.music_loop(error=None)
+        self._update_song_progress(second)
+
+    def song_progress(self):
+        if self.voice_manager.current_player:
+            return self.voice_manager.current_player.source.get_progress_seconds()
+
+    def _update_song_progress(self, seconds):
+        if self.voice_manager.current_player:
+            self.voice_manager.current_player.source.set_progress_ms(seconds)
 
     def shuffle_queue(self):
         if len(self.queue) > 0:
@@ -228,13 +236,12 @@ class Stream(State):
             logging.error(log, exc_info=True)
             LoggerSaver.save_log(f"{log} {str(e)}", WhatsappLogger())
         else:
-            self.ffmpeg_options = {}
+            self.ffmpeg_options.clear()
 
     def cleanup(self):        
-        self.queue = []
+        self.queue.clear()
         self.trigger_loop = False
         super(Stream, self).cleanup()
-
 
 class Speak(State):
 

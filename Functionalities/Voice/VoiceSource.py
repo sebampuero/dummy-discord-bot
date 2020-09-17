@@ -24,6 +24,13 @@ class StreamSource(discord.PCMVolumeTransformer):
         super().__init__(source, volume)
         self.url = url
         self.duration = 0
+        self.progress = 0
+
+    def get_progress_seconds(self):
+        return int(self.progress * 20 / 1000) # returns progress in seconds
+
+    def set_progress_ms(self, seconds):
+        self.progress = int(seconds * 1000 / 20)
 
     @staticmethod
     def parse_duration(duration: int):
@@ -42,6 +49,10 @@ class StreamSource(discord.PCMVolumeTransformer):
             duration.append('{} segundos'.format(seconds))
 
         return ', '.join(duration)
+
+    def read(self):
+        self.progress = self.progress + 1 # every progress step is worth 20ms
+        return super().read()
 
 class MP3FileSource(StreamSource):
 
