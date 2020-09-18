@@ -10,6 +10,7 @@ from BE.BotBE import BotBE
 from Utils.TTS import TTS
 from Utils.TimeUtils import TimeUtils
 from embeds.custom import GeneralEmbed
+from exceptions.CustomException import NotValidSongTimestamp
 import logging
 class voice(commands.Cog):
     '''Todo lo necesario para hacer que el bot hable y reproduzca musiquita
@@ -129,16 +130,24 @@ class voice(commands.Cog):
 
     @commands.command(name="seek", aliases=["sk"])
     @commands.cooldown(1.0, 3.0, commands.BucketType.guild)
-    async def seek(self, ctx, second):
+    async def seek(self, ctx, timestamp):
         '''Avanza el stream hasta el segundo determinado
-        Ejemplo: `-seek 50`
+        Ejemplo: `-seek 70` (70 segundos) o `-seek 1m:20s` (1 minuto 20 segundos)
+        o `-seek 1h:10m:10s` (1 hora 10 minutos 10 segundos)
         '''
         playing_state = self.client.voice.get_playing_state(ctx)
         if isinstance(playing_state, Stream):
             try:
-                second = int(second)
+                second = int(timestamp)
                 self.client.voice.seek(ctx, second)
                 await ctx.processing_command_reaction()
+            except ValueError: # incase it has the readable format
+                try:
+                    seconds = TimeUtils.parse_readable_format(timestamp)
+                    self.client.voice.seek(ctx, seconds)
+                    await ctx.processing_command_reaction()
+                except NotValidSongTimestamp:
+                    await ctx.send("Formato no valido, usa algo como `10m:50s o 1h:20m:20s o 20s`")
             except Exception as e:
                 logging.warning(str(e), exc_info=True)
                 await ctx.send("No pes")
@@ -161,7 +170,7 @@ class voice(commands.Cog):
         playing_state = self.client.voice.get_playing_state(ctx)
         if isinstance(playing_state, Stream):
             current_second = self.client.voice.get_song_timestamp_progress(ctx)
-            await ctx.send(TimeUtils.parse_seconds(current_second))
+            await ctx.send(f"{TimeUtils.parse_seconds(current_second)} de cancion")
 
     @commands.command(name="fast-forward", aliases=["fwd"])
     @commands.cooldown(1.0, 3.0, commands.BucketType.guild)

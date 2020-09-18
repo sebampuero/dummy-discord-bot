@@ -4,8 +4,10 @@ from youtube_dl import YoutubeDL
 from Utils.LoggerSaver import *
 from exceptions.CustomException import CustomClientException
 from requests import exceptions
+from Utils.TimeUtils import TimeUtils
 import requests
 import soundcloud
+import os
 
 with open("./config/creds.json", "r") as f:
     creds = json.loads(f.read())
@@ -34,21 +36,7 @@ class StreamSource(discord.PCMVolumeTransformer):
 
     @staticmethod
     def parse_duration(duration: int):
-        minutes, seconds = divmod(duration, 60)
-        hours, minutes = divmod(minutes, 60)
-        days, hours = divmod(hours, 24)
-
-        duration = []
-        if days > 0:
-            duration.append('{} dias'.format(days))
-        if hours > 0:
-            duration.append('{} horas'.format(hours))
-        if minutes > 0:
-            duration.append('{} minutos'.format(minutes))
-        if seconds > 0:
-            duration.append('{} segundos'.format(seconds))
-
-        return ', '.join(duration)
+        return TimeUtils.parse_seconds(duration)
 
     def read(self):
         self.progress = self.progress + 1 # every progress step is worth 20ms
@@ -130,20 +118,25 @@ class YTDLSource(StreamSource):
     @classmethod
     def from_query(cls, query, volume=0.3, options=None, before_options=None):
         if options:
-            cls.ytdl_opts.update(options)
+            cls.ffmpeg_options.update(options)
         query = " ".join(query) if not isinstance(query, str) else query
         with YoutubeDL(YTDLSource.ytdl_opts) as ydl:
             info = ydl.extract_info(query, download=False)
             if 'entries' in info:  # grab the first video
                 info = info['entries'][0]
-
+            path = ydl.prepare_filename(info)
+            if os.path.isfile(path):
+                data = info
+                data["filename_vid"] = path
+                return cls(discord.FFmpegPCMAudio(path, options=cls.ffmpeg_options, before_options=before_options), data, volume)
             if not info['is_live']:
                 data = ydl.extract_info(query)  # TODO run in executor?
             else:
-                pass  #TODO get next video
+                #TODO parse the live video anyways
+                raise CustomClientException("No hay soporte para live videos aun")
 
             if 'entries' in data:  # if we get a playlist, grab the first video TODO does ytdl_opts['noplaylist'] prevent this error?
                 data = data['entries'][0]
             path = ydl.prepare_filename(data)
             data["filename_vid"] = path
-            return cls(discord.FFmpegPCMAudio(path, options=YTDLSource.ffmpeg_options, before_options=before_options), data, volume)
+            return cls(discord.FFmpegPCMAudio(path, options=cls.ffmpeg_options, before_options=before_options), data, volume)

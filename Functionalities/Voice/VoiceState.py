@@ -219,15 +219,14 @@ class Stream(State):
             self.voice_manager.current_player = self.voice_manager.voice_client._player
             self.edit_msg()
         except discord.ClientException as e:
-            log = "while streaming"
-            logging.error(log, exc_info=True)
-            LoggerSaver.save_log(f"{log} {str(e)}", WhatsappLogger())
+            logging.error("while streaming", exc_info=True)
+            LoggerSaver.save_log(f"while streaming {str(e)}", WhatsappLogger())
             asyncio.run_coroutine_threadsafe(self.voice_manager.current_context.send("Error inesperado"), self.client.loop)
-            self.cleanup()
+            self.music_loop(error=None)
         except CustomClientException as e:
             asyncio.run_coroutine_threadsafe(self.voice_manager.current_context.send(str(e)), self.client.loop)
             LoggerSaver.save_log(str(e), WhatsappLogger())
-            self.cleanup()
+            self.music_loop(error=None)
         except Exception as e:
             error_msg = "Se produjo un error reproduciendo cancion actual, intentando reproducir siguiente canción en lista"
             asyncio.run_coroutine_threadsafe(self.voice_manager.current_context.send(error_msg), self.client.loop)
