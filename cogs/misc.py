@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
 from Utils.LoggerSaver import *
+from checks.Checks import *
 import random
 import logging
 import os
@@ -20,14 +21,13 @@ class misc(commands.Cog):
         await ctx.send(f"Estoy a {round(self.client.latency * 1000)}ms")
 
     @commands.command(name="r")
+    @is_owner()
     async def restart_bot(self, ctx):
         '''Reinicia el bot. Unicamente el lord papu puede hacerlo
         '''
         if len(self.client.voice_clients) != 0:
             return await ctx.send("El bot esta reproduciendo audio y no puede reiniciarse ahora")
-        self.client.load_config()
-        if ctx.author.id == self.client.config["restarter"]["id"]:
-            os.system("systemctl restart discord-py.service")
+        os.system("systemctl restart discord-py.service")
 
     @commands.Cog.listener()
     async def on_member_join(self, member):
@@ -38,11 +38,6 @@ class misc(commands.Cog):
     async def on_message(self, message):
         if message.author == self.client.user:
             return
-        if "quieres" in message.content.lower():
-            self.client.load_config()
-            options = self.client.config["messages"]["quieres"]
-            random_msg = random.choice(options)
-            await message.channel.send(random_msg)
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx, error):
@@ -55,6 +50,8 @@ class misc(commands.Cog):
             await ctx.send(f"Te falta un parametro a este comando: {error.param}")
         elif isinstance(error, commands.UnexpectedQuoteError):
             await ctx.send(f"No incluyas `\"` en tus comandos")
+        elif isinstance(error, commands.CheckFailure):
+            pass
         else:
             log = f"Error: {str(error)} of type {type(error)}"
             logging.error(log, exc_info=True)

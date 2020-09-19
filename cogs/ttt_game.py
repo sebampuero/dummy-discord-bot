@@ -166,7 +166,7 @@ class tttgame(commands.Cog):
         '''
         if self.game_manager.game_exists(ctx.guild.id):
             player2 = self.game_manager.get_player_two(ctx.guild.id)
-            if player2:
+            if player2["id"] == ctx.author.id:
                 await ctx.send("Iniciando el juego...")
                 await ctx.send(file=File(TTTImager(ctx.guild.id).create_initial_board()))
                 await self._process_next_turn(ctx)

@@ -207,19 +207,33 @@ class Voice():
         vmanager = self.guild_to_voice_manager_map.get(ctx.guild.id)
         vmanager.state.update_song_progress()
 
+    def restore_stream(self, ctx):
+        vmanager = self.guild_to_voice_manager_map.get(ctx.guild.id)
+        vmanager.state.restore_effects()
+
+    def test_filter(self, ctx, ffmpeg_filter):
+        vmanager = self.guild_to_voice_manager_map.get(ctx.guild.id)
+        vmanager.state.test_effect_ffmpeg(ffmpeg_filter)
+
+    def apply_effect(self, ctx, effect_type):
+        vmanager = self.guild_to_voice_manager_map.get(ctx.guild.id)
+        vmanager.state.apply_effect_ffmpeg(effect_type)
+
     async def reproduce_from_file(self, member, audio_filename):
         vmanager = self.guild_to_voice_manager_map.get(member.guild.id)
         vc = member.voice.channel
-        if discord.opus.is_loaded():
-            await self._attempt_to_connect_to_voice(vc, vmanager)
-            if not await self._voice_state_check(vc, vmanager):
-                return
-            if isinstance(vmanager.state, Stream) or isinstance(vmanager.state, Radio):
-                vmanager.pause_player()
-                vmanager.prev_state = vmanager.state
-            if not isinstance(vmanager.state, Speak) or not isinstance(vmanager.state, Salute):
-                vmanager.change_state(vmanager.speak)
-                vmanager.play(audio_filename)
+        if not discord.opus.is_loaded():
+            return
+        await self._attempt_to_connect_to_voice(vc, vmanager)
+        if not await self._is_voice_state_valid(vc, vmanager):
+            return
+        if isinstance(vmanager.state, Stream) or isinstance(vmanager.state, Radio):
+            vmanager.pause_player()
+            vmanager.prev_state = vmanager.state
+        if not isinstance(vmanager.state, Speak) or not isinstance(vmanager.state, Salute):
+            vmanager.change_state(vmanager.speak)
+            vmanager.play(audio_filename)
+            
 
     async def play_welcome_audio(self, member, voice_channel):
         guild_id = member.guild.id
@@ -231,61 +245,65 @@ class Voice():
             audio_files_list = user_ids_to_audio_map[str(member.id)][str(guild_id)]["audios"]
             random_idx = random.randint(0, len(audio_files_list) - 1)
             audio_file_name = audio_files_list[random_idx]
-            if discord.opus.is_loaded():
-                await self._attempt_to_connect_to_voice(voice_channel, vmanager)
-                if not await self._voice_state_check(voice_channel, vmanager):
-                    return
-                if isinstance(vmanager.state, Stream) or isinstance(vmanager.state, Radio):
-                    vmanager.pause_player()
-                    vmanager.prev_state = vmanager.state
-                if not isinstance(vmanager.state, Speak):
-                    vmanager.change_state(vmanager.salute)
-                    vmanager.play(audio_file_name)
+            if not discord.opus.is_loaded():
+                return
+            await self._attempt_to_connect_to_voice(voice_channel, vmanager)
+            if not await self._is_voice_state_valid(voice_channel, vmanager):
+                return
+            if isinstance(vmanager.state, Stream) or isinstance(vmanager.state, Radio):
+                vmanager.pause_player()
+                vmanager.prev_state = vmanager.state
+            if not isinstance(vmanager.state, Speak):
+                vmanager.change_state(vmanager.salute)
+                vmanager.play(audio_file_name)
         except KeyError:
             pass
 
     async def play_radio(self, url, ctx, radio_name):
         vmanager = self.guild_to_voice_manager_map.get(ctx.guild.id)
         vc = ctx.author.voice.channel
-        if discord.opus.is_loaded():
-            net_utils = NetworkUtils()
-            status, content_type = await net_utils.website_check(url)
-            if status != 200:
-                return await ctx.send(f"Se jodio esta radio {url}")
-            await self._attempt_to_connect_to_voice(vc, vmanager)
-            if not await self._voice_state_check(vc, vmanager, ctx):
-                return
-            if isinstance(vmanager.state, Stream) or isinstance(vmanager.state, Radio):
-                vmanager.interrupt_player()
-            vmanager.prev_state = vmanager.state
-            vmanager.change_state(vmanager.radio)
-            vmanager.current_context = ctx
-            options = {'title': f'Reproduciendo radio {radio_name}'}
-            msg = await ctx.send(embed=VoiceEmbeds(ctx.author,**options)) 
-            vmanager.play(url, **{ "original_msg": msg, "radio_name": radio_name })
+        if not discord.opus.is_loaded():
+            return await ctx.send("Error cargando librerias de audio")
+        net_utils = NetworkUtils()
+        status, content_type = await net_utils.website_check(url)
+        if status != 200:
+            return await ctx.send(f"La radio {radio_name} con {url} dejo de funcionar")
+        await self._attempt_to_connect_to_voice(vc, vmanager)
+        if not await self._is_voice_state_valid(vc, vmanager, ctx):
+            return
+        if isinstance(vmanager.state, Stream) or isinstance(vmanager.state, Radio):
+            vmanager.interrupt_player()
+        vmanager.prev_state = vmanager.state
+        vmanager.change_state(vmanager.radio)
+        vmanager.current_context = ctx
+        options = {'title': f'Reproduciendo radio {radio_name}'}
+        msg = await ctx.send(embed=VoiceEmbeds(ctx.author,**options)) 
+        vmanager.play(url, **{ "original_msg": msg, "radio_name": radio_name })
+            
 
     async def play_streaming(self, query, streaming_type, ctx):
         vmanager = self.guild_to_voice_manager_map.get(ctx.guild.id)
         vc = ctx.author.voice.channel
-        if discord.opus.is_loaded():
-            await self._attempt_to_connect_to_voice(vc, vmanager)
-            if not await self._voice_state_check(vc, vmanager, ctx):
-                return
-            if isinstance(vmanager.state, Radio):
-                vmanager.interrupt_player()
-            vmanager.prev_state = vmanager.state
-            vmanager.change_state(vmanager.stream)
-            vmanager.current_context = ctx
-            if streaming_type == StreamingType.SPOTIFY:
-                await self._play_streaming_spotify(query, vmanager, ctx)
-            elif streaming_type == StreamingType.YOUTUBE:
-                await self._play_streaming_youtube(query, vmanager, ctx)
-            elif streaming_type == StreamingType.SOUNDCLOUD:
-                await self._play_streaming_soundcloud(query, vmanager, ctx)
-            elif streaming_type == StreamingType.MP3_FILE:
-                await self._play_streaming_mp3file(query, vmanager, ctx)
-            elif streaming_type ==  StreamingType.BULK_FAVS:
-                await self._play_streaming_bulk_favs(query, vmanager, ctx)
+        if not discord.opus.is_loaded():
+            return await ctx.send("Error cargando librerias de audio")
+        await self._attempt_to_connect_to_voice(vc, vmanager)
+        if not await self._is_voice_state_valid(vc, vmanager, ctx):
+            return
+        if isinstance(vmanager.state, Radio):
+            vmanager.interrupt_player()
+        vmanager.prev_state = vmanager.state
+        vmanager.change_state(vmanager.stream)
+        vmanager.current_context = ctx
+        if streaming_type == StreamingType.SPOTIFY:
+            await self._play_streaming_spotify(query, vmanager, ctx)
+        elif streaming_type == StreamingType.YOUTUBE:
+            await self._play_streaming_youtube(query, vmanager, ctx)
+        elif streaming_type == StreamingType.SOUNDCLOUD:
+            await self._play_streaming_soundcloud(query, vmanager, ctx)
+        elif streaming_type == StreamingType.MP3_FILE:
+            await self._play_streaming_mp3file(query, vmanager, ctx)
+        elif streaming_type ==  StreamingType.BULK_FAVS:
+            await self._play_streaming_bulk_favs(query, vmanager, ctx)
 
     async def _play_streaming_bulk_favs(self, query, vmanager, ctx):
         query_list = self._process_favorite_song_queries(query)
@@ -335,7 +353,7 @@ class Voice():
         if not vc_found:
             vmanager.voice_client = await voice_channel.connect()
 
-    async def _voice_state_check(self, voice_channel, vmanager,  ctx=None):
+    async def _is_voice_state_valid(self, voice_channel, vmanager,  ctx=None):
         valid = True
         if not vmanager.voice_client:
             return False

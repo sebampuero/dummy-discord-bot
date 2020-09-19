@@ -6,6 +6,7 @@ from Utils.FileUtils import FileUtils
 from Utils.LoggerSaver import *
 from Functionalities.Voice.VoiceSource import *
 from Functionalities.Voice.VoiceQuery import *
+from enum import Enum
 
 class State(object):
 
@@ -112,6 +113,21 @@ class Stream(State):
 
     name = "stream"
 
+    class Effect(Enum):
+
+        EQUALIZER = 1
+        BASS = 2
+        METAL = 3
+        VAPORWAVE = 4
+        EAR_RAPE = 5
+        CHORUS = 6
+        VIBRATO = 7
+        EIGHTM_SIM = 8
+        SUPEREQUALIZER = 9
+        SLOW_DOWN = 10
+        SPEED_UP = 11
+
+
     def __init__(self, voice_manager, client):
         super().__init__(voice_manager, client)
         self.queue = []
@@ -125,9 +141,11 @@ class Stream(State):
         if not self.voice_manager.is_voice_client_playing():
             self.music_loop(error=None)
 
-    def seek_to(self, second):
+    def seek_to(self, second, ffmpeg_options=None):
         self.voice_manager.interrupt_player()
         self.ffmpeg_options = {'before_options': f"-ss {second}"}
+        if ffmpeg_options:
+            self.ffmpeg_options.update(ffmpeg_options)
         self.queue.append(self.last_query)
         self.music_loop(error=None)
         self._update_song_progress(second)
@@ -135,6 +153,42 @@ class Stream(State):
     def song_progress(self):
         if self.voice_manager.current_player:
             return self.voice_manager.current_player.source.get_progress_seconds()
+
+    def restore_effects(self):
+        current_secods = self.voice_manager.current_player.source.get_progress_seconds()
+        self.seek_to(current_secods)
+
+    def test_effect_ffmpeg(self, ffmpeg_filter):
+        ffmpeg_options = {'options': f'-af "{ffmpeg_filter}"'}
+        self._apply_ffmpeg_options(ffmpeg_options)
+
+    def apply_effect_ffmpeg(self, effect_type):
+        if effect_type == Stream.Effect.EQUALIZER:
+            self.test_effect_ffmpeg("equalizer=f=440:width_type=o:width=2:g=12.0")
+        elif effect_type == Stream.Effect.VIBRATO:
+            self.test_effect_ffmpeg("aphaser=type=t:speed=2:decay=0.6")
+        elif effect_type == Stream.Effect.BASS:
+            self.test_effect_ffmpeg("bass=g=12.0")
+        elif effect_type == Stream.Effect.CHORUS:
+            self.test_effect_ffmpeg("chorus=0.5:0.9:50|60|70:0.3|0.22|0.3:0.25|0.4|0.3:2|2.3|1.3")
+        elif effect_type == Stream.Effect.EAR_RAPE:
+            self.test_effect_ffmpeg("acrusher=level_in=8:level_out=18:bits=8:mode=log:aa=1")
+        elif effect_type == Stream.Effect.EIGHTM_SIM:
+            self.test_effect_ffmpeg("apulsator=hz=0.125")
+        elif effect_type == Stream.Effect.VAPORWAVE:
+            self.test_effect_ffmpeg("vibrato=f=5,bass=g=10.0")
+        elif effect_type == Stream.Effect.METAL:
+            self.test_effect_ffmpeg("aecho=0.8:0.88:8:0.8")
+        elif effect_type == Stream.Effect.SUPEREQUALIZER:
+            self.test_effect_ffmpeg("superequalizer=1b=10:2b=10:3b=1:4b=5:5b=7:6b=5:7b=2:8b=3:9b=4:10b=5:11b=6:12b=7:13b=8:14b=8:15b=9:16b=9:17b=10:18b=10[a];[a]loudnorm=I=-16:TP=-1.5:LRA=14")
+        elif effect_type == Stream.Effect.SLOW_DOWN:
+            self.test_effect_ffmpeg("atempo=0.5")
+        elif effect_type == Stream.Effect.SPEED_UP:
+            self.test_effect_ffmpeg("atempo=2.0")
+
+    def _apply_ffmpeg_options(self, options):
+        current_secods = self.voice_manager.current_player.source.get_progress_seconds()
+        self.seek_to(current_secods, ffmpeg_options=options)
 
     def _update_song_progress(self, seconds):
         if self.voice_manager.current_player:

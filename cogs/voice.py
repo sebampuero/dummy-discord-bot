@@ -11,6 +11,7 @@ from Utils.TTS import TTS
 from Utils.TimeUtils import TimeUtils
 from embeds.custom import GeneralEmbed
 from exceptions.CustomException import NotValidSongTimestamp
+from checks.Checks import *
 import logging
 class voice(commands.Cog):
     '''Todo lo necesario para hacer que el bot hable y reproduzca musiquita
@@ -181,6 +182,135 @@ class voice(commands.Cog):
             current_second = self.client.voice.get_song_timestamp_progress(ctx)
             await self.seek(ctx, current_second + 10)
             await ctx.processing_command_reaction()
+
+    @commands.command(name="speed-up", aliases=["su"])
+    @commands.cooldown(1.0, 3.0, commands.BucketType.guild)
+    async def speed_up(self, ctx):
+        '''Acelera la cancion actual a 2X
+        '''
+        playing_state = self.client.voice.get_playing_state(ctx)
+        if isinstance(playing_state, Stream):
+            self.client.voice.apply_effect(ctx, Stream.Effect.SPEED_UP)
+            await ctx.processing_command_reaction()
+
+    @commands.command(name="slow-down", aliases=["sd"])
+    @commands.cooldown(1.0, 3.0, commands.BucketType.guild)
+    async def slow_down(self, ctx):
+        '''Lentea la cancion actual a 0.5X
+        '''
+        playing_state = self.client.voice.get_playing_state(ctx)
+        if isinstance(playing_state, Stream):
+            self.client.voice.apply_effect(ctx, Stream.Effect.SLOW_DOWN)
+            await ctx.processing_command_reaction()
+
+    @commands.command(name="restore-effects", aliases=["re"])
+    @commands.cooldown(1.0, 3.0, commands.BucketType.guild)
+    async def restore_effects(self, ctx):
+        '''Quita todos los efectos y regresa la cancion a la normalidad
+        '''
+        playing_state = self.client.voice.get_playing_state(ctx)
+        if isinstance(playing_state, Stream):
+            self.client.voice.restore_stream(ctx)
+            await ctx.processing_command_reaction()
+
+    @commands.command(name="indoor-equalizer")
+    @commands.cooldown(1.0, 3.0, commands.BucketType.guild)
+    async def indoor_equalizer(self, ctx):
+        '''Aplica el efecto indoor-equalizer en la cancion actual
+        '''
+        playing_state = self.client.voice.get_playing_state(ctx)
+        if isinstance(playing_state, Stream):
+            self.client.voice.apply_effect(ctx, Stream.Effect.EQUALIZER)
+            await ctx.processing_command_reaction()
+
+    @commands.command(name="autism")
+    @commands.cooldown(1.0, 3.0, commands.BucketType.guild)
+    async def autism(self, ctx):
+        '''Aplica el efecto autism en la cancion actual
+        '''
+        playing_state = self.client.voice.get_playing_state(ctx)
+        if isinstance(playing_state, Stream):
+            self.client.voice.apply_effect(ctx, Stream.Effect.VAPORWAVE)
+            await ctx.processing_command_reaction()
+
+    @commands.command(name="bass")
+    @commands.cooldown(1.0, 3.0, commands.BucketType.guild)
+    async def bass(self, ctx):
+        '''Aplica el efecto bass en la cancion actual
+        '''
+        playing_state = self.client.voice.get_playing_state(ctx)
+        if isinstance(playing_state, Stream):
+            self.client.voice.apply_effect(ctx, Stream.Effect.BASS)
+            await ctx.processing_command_reaction()
+
+    @commands.command(name="chorus")
+    @commands.cooldown(1.0, 3.0, commands.BucketType.guild)
+    async def chorus(self, ctx):
+        '''Aplica el efecto chorus en la cancion actual
+        '''
+        playing_state = self.client.voice.get_playing_state(ctx)
+        if isinstance(playing_state, Stream):
+            self.client.voice.apply_effect(ctx, Stream.Effect.CHORUS)
+            await ctx.processing_command_reaction()
+
+    @commands.command(name="ear-rape")
+    @commands.cooldown(1.0, 3.0, commands.BucketType.guild)
+    async def ear_rape(self, ctx):
+        '''Aplica el efecto ear rape en la cancion actual
+        '''
+        playing_state = self.client.voice.get_playing_state(ctx)
+        if isinstance(playing_state, Stream):
+            self.client.voice.apply_effect(ctx, Stream.Effect.EAR_RAPE)
+            await ctx.processing_command_reaction()
+
+    @commands.command(name="eight-sim")
+    @commands.cooldown(1.0, 3.0, commands.BucketType.guild)
+    async def eight_sim(self, ctx):
+        '''Aplica el efecto 8M Sim en la cancion actual
+        '''
+        playing_state = self.client.voice.get_playing_state(ctx)
+        if isinstance(playing_state, Stream):
+            self.client.voice.apply_effect(ctx, Stream.Effect.EIGHTM_SIM)
+            await ctx.processing_command_reaction()
+
+    @commands.command(name="vaporwave")
+    @commands.cooldown(1.0, 3.0, commands.BucketType.guild)
+    async def vaporwave(self, ctx):
+        '''Aplica el efecto vaporwave en la cancion actual
+        '''
+        playing_state = self.client.voice.get_playing_state(ctx)
+        if isinstance(playing_state, Stream):
+            self.client.voice.apply_effect(ctx, Stream.Effect.VIBRATO)
+            await ctx.processing_command_reaction()
+
+    @commands.command(name="metal")
+    @commands.cooldown(1.0, 3.0, commands.BucketType.guild)
+    async def metal(self, ctx):
+        '''Aplica el efecto metal en la cancion actual
+        '''
+        playing_state = self.client.voice.get_playing_state(ctx)
+        if isinstance(playing_state, Stream):
+            self.client.voice.apply_effect(ctx, Stream.Effect.METAL)
+            await ctx.processing_command_reaction()
+
+    @commands.command(name="super-eq")
+    @commands.cooldown(1.0, 3.0, commands.BucketType.guild)
+    async def super_equalizer(self, ctx):
+        '''Aplica el efecto super equalizer en la cancion actual
+        '''
+        playing_state = self.client.voice.get_playing_state(ctx)
+        if isinstance(playing_state, Stream):
+            self.client.voice.apply_effect(ctx, Stream.Effect.SUPEREQUALIZER)
+            await ctx.processing_command_reaction()
+
+    @commands.command(name="test-effect")
+    @is_owner()
+    async def test_filter(self, ctx, ffmpeg_filter):
+        '''Prueba de filtros para ffmpeg. Solo uso autorizado.
+        '''
+        playing_state = self.client.voice.get_playing_state(ctx)
+        if isinstance(playing_state, Stream):
+            self.client.voice.test_filter(ctx, ffmpeg_filter)
 
     @commands.command(name="metele", aliases=["go", "pl"])
     @commands.cooldown(1.0, 3.0, commands.BucketType.guild)

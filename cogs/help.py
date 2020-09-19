@@ -23,6 +23,8 @@ class HelpCommand(commands.MinimalHelpCommand):
             "Juego de tres en raya contra la AI o contra otro causa, para eso usar el comando `-challenge`\n",
             "Guardar playlists de spotify bajo nombre propio, para eso usar el comando `-playl save`. Para mas info `-help playl`\n",
             "Visualizar canciones que se estan reproduciendo actualmente, para eso usar `-list l numero_de_pagina`. Para mas info `-help list l`\n",
+            "Guarda favoritos para reproducir en lista despues. Para eso `-help fav`\n",
+            "Aplica efectos locazos en las canciones que se estan reproduciendose `-help voice`\n",
             "Poner alertas de precios de sitios como Amazon o G2A. Para eso usar el comando `-set-alert`\n",
             "Suscribirte a otros causas y recibir notificaciones cuando se conecten a voz, para eso `-subscribe`\n"
         ]

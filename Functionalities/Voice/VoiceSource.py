@@ -28,6 +28,16 @@ class StreamSource(discord.PCMVolumeTransformer):
         self.duration = 0
         self.progress = 0
 
+    ffmpeg_options = {
+        'options': '',
+        'before_options': ''
+    }
+
+    @classmethod
+    def clear_ffmpeg_options(cls):
+        cls.ffmpeg_options['options'] = ''
+        cls.ffmpeg_options['before_options'] = ''
+
     def get_progress_seconds(self):
         return int(self.progress * 20 / 1000) # returns progress in seconds
 
@@ -65,6 +75,11 @@ class SoundcloudSource(StreamSource):
     @classmethod
     def from_query(cls, query, volume=0.3, options=None, before_options=None):
         try:
+            cls.clear_ffmpeg_options()
+            if options:
+                cls.ffmpeg_options['options'] += options
+            if before_options:
+                cls.ffmpeg_options['before_options'] += before_options
             the_track = soundcloud_client.get("resolve", url=query)
             track = soundcloud_client.get(f"tracks/{the_track.id}")
             if not track.streamable or track.kind != "track":
@@ -75,7 +90,7 @@ class SoundcloudSource(StreamSource):
                     stream = soundcloud_client.get(transcoding["url"], allow_redirects=True)
             if stream:
                 obj = requests.get(stream.url)
-                return cls(json.loads(obj.text)["url"], volume, track, options=options, before_options=before_options)
+                return cls(json.loads(obj.text)["url"], volume, track, **cls.ffmpeg_options)
             else:
                 raise CustomClientException("Track no es streameable")
         except exceptions.HTTPError as e:
@@ -104,10 +119,6 @@ class YTDLSource(StreamSource):
         'source_address': '0.0.0.0'
     }
 
-    ffmpeg_options = {
-        'options': '-vn'
-    }
-
     def __init__(self, source, data, volume=0.3):
         super().__init__(source, data.get('filename_vid'), volume)
         self.title = data.get('title', '')
@@ -117,8 +128,13 @@ class YTDLSource(StreamSource):
 
     @classmethod
     def from_query(cls, query, volume=0.3, options=None, before_options=None):
+        cls.clear_ffmpeg_options()
         if options:
-            cls.ffmpeg_options.update(options)
+            cls.ffmpeg_options['options'] += options
+        cls.ffmpeg_options['options'] += " -vn"
+        if before_options:
+            cls.ffmpeg_options['before_options'] += before_options
+        logging.warning(f"Using options {cls.ffmpeg_options}")
         query = " ".join(query) if not isinstance(query, str) else query
         with YoutubeDL(YTDLSource.ytdl_opts) as ydl:
             info = ydl.extract_info(query, download=False)
@@ -128,7 +144,7 @@ class YTDLSource(StreamSource):
             if os.path.isfile(path):
                 data = info
                 data["filename_vid"] = path
-                return cls(discord.FFmpegPCMAudio(path, options=cls.ffmpeg_options, before_options=before_options), data, volume)
+                return cls(discord.FFmpegPCMAudio(path, **cls.ffmpeg_options), data, volume)
             if not info['is_live']:
                 data = ydl.extract_info(query)  # TODO run in executor?
             else:
@@ -139,4 +155,4 @@ class YTDLSource(StreamSource):
                 data = data['entries'][0]
             path = ydl.prepare_filename(data)
             data["filename_vid"] = path
-            return cls(discord.FFmpegPCMAudio(path, options=cls.ffmpeg_options, before_options=before_options), data, volume)
+            return cls(discord.FFmpegPCMAudio(path, **cls.ffmpeg_options), data, volume)
