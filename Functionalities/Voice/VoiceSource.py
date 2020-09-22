@@ -7,7 +7,6 @@ from requests import exceptions
 from Utils.TimeUtils import TimeUtils
 import requests
 import soundcloud
-import os
 
 with open("./config/creds.json", "r") as f:
     creds = json.loads(f.read())
@@ -54,9 +53,10 @@ class StreamSource(discord.PCMVolumeTransformer):
 
 class MP3FileSource(StreamSource):
 
-    def __init__(self, url, title, volume=0.3, options=None, before_options=None):
+    def __init__(self, query, volume=0.3, options=None, before_options=None):
+        url = query.the_query
         super().__init__(discord.FFmpegPCMAudio(url, options=options, before_options=before_options), url, volume=volume)
-        self.title = title
+        self.title = query.title
 
 class RadioSource(StreamSource):
 
@@ -75,12 +75,13 @@ class SoundcloudSource(StreamSource):
     @classmethod
     def from_query(cls, query, volume=0.3, options=None, before_options=None):
         try:
+            url = query.the_query
             cls.clear_ffmpeg_options()
             if options:
                 cls.ffmpeg_options['options'] += options
             if before_options:
                 cls.ffmpeg_options['before_options'] += before_options
-            the_track = soundcloud_client.get("resolve", url=query)
+            the_track = soundcloud_client.get("resolve", url=url)
             track = soundcloud_client.get(f"tracks/{the_track.id}")
             if not track.streamable or track.kind != "track":
                 raise CustomClientException("Track no valida")
@@ -96,8 +97,6 @@ class SoundcloudSource(StreamSource):
         except exceptions.HTTPError as e:
             LoggerSaver.save_log(str(e), WhatsappLogger())
             raise CustomClientException("Link posiblemente mal formateado")
-        except Exception as e:
-            raise CustomClientException(str(e))
 
 class YTDLSource(StreamSource):
     ytdl_opts = {
@@ -113,7 +112,7 @@ class YTDLSource(StreamSource):
         #'skip_download': False,
         'logtostderr': False,
         'keepvideo': False,
-        'socket_timeout': 10,
+        'socket_timeout': 5,
         'no_warnings': True,
         'default_search': 'auto',
         'source_address': '0.0.0.0'
@@ -127,32 +126,29 @@ class YTDLSource(StreamSource):
         self.filename = data.get('filename_vid', '')
 
     @classmethod
-    def from_query(cls, query, volume=0.3, options=None, before_options=None):
+    def from_query(cls, youtube_query, volume=0.3, options=None, before_options=None):
         cls.clear_ffmpeg_options()
         if options:
             cls.ffmpeg_options['options'] += options
         cls.ffmpeg_options['options'] += " -vn"
         if before_options:
             cls.ffmpeg_options['before_options'] += before_options
-        logging.warning(f"Using options {cls.ffmpeg_options}")
-        query = " ".join(query) if not isinstance(query, str) else query
+        search_query = " ".join(youtube_query.the_query) if not isinstance(youtube_query.the_query, str) else youtube_query.the_query
+        if youtube_query.data:
+            data = youtube_query.data
+            return cls(discord.FFmpegPCMAudio(data["filename_vid"], **cls.ffmpeg_options), data, volume)
         with YoutubeDL(YTDLSource.ytdl_opts) as ydl:
-            info = ydl.extract_info(query, download=False)
+            info = ydl.extract_info(search_query, download=False)
             if 'entries' in info:  # grab the first video
                 info = info['entries'][0]
-            path = ydl.prepare_filename(info)
-            if os.path.isfile(path):
-                data = info
-                data["filename_vid"] = path
-                return cls(discord.FFmpegPCMAudio(path, **cls.ffmpeg_options), data, volume)
             if not info['is_live']:
-                data = ydl.extract_info(query)  # TODO run in executor?
+                data = ydl.extract_info(search_query)  # TODO run in executor?
             else:
                 #TODO parse the live video anyways
                 raise CustomClientException("No hay soporte para live videos aun")
-
-            if 'entries' in data:  # if we get a playlist, grab the first video TODO does ytdl_opts['noplaylist'] prevent this error?
+            if 'entries' in data: 
                 data = data['entries'][0]
             path = ydl.prepare_filename(data)
             data["filename_vid"] = path
+            youtube_query.set_data(data)
             return cls(discord.FFmpegPCMAudio(path, **cls.ffmpeg_options), data, volume)

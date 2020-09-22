@@ -264,11 +264,11 @@ class Stream(State):
         self.last_query = query
         try:
             if isinstance(query, SoundcloudQuery):
-                source = SoundcloudSource.from_query(query.the_query, self.current_volume, **self.ffmpeg_options)
+                source = SoundcloudSource.from_query(query, self.current_volume, **self.ffmpeg_options)
             elif isinstance(query, LocalMP3Query):
-                source = MP3FileSource(query.the_query, query.title, self.current_volume, **self.ffmpeg_options)
+                source = MP3FileSource(query, self.current_volume, **self.ffmpeg_options)
             else:
-                source = YTDLSource.from_query(query.the_query, self.current_volume, **self.ffmpeg_options)
+                source = YTDLSource.from_query(query, self.current_volume, **self.ffmpeg_options)
             self.voice_manager.voice_client.play(source, after=lambda e: self.music_loop(e))
             self.voice_manager.current_player = self.voice_manager.voice_client._player
             self.edit_msg()
@@ -276,7 +276,7 @@ class Stream(State):
             logging.error("while streaming", exc_info=True)
             LoggerSaver.save_log(f"while streaming {str(e)}", WhatsappLogger())
             asyncio.run_coroutine_threadsafe(self.voice_manager.current_context.send("Error inesperado"), self.client.loop)
-            self.music_loop(error=None)
+            self.cleanup()
         except CustomClientException as e:
             asyncio.run_coroutine_threadsafe(self.voice_manager.current_context.send(str(e)), self.client.loop)
             LoggerSaver.save_log(str(e), WhatsappLogger())
