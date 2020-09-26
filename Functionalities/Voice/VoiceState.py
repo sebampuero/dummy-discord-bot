@@ -137,7 +137,7 @@ class Stream(State):
     
     def reproduce(self, query, **kwargs):
         self.original_msg = kwargs["original_msg"]
-        self.queue.extend(query) if type(query) in [list] else self.queue.insert(0, query)
+        self.queue.extend(query) if isinstance(query, list) else self.queue.insert(0, query)
         if not self.voice_manager.is_voice_client_playing():
             self.music_loop(error=None)
 
@@ -278,6 +278,7 @@ class Stream(State):
             asyncio.run_coroutine_threadsafe(self.voice_manager.current_context.send("Error inesperado"), self.client.loop)
             self.cleanup()
         except CustomClientException as e:
+            logging.error("custom client exc", exc_info=True)
             asyncio.run_coroutine_threadsafe(self.voice_manager.current_context.send(str(e)), self.client.loop)
             LoggerSaver.save_log(str(e), WhatsappLogger())
             self.music_loop(error=None)

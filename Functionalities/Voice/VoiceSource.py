@@ -133,21 +133,16 @@ class YTDLSource(StreamSource):
         cls.ffmpeg_options['options'] += " -vn"
         if before_options:
             cls.ffmpeg_options['before_options'] += before_options
-        search_query = " ".join(youtube_query.the_query) if not isinstance(youtube_query.the_query, str) else youtube_query.the_query
+        search_query = " ".join(youtube_query.the_query) if youtube_query.the_query in [list, tuple] else youtube_query.the_query
+        search_query = str(search_query)
         if youtube_query.data:
-            data = youtube_query.data
-            return cls(discord.FFmpegPCMAudio(data["filename_vid"], **cls.ffmpeg_options), data, volume)
+            return cls(discord.FFmpegPCMAudio(youtube_query.data["filename_vid"], **cls.ffmpeg_options), youtube_query.data, volume)
         with YoutubeDL(YTDLSource.ytdl_opts) as ydl:
-            info = ydl.extract_info(search_query, download=False)
-            if 'entries' in info:  # grab the first video
-                info = info['entries'][0]
-            if not info['is_live']:
-                data = ydl.extract_info(search_query)  # TODO run in executor?
-            else:
-                #TODO parse the live video anyways
-                raise CustomClientException("No hay soporte para live videos aun")
+            data = ydl.extract_info(search_query)  # TODO run in executor?
             if 'entries' in data: 
                 data = data['entries'][0]
+            if data['is_live']:
+                raise CustomClientException("No hay soporte para live videos aun")
             path = ydl.prepare_filename(data)
             data["filename_vid"] = path
             youtube_query.set_data(data)
