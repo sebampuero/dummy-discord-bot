@@ -140,12 +140,12 @@ class voice(commands.Cog):
         if isinstance(playing_state, Stream):
             try:
                 second = int(timestamp)
-                self.client.voice.seek(ctx, second)
+                await self.client.voice.seek(ctx, second)
                 await ctx.processing_command_reaction()
             except ValueError: # incase it has the readable format
                 try:
                     seconds = TimeUtils.parse_readable_format(timestamp)
-                    self.client.voice.seek(ctx, seconds)
+                    await self.client.voice.seek(ctx, seconds)
                     await ctx.processing_command_reaction()
                 except NotValidSongTimestamp:
                     await ctx.send("Formato no valido, usa algo como `10m:50s o 1h:20m:20s o 20s`")
@@ -190,7 +190,7 @@ class voice(commands.Cog):
         '''
         playing_state = self.client.voice.get_playing_state(ctx)
         if isinstance(playing_state, Stream):
-            self.client.voice.apply_effect(ctx, Stream.Effect.SPEED_UP)
+            await self.client.voice.apply_effect(ctx, Stream.Effect.SPEED_UP)
             await ctx.processing_command_reaction()
 
     @commands.command(name="slow-down", aliases=["sd"])
@@ -200,7 +200,7 @@ class voice(commands.Cog):
         '''
         playing_state = self.client.voice.get_playing_state(ctx)
         if isinstance(playing_state, Stream):
-            self.client.voice.apply_effect(ctx, Stream.Effect.SLOW_DOWN)
+            await self.client.voice.apply_effect(ctx, Stream.Effect.SLOW_DOWN)
             await ctx.processing_command_reaction()
 
     @commands.command(name="restore-effects", aliases=["re"])
@@ -210,7 +210,7 @@ class voice(commands.Cog):
         '''
         playing_state = self.client.voice.get_playing_state(ctx)
         if isinstance(playing_state, Stream):
-            self.client.voice.restore_stream(ctx)
+            await self.client.voice.restore_stream(ctx)
             await ctx.processing_command_reaction()
 
     @commands.command(name="indoor-equalizer")
@@ -220,7 +220,7 @@ class voice(commands.Cog):
         '''
         playing_state = self.client.voice.get_playing_state(ctx)
         if isinstance(playing_state, Stream):
-            self.client.voice.apply_effect(ctx, Stream.Effect.EQUALIZER)
+            await self.client.voice.apply_effect(ctx, Stream.Effect.EQUALIZER)
             await ctx.processing_command_reaction()
 
     @commands.command(name="autism")
@@ -230,7 +230,7 @@ class voice(commands.Cog):
         '''
         playing_state = self.client.voice.get_playing_state(ctx)
         if isinstance(playing_state, Stream):
-            self.client.voice.apply_effect(ctx, Stream.Effect.VAPORWAVE)
+            await self.client.voice.apply_effect(ctx, Stream.Effect.VAPORWAVE)
             await ctx.processing_command_reaction()
 
     @commands.command(name="bass")
@@ -240,7 +240,7 @@ class voice(commands.Cog):
         '''
         playing_state = self.client.voice.get_playing_state(ctx)
         if isinstance(playing_state, Stream):
-            self.client.voice.apply_effect(ctx, Stream.Effect.BASS)
+            await self.client.voice.apply_effect(ctx, Stream.Effect.BASS)
             await ctx.processing_command_reaction()
 
     @commands.command(name="chorus")
@@ -250,7 +250,7 @@ class voice(commands.Cog):
         '''
         playing_state = self.client.voice.get_playing_state(ctx)
         if isinstance(playing_state, Stream):
-            self.client.voice.apply_effect(ctx, Stream.Effect.CHORUS)
+            await self.client.voice.apply_effect(ctx, Stream.Effect.CHORUS)
             await ctx.processing_command_reaction()
 
     @commands.command(name="ear-rape")
@@ -260,7 +260,7 @@ class voice(commands.Cog):
         '''
         playing_state = self.client.voice.get_playing_state(ctx)
         if isinstance(playing_state, Stream):
-            self.client.voice.apply_effect(ctx, Stream.Effect.EAR_RAPE)
+            await self.client.voice.apply_effect(ctx, Stream.Effect.EAR_RAPE)
             await ctx.processing_command_reaction()
 
     @commands.command(name="eight-sim")
@@ -270,7 +270,7 @@ class voice(commands.Cog):
         '''
         playing_state = self.client.voice.get_playing_state(ctx)
         if isinstance(playing_state, Stream):
-            self.client.voice.apply_effect(ctx, Stream.Effect.EIGHTM_SIM)
+            await self.client.voice.apply_effect(ctx, Stream.Effect.EIGHTM_SIM)
             await ctx.processing_command_reaction()
 
     @commands.command(name="vaporwave")
@@ -280,7 +280,7 @@ class voice(commands.Cog):
         '''
         playing_state = self.client.voice.get_playing_state(ctx)
         if isinstance(playing_state, Stream):
-            self.client.voice.apply_effect(ctx, Stream.Effect.VIBRATO)
+            await self.client.voice.apply_effect(ctx, Stream.Effect.VIBRATO)
             await ctx.processing_command_reaction()
 
     @commands.command(name="metal")
@@ -290,7 +290,7 @@ class voice(commands.Cog):
         '''
         playing_state = self.client.voice.get_playing_state(ctx)
         if isinstance(playing_state, Stream):
-            self.client.voice.apply_effect(ctx, Stream.Effect.METAL)
+            await self.client.voice.apply_effect(ctx, Stream.Effect.METAL)
             await ctx.processing_command_reaction()
 
     @commands.command(name="super-eq")
@@ -300,7 +300,7 @@ class voice(commands.Cog):
         '''
         playing_state = self.client.voice.get_playing_state(ctx)
         if isinstance(playing_state, Stream):
-            self.client.voice.apply_effect(ctx, Stream.Effect.SUPEREQUALIZER)
+            await self.client.voice.apply_effect(ctx, Stream.Effect.SUPEREQUALIZER)
             await ctx.processing_command_reaction()
 
     @commands.command(name="test-effect")
@@ -310,7 +310,7 @@ class voice(commands.Cog):
         '''
         playing_state = self.client.voice.get_playing_state(ctx)
         if isinstance(playing_state, Stream):
-            self.client.voice.test_filter(ctx, ffmpeg_filter)
+            await self.client.voice.test_filter(ctx, ffmpeg_filter)
 
     @commands.command(name="metele", aliases=["go", "pl"])
     @commands.cooldown(1.0, 3.0, commands.BucketType.guild)

@@ -7,6 +7,8 @@ from requests import exceptions
 from Utils.TimeUtils import TimeUtils
 import requests
 import soundcloud
+import functools
+from concurrent.futures import ThreadPoolExecutor
 
 with open("./config/creds.json", "r") as f:
     creds = json.loads(f.read())
@@ -73,7 +75,7 @@ class SoundcloudSource(StreamSource):
         self.url = track.uri
 
     @classmethod
-    def from_query(cls, query, volume=0.3, options=None, before_options=None):
+    async def from_query(cls, loop, query, volume=0.3, options=None, before_options=None):
         try:
             url = query.the_query
             cls.clear_ffmpeg_options()
@@ -90,7 +92,7 @@ class SoundcloudSource(StreamSource):
                 if transcoding["format"]["protocol"] == "progressive":
                     stream = soundcloud_client.get(transcoding["url"], allow_redirects=True)
             if stream:
-                obj = requests.get(stream.url)
+                obj = requests.get(stream.url) # TODO: transform into async
                 return cls(json.loads(obj.text)["url"], volume, track, **cls.ffmpeg_options)
             else:
                 raise CustomClientException("Track no es streameable")
@@ -103,6 +105,7 @@ class YTDLSource(StreamSource):
         'quiet': True,
         'format': 'bestaudio/best',
         'noplaylist': True,
+        'cookiefile': 'cookies.txt',
         'nocheckcertificate': True,
         'ignoreerrors': False,
         'outtmpl': './music_cache/%(extractor)s-%(title)s.%(ext)s',
@@ -112,8 +115,8 @@ class YTDLSource(StreamSource):
         #'skip_download': False,
         'logtostderr': False,
         'keepvideo': False,
-        'socket_timeout': 5,
         'no_warnings': True,
+        'verbose': True,
         'default_search': 'auto',
         'source_address': '0.0.0.0'
     }
@@ -126,19 +129,18 @@ class YTDLSource(StreamSource):
         self.filename = data.get('filename_vid', '')
 
     @classmethod
-    def from_query(cls, youtube_query, volume=0.3, options=None, before_options=None):
+    async def from_query(cls, loop, youtube_query, volume=0.3, options=None, before_options=None):
         cls.clear_ffmpeg_options()
         if options:
             cls.ffmpeg_options['options'] += options
         cls.ffmpeg_options['options'] += " -vn"
         if before_options:
             cls.ffmpeg_options['before_options'] += before_options
-        search_query = " ".join(youtube_query.the_query) if youtube_query.the_query in [list, tuple] else youtube_query.the_query
-        search_query = str(search_query)
+        search_query = " ".join(youtube_query.the_query) if isinstance(youtube_query.the_query, tuple) else youtube_query.the_query
         if youtube_query.data:
             return cls(discord.FFmpegPCMAudio(youtube_query.data["filename_vid"], **cls.ffmpeg_options), youtube_query.data, volume)
         with YoutubeDL(YTDLSource.ytdl_opts) as ydl:
-            data = ydl.extract_info(search_query)  # TODO run in executor?
+            data = await cls.download_data(loop, ydl, url=search_query)
             if 'entries' in data: 
                 data = data['entries'][0]
             if data['is_live']:
@@ -147,3 +149,8 @@ class YTDLSource(StreamSource):
             data["filename_vid"] = path
             youtube_query.set_data(data)
             return cls(discord.FFmpegPCMAudio(path, **cls.ffmpeg_options), data, volume)
+
+    @classmethod
+    async def download_data(cls, loop, ydl, *args, **kwargs):
+        thread_pool = ThreadPoolExecutor(max_workers=2)
+        return await loop.run_in_executor(thread_pool, functools.partial(ydl.extract_info, *args, **kwargs))

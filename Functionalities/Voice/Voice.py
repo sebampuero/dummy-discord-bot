@@ -58,7 +58,7 @@ class VoiceManager:
 
     def play(self, query, **kwargs):
         logging.warning(f"In state {self.state}")
-        self.state.reproduce(query, **kwargs)
+        self.client.loop.create_task(self.state.reproduce(query, **kwargs))
 
     def resume_previous(self):
         logging.warning(f"In state {self.state}")
@@ -195,9 +195,9 @@ class Voice():
         vmanager = self.guild_to_voice_manager_map.get(ctx.guild.id)
         vmanager.resume()
 
-    def seek(self, ctx, second):
+    async def seek(self, ctx, second):
         vmanager = self.guild_to_voice_manager_map.get(ctx.guild.id)
-        vmanager.state.seek_to(second)
+        await vmanager.state.seek_to(second)
 
     def get_song_timestamp_progress(self, ctx):
         vmanager = self.guild_to_voice_manager_map.get(ctx.guild.id)
@@ -207,17 +207,17 @@ class Voice():
         vmanager = self.guild_to_voice_manager_map.get(ctx.guild.id)
         vmanager.state.update_song_progress()
 
-    def restore_stream(self, ctx):
+    async def restore_stream(self, ctx):
         vmanager = self.guild_to_voice_manager_map.get(ctx.guild.id)
-        vmanager.state.restore_effects()
+        await vmanager.state.restore_effects()
 
-    def test_filter(self, ctx, ffmpeg_filter):
+    async def test_filter(self, ctx, ffmpeg_filter):
         vmanager = self.guild_to_voice_manager_map.get(ctx.guild.id)
-        vmanager.state.test_effect_ffmpeg(ffmpeg_filter)
+        await vmanager.state.test_effect_ffmpeg(ffmpeg_filter)
 
-    def apply_effect(self, ctx, effect_type):
+    async def apply_effect(self, ctx, effect_type):
         vmanager = self.guild_to_voice_manager_map.get(ctx.guild.id)
-        vmanager.state.apply_effect_ffmpeg(effect_type)
+        await vmanager.state.apply_effect_ffmpeg(effect_type)
 
     async def reproduce_from_file(self, member, audio_filename):
         vmanager = self.guild_to_voice_manager_map.get(member.guild.id)
