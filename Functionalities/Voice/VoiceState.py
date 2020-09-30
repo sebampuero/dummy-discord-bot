@@ -133,13 +133,14 @@ class Stream(State):
         super().__init__(voice_manager, client)
         self.queue = []
         self.last_query = None
+        self.is_downloading = False
         self.current_volume = 0.3
         self.ffmpeg_options = {}
     
     async def reproduce(self, query, **kwargs):
         self.original_msg = kwargs["original_msg"]
         self.queue.extend(query) if isinstance(query, list) else self.queue.insert(0, query)
-        if not self.voice_manager.is_voice_client_playing():
+        if not self.voice_manager.is_voice_client_playing() and not self.is_downloading:
             await self.music_loop(error=None)
 
     async def seek_to(self, second, ffmpeg_options=None):
@@ -267,12 +268,14 @@ class Stream(State):
         query = self.retrieve_query_for_source()
         self.last_query = query
         try:
+            self.is_downloading = True
             if isinstance(query, SoundcloudQuery):
                 source = await SoundcloudSource.from_query(self.loop, query, self.current_volume, **self.ffmpeg_options)
             elif isinstance(query, LocalMP3Query):
                 source = MP3FileSource(query, self.current_volume, **self.ffmpeg_options)
             else:
                 source = await YTDLSource.from_query(self.loop, query, self.current_volume, **self.ffmpeg_options)
+            self.is_downloading = False
             self.voice_manager.voice_client.play(source, after=lambda e: self.playback_finished(e))
             self.voice_manager.current_player = self.voice_manager.voice_client._player
             self.edit_msg()

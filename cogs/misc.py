@@ -18,7 +18,10 @@ class misc(commands.Cog):
     async def ping(self, ctx):
         '''A cuantos `ms` estoy del servidor de Discord
         '''
-        await ctx.send(f"Estoy a {round(self.client.latency * 1000)}ms")
+        voice_client_list = list(filter(lambda x: x.guild.id == ctx.guild.id, self.client.voice_clients))
+        await ctx.send(f"Estoy a {round(self.client.latency * 1000)}ms del Gateway de Discord")
+        if len(voice_client_list) > 0:
+            await ctx.send(f"Estoy a {round(voice_client_list[0].average_latency * 1000)}ms de {voice_client_list[0].endpoint}")
 
     @commands.command(name="r")
     @is_owner()
