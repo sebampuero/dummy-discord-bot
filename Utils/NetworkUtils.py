@@ -1,5 +1,4 @@
 from Utils.LoggerSaver import *
-import requests
 import aiohttp
 import asyncio
 import logging
@@ -7,6 +6,9 @@ import discord
 """
 NetworkUtils is responsible for managing and processing all network related requests
 """
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 class NetworkUtils(): #TODO: convert this to static class
 
@@ -39,7 +41,7 @@ class NetworkUtils(): #TODO: convert this to static class
                         return content
                     except Exception as e:
                         log = f"While fetching page content from {url} {str(e)}"
-                        logging.error(log, exc_info=True)
+                        logger.error(log, exc_info=True)
                         LoggerSaver.save_log(log, WhatsappLogger())
                         return ""
                 else:

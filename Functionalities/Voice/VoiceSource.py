@@ -3,12 +3,14 @@ import logging
 from youtube_dl import YoutubeDL
 from Utils.LoggerSaver import *
 from exceptions.CustomException import CustomClientException
-from requests import exceptions
 from Utils.TimeUtils import TimeUtils
-import requests
+import aiohttp
 import soundcloud
 import functools
 from concurrent.futures import ThreadPoolExecutor
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 with open("./config/creds.json", "r") as f:
     creds = json.loads(f.read())
@@ -23,7 +25,7 @@ class LocalfileSource(discord.PCMVolumeTransformer):
 
 class StreamSource(discord.PCMVolumeTransformer):
 
-    def __init__(self, source,url, volume=1.0):
+    def __init__(self, source,url, volume):
         super().__init__(source, volume)
         self.url = url
         self.duration = 0
@@ -55,14 +57,14 @@ class StreamSource(discord.PCMVolumeTransformer):
 
 class MP3FileSource(StreamSource):
 
-    def __init__(self, query, volume=0.3, options=None, before_options=None):
+    def __init__(self, query, volume, options=None, before_options=None):
         url = query.the_query
         super().__init__(discord.FFmpegPCMAudio(url, options=options, before_options=before_options), url, volume=volume)
         self.title = query.title
 
 class RadioSource(StreamSource):
 
-    def __init__(self, url, radio_name, volume=0.3, options=None, before_options=None):
+    def __init__(self, url, radio_name, volume, options=None, before_options=None):
         super().__init__(discord.FFmpegPCMAudio(url, options=options, before_options=before_options), url, volume=0.3)
         self.name = radio_name
 
@@ -75,30 +77,32 @@ class SoundcloudSource(StreamSource):
         self.url = track.uri
 
     @classmethod
-    async def from_query(cls, loop, query, volume=0.3, options=None, before_options=None):
-        try:
-            url = query.the_query
-            cls.clear_ffmpeg_options()
-            if options:
-                cls.ffmpeg_options['options'] += options
-            if before_options:
-                cls.ffmpeg_options['before_options'] += before_options
-            the_track = soundcloud_client.get("resolve", url=url)
-            track = soundcloud_client.get(f"tracks/{the_track.id}")
-            if not track.streamable or track.kind != "track":
-                raise CustomClientException("Track no valida")
-            stream = None
-            for transcoding in track.media["transcodings"]:
-                if transcoding["format"]["protocol"] == "progressive":
-                    stream = soundcloud_client.get(transcoding["url"], allow_redirects=True)
-            if stream:
-                obj = requests.get(stream.url) # TODO: transform into async
-                return cls(json.loads(obj.text)["url"], volume, track, **cls.ffmpeg_options)
-            else:
-                raise CustomClientException("Track no es streameable")
-        except exceptions.HTTPError as e:
-            LoggerSaver.save_log(str(e), WhatsappLogger())
-            raise CustomClientException("Link posiblemente mal formateado")
+    async def from_query(cls, loop, query, volume, options=None, before_options=None):
+        url = query.the_query
+        cls.clear_ffmpeg_options()
+        if options:
+            cls.ffmpeg_options['options'] += options
+        if before_options:
+            cls.ffmpeg_options['before_options'] += before_options
+        the_track = soundcloud_client.get("resolve", url=url)
+        track = soundcloud_client.get(f"tracks/{the_track.id}")
+        if not track.streamable or track.kind != "track":
+            raise CustomClientException("Track no valida")
+        stream = None
+        for transcoding in track.media["transcodings"]:
+            if transcoding["format"]["protocol"] == "progressive":
+                stream = soundcloud_client.get(transcoding["url"], allow_redirects=True)
+        if stream:
+            async with aiohttp.ClientSession() as session:
+                try:
+                    async with session.get(stream.url) as obj:
+                        streaming_content = await obj.text() 
+                        return cls(json.loads(streaming_content)["url"], volume, track, **cls.ffmpeg_options)
+                except aiohttp.ClientConnectionError as e:
+                    logger.error(str(e), exc_info=True)
+                    raise CustomClientException("Link posiblemente mal formateado, no se pudo obtener info del track")
+        else:
+            raise CustomClientException("Track no es streameable")
 
 class YTDLSource(StreamSource):
     ytdl_opts = {
@@ -121,7 +125,7 @@ class YTDLSource(StreamSource):
         'source_address': '0.0.0.0'
     }
 
-    def __init__(self, source, data, volume=0.3):
+    def __init__(self, source, data, volume):
         super().__init__(source, data.get('filename_vid'), volume)
         self.title = data.get('title', '')
         self.duration = self.parse_duration(int(data.get('duration', 0)))
@@ -129,7 +133,7 @@ class YTDLSource(StreamSource):
         self.filename = data.get('filename_vid', '')
 
     @classmethod
-    async def from_query(cls, loop, youtube_query, volume=0.3, options=None, before_options=None):
+    async def from_query(cls, loop, youtube_query, volume, options=None, before_options=None):
         cls.clear_ffmpeg_options()
         if options:
             cls.ffmpeg_options['options'] += options

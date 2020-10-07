@@ -8,6 +8,10 @@ from exceptions import CustomException
 import time
 import threading
 import logging
+import functools
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 class GameManager:
 
@@ -61,9 +65,9 @@ class GameManager:
                 time.sleep(1.0)
                 game_map["timeout_counter"] += 1
             else:
-                return False
+                break
         self.delete_game(guild_id)
-        logging.warning("Timeout for ttt reached")
+        logger.warning("Timeout for ttt reached")
 
     def game_exists(self, guild_id):
         return guild_id in self.guild_to_game_map
@@ -112,7 +116,10 @@ class GameManager:
         self.guild_to_game_map[guild_id]["board"] = new_board
 
     def delete_game(self, guild_id):
-        del self.guild_to_game_map[guild_id]
+        try:
+            del self.guild_to_game_map[guild_id]
+        except KeyError:
+            pass
 
 
 class tttgame(commands.Cog):
@@ -133,6 +140,7 @@ class tttgame(commands.Cog):
 
     def __init__(self, client):
         self.client = client
+        self.loop = self.client.loop
         self.game_manager = GameManager()
     
     @commands.command(name="challenge")
@@ -203,7 +211,7 @@ class tttgame(commands.Cog):
         else:
             if self.game_manager.is_against_ai(ctx.guild.id):
                 await ctx.send("Craneando mi siguiente movimiento...")
-                next_action = ttt.minimax(board)
+                next_action = await self.loop.run_in_executor(None, functools.partial(ttt.minimax, board))
                 new_board = ttt.result(board, next_action)
                 self.game_manager.set_ttt_board(ctx.guild.id, new_board)
                 await ctx.send(file=File(TTTImager(ctx.guild.id).create_dirty_board(new_board)))

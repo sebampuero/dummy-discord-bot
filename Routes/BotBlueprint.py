@@ -47,6 +47,5 @@ def get_bot_blueprint(client):
             event_loop.create_task(say(data, guild, text_channel, voice))
             return jsonify({'message': Constants.TRYING_REPR_AUDIO}), 201
         except Exception as e:
-            print(str(e))
             return jsonify({'message': Constants.THERE_WAS_AN_ERROR}), 500
     return bot_blueprint

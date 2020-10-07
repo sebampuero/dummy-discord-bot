@@ -8,6 +8,9 @@ from Functionalities.Voice.VoiceSource import *
 from Functionalities.Voice.VoiceQuery import *
 from enum import Enum
 
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
 class State(object):
 
     """
@@ -21,6 +24,7 @@ class State(object):
         self.client = client
         self.loop = client.loop
         self.song_loop = False
+        self.current_volume = 1.0
 
     def switch(self, state):
         self.voice_manager.change_state(state)
@@ -65,7 +69,7 @@ class Off(State):
         super().__init__(voice_manager, client)
 
     async def reproduce(self, query, **kwargs):
-        logging.warning("Unable to reproduce because of state OFF")
+        logger.warning("Unable to reproduce because of state OFF")
         await self.voice_manager.disconnect()
 
     def switch(self, state):
@@ -77,7 +81,7 @@ class Radio(State):
 
     def __init__(self, voice_manager, client):
         super().__init__(voice_manager, client)
-        self.current_volume = 0.3
+        self.current_volume = 0.1
 
     async def reproduce(self, query, **kwargs):
         try:
@@ -85,7 +89,7 @@ class Radio(State):
             self.voice_manager.current_player = self.voice_manager.voice_client._player
         except Exception as e:
             log = "while radio streaming"
-            logging.error(log, exc_info=True)
+            logger.error(log, exc_info=True)
             LoggerSaver.save_log(f"{log} {str(e)}", WhatsappLogger())
             await self.voice_manager.current_context.send("Error inesperado")
             self.cleanup()
@@ -134,7 +138,7 @@ class Stream(State):
         self.queue = []
         self.last_query = None
         self.is_downloading = False
-        self.current_volume = 0.3
+        self.current_volume = 0.1
         self.ffmpeg_options = {}
     
     async def reproduce(self, query, **kwargs):
@@ -209,6 +213,7 @@ class Stream(State):
         if self.voice_manager.current_player:
             self.voice_manager.current_player.source.volume = volume
             self.current_volume = volume
+            self.edit_msg()
 
     def retrieve_query_for_source(self):
         if self.song_loop:
@@ -280,21 +285,21 @@ class Stream(State):
             self.voice_manager.current_player = self.voice_manager.voice_client._player
             self.edit_msg()
         except discord.ClientException as e:
-            logging.error("while streaming", exc_info=True)
+            logger.error("while streaming", exc_info=True)
             LoggerSaver.save_log(f"while streaming {str(e)}", WhatsappLogger())
             await self.voice_manager.current_context.send("Error inesperado")
             self.cleanup()
         except CustomClientException as e:
-            logging.error("custom client exc", exc_info=True)
-            await self.voice_manager.current_context.send(str(e))
+            logger.error("custom client exc", exc_info=True)
+            await self.voice_manager.current_context.send(str(e), delete_after=5.0)
             LoggerSaver.save_log(str(e), WhatsappLogger())
             await self.music_loop(error=None)
         except Exception as e:
             error_msg = "Se produjo un error reproduciendo cancion actual, intentando reproducir siguiente canción en lista"
-            await self.voice_manager.current_context.send(error_msg)
+            await self.voice_manager.current_context.send(error_msg, delete_after=5.0)
             await self.music_loop(error=None)
             log = "while streaming, skipping to next song"
-            logging.error(log, exc_info=True)
+            logger.error(log, exc_info=True)
             LoggerSaver.save_log(f"{log} {str(e)}", WhatsappLogger())
         else:
             self.ffmpeg_options.clear()
@@ -315,12 +320,12 @@ class Speak(State):
         voice_client = self.voice_manager.voice_client
         try:
             if isinstance(self.voice_manager.prev_state, Off):
-                voice_client.play(StreamSource(discord.FFmpegPCMAudio(url), url), after= lambda e: self.cleanup())
+                voice_client.play(StreamSource(discord.FFmpegPCMAudio(url), url, self.current_volume), after= lambda e: self.cleanup())
             else:
-                voice_client.play(StreamSource(discord.FFmpegPCMAudio(url), url), after= lambda e: self.resume_playing_for_prev_state(e))
+                voice_client.play(StreamSource(discord.FFmpegPCMAudio(url), url, self.current_volume), after= lambda e: self.resume_playing_for_prev_state(e))
         except Exception as e:
             log = "while speaking"
-            logging.error(log, exc_info=True)
+            logger.error(log, exc_info=True)
             LoggerSaver.save_log(f"{log} {str(e)}", WhatsappLogger())
             await self.voice_manager.current_context.send("Error inesperado")
             self.cleanup()
@@ -357,7 +362,7 @@ class Salute(State):
             self.voice_manager.voice_client.play(source, after=lambda e: self.salute_loop(e))
         except Exception as e:
             log = "while welcoming audio"
-            logging.error(log, exc_info=True)
+            logger.error(log, exc_info=True)
             LoggerSaver.save_log(f"{log} {str(e)}", WhatsappLogger())
             self.cleanup()
 

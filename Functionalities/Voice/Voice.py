@@ -18,6 +18,9 @@ from Utils.LoggerSaver import *
  Implementation of the music functionality of the Bot. Handles radio streaming, youtube/spotify streaming and playback of local mp3 files. 
 """
 
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
 with open("./config/creds.json", "r") as f:
     creds = json.loads(f.read())
     client_credentials_manager = SpotifyClientCredentials(client_id=creds["spotify"]["client_id"], client_secret=creds["spotify"]["client_secret"])
@@ -57,11 +60,11 @@ class VoiceManager:
         self.state = state
 
     def play(self, query, **kwargs):
-        logging.warning(f"In state {self.state}")
+        logger.info(f"In state {self.state}")
         self.client.loop.create_task(self.state.reproduce(query, **kwargs))
 
     def resume_previous(self):
-        logging.warning(f"In state {self.state}")
+        logger.info(f"In state {self.state}")
         self.state.resume()
 
     def interrupt_player(self):
@@ -93,7 +96,7 @@ class VoiceManager:
         self.state.shuffle_queue()
 
     def trigger_loop(self):
-        self.state.trigger_loop = not self.state.trigger_loop
+        self.state.song_loop = not self.state.song_loop
 
     def is_voice_client_playing(self):
         return self.voice_client and self.voice_client.is_playing()
@@ -103,7 +106,7 @@ class VoiceManager:
 
     async def disconnect(self):
         if self.voice_client:
-            logging.warning(f"Disconnected from channel {self.voice_client.channel}")
+            logger.info(f"Disconnected from channel {self.voice_client.channel}")
             await self.voice_client.disconnect(force=True)
             self.voice_client = None
 
@@ -122,6 +125,9 @@ class Voice():
         for guild in self.client.guilds:
             if guild not in self.guild_to_voice_manager_map:
                 self.guild_to_voice_manager_map[guild.id] = VoiceManager(self.client)
+
+    def remove_guild_from_voice_manager(self, guild_id):
+        del self.guild_to_voice_manager_map[guild_id]
             
     async def _set_welcome_audio_status(self, chat_channel, status: bool):
         message = chat_channel.message
@@ -169,7 +175,7 @@ class Voice():
     def trigger_loop_for_song(self, ctx):
         vmanager = self.guild_to_voice_manager_map.get(ctx.guild.id)
         vmanager.trigger_loop()
-        return vmanager.state.trigger_loop
+        return vmanager.state.song_loop
 
     def get_playing_state(self, ctx):
         return self.guild_to_voice_manager_map.get(ctx.guild.id).state
@@ -183,9 +189,12 @@ class Voice():
         vmanager = self.guild_to_voice_manager_map.get(ctx.guild.id)
         vmanager.set_volume_for_voice_client(volume / 100.0)
 
-    async def disconnect_player(self, ctx):
+    async def shutdown_player(self, ctx):
         vmanager = self.guild_to_voice_manager_map.get(ctx.guild.id)
-        vmanager.state.cleanup()
+        if vmanager.voice_client:
+            if vmanager.voice_client.channel == ctx.author.voice.channel:
+                await ctx.sad_reaction()
+                vmanager.state.cleanup()
 
     def pause_player(self, ctx):
         vmanager = self.guild_to_voice_manager_map.get(ctx.guild.id)
@@ -378,7 +387,7 @@ class Voice():
             return query_tracks_list
         except Exception as e:
             log = "While parsing spotify playlist"
-            logging.error(log, exc_info=True)
+            logger.error(log, exc_info=True)
             LoggerSaver.save_log(f"{log} {str(e)}", WhatsappLogger())
             return query_tracks_list
 
@@ -391,7 +400,7 @@ class Voice():
                 return True
             except OSError:
                 pass
-        logging.error("Could not load opus lib")
+        logger.error("Could not load opus lib")
         return False
 
     def entered_voice_channel(self, before, after):

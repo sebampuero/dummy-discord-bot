@@ -7,6 +7,9 @@ import logging
  This class is responsible for managing alert commands
 """
 
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
 class Alert():
     
     def __init__(self):
@@ -42,6 +45,6 @@ class Alert():
                         await dm_channel.send(f"{Constants.PRICE_ALERT_REACHED} {url} <@!{user_id}>")
                 await asyncio.sleep(10)
             except Exception as e:
-                logging.error(str(e), exc_info=True)
+                logger.error(str(e), exc_info=True)
                 LoggerSaver.save_log(f"While checking alert {str(e)}", WhatsappLogger())
                 await asyncio.sleep(5)

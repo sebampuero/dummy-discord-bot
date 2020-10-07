@@ -7,6 +7,10 @@ import time
 import re
 import datetime
 import logging
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
 """
 The Bot Business Entity is responsible for the business logic of the Bot regarding tasks with the persistent storage of some functions
 like Quotes, Subscriptions and Alerts. Acts as a Facade to all subsequent layers
@@ -81,7 +85,7 @@ class BotBE():
 		try:
 			return self.bot_svc.get_radios()
 		except Exception as e:
-			logging.error(str(e), exc_info=True)
+			logger.error(str(e), exc_info=True)
 			LoggerSaver.save_log(str(e), WhatsappLogger())
 			return {}
 	
@@ -89,7 +93,7 @@ class BotBE():
 		try:
 			return self.bot_svc.get_radios()
 		except Exception as e:
-			logging.error(str(e), exc_info=True)
+			logger.error(str(e), exc_info=True)
 			LoggerSaver.save_log(str(e), WhatsappLogger())
 			return {}
 
@@ -97,7 +101,7 @@ class BotBE():
 		try:
 			return self.bot_svc.get_users_welcome_audios()
 		except Exception as e:
-			logging.error(str(e), exc_info=True)
+			logger.error(str(e), exc_info=True)
 			LoggerSaver.save_log(str(e), WhatsappLogger())
 			return {}
 
@@ -152,7 +156,7 @@ class BotBE():
 		try:
 			self.bot_svc.save_users_welcome_audios(new_)
 		except Exception as e:
-			logging.error(str(e), exc_info=True)
+			logger.error(str(e), exc_info=True)
 			LoggerSaver.save_log(str(e), WhatsappLogger())
 
 	async def check_alerts(self):
@@ -162,7 +166,7 @@ class BotBE():
 			for row in alerts:
 				current_price = await self.get_store_price_for_prefix(row['url'], row['currency'])
 				price_range = str(row['price_limit'])
-				logging.warning(f"Current price {current_price} for {row} with range {price_range}")
+				logger.warning(f"Current price {current_price} for {row} with range {price_range}")
 				lower_ = float(price_range.split("-")[0])
 				upper_ = float(price_range.split("-")[1])
 				self.bot_svc.update_last_checked_at_alert(row['id'])
@@ -171,7 +175,7 @@ class BotBE():
 					alerts_with_price_limits_reached.append( (row['user_id'], row['url']) )
 			return alerts_with_price_limits_reached
 		except Exception as e:
-			logging.error(str(e), exc_info=True)
+			logger.error(str(e), exc_info=True)
 			LoggerSaver.save_log(f"{str(e)}", WhatsappLogger())
 			return []
 

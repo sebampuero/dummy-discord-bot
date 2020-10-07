@@ -126,8 +126,7 @@ class voice(commands.Cog):
         '''Para lo que sea que dice el bot y lo bota del canal
         '''
         if await self._is_user_in_voice_channel(ctx):
-            await ctx.sad_reaction()
-            await self.client.voice.disconnect_player(ctx)
+            await self.client.voice.shutdown_player(ctx)
 
     @commands.command(name="seek", aliases=["sk"])
     @commands.cooldown(1.0, 3.0, commands.BucketType.guild)
@@ -377,7 +376,6 @@ class voice(commands.Cog):
             return await ctx.send("No seas pendejo")
         playing_state = self.client.voice.get_playing_state(ctx)
         if await self._is_user_in_voice_channel(ctx) and not isinstance(playing_state, Off):
-            await ctx.send(f"Volumen seteado al {volume}%")
             self.client.voice.set_volume(volume, ctx)
 
     @commands.command(aliases=["sh"], name="shuffle")

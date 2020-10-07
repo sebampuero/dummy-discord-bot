@@ -75,15 +75,9 @@ class ChismositoBot(commands.Bot):
 
     async def on_guild_join(self, guild):
         self.voice.populate_voice_managers()
-    
-    async def on_disconnect(self):
-        logging.warning("Disconnected, is there internet connection?")
 
-    async def on_connect(self):
-        logging.warning("We are connected")
-     
-    async def on_resumed(self):
-        logging.warning("Resumed session")
+    async def on_guild_remove(self, guild):
+        self.voice.remove_guild_from_voice_manager(guild.id)
 
     async def on_voice_state_update(self, member, before, after):
         if member == self.user:
@@ -93,11 +87,15 @@ class ChismositoBot(commands.Bot):
             await self.voice.play_welcome_audio(member, after.channel)
 
 
-logging.basicConfig(format='%(asctime)s %(message)s')
-client = ChismositoBot(command_prefix=commands.when_mentioned_or("-"),
-                   description='El bot mas pendejo de todos', case_insensitive=True)
-for filename in os.listdir('./cogs'):
-    if filename.endswith(".py"):
-        client.load_extension(f'cogs.{filename[:-3]}')
-with open("token.txt", "r") as f:
-    client.run(f.read())
+def main():
+    logging.basicConfig(format='%(asctime)s %(message)s', filename="output.log")
+    client = ChismositoBot(command_prefix=commands.when_mentioned_or("-"),
+                    description='El bot mas pendejo de todos', case_insensitive=True)
+    for filename in os.listdir('./cogs'):
+        if filename.endswith(".py"):
+            client.load_extension(f'cogs.{filename[:-3]}')
+    with open("token.txt", "r") as f:
+        client.run(f.read())
+
+if __name__ == '__main__':
+    main()

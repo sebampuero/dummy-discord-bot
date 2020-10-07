@@ -1,5 +1,3 @@
-import logging
-
 class Query:
 
     def __init__(self, the_query, filename=None):
