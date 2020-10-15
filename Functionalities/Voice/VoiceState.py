@@ -69,7 +69,7 @@ class Off(State):
         super().__init__(voice_manager, client)
 
     async def reproduce(self, query, **kwargs):
-        logger.warning("Unable to reproduce because of state OFF")
+        logger.warning("Unable to play because of state OFF")
         await self.voice_manager.disconnect()
 
     def switch(self, state):
@@ -91,7 +91,7 @@ class Radio(State):
             log = "while radio streaming"
             logger.error(log, exc_info=True)
             LoggerSaver.save_log(f"{log} {str(e)}", WhatsappLogger())
-            await self.voice_manager.current_context.send("Error inesperado")
+            await self.voice_manager.current_context.send("Unexpected error")
             self.cleanup()
 
     def resume(self):
@@ -106,7 +106,7 @@ class Radio(State):
 
     def handle_error(self, error):
         if error:
-            self.client.loop.create_task(self.voice_manager.current_context.send("Se produjo un error"))
+            self.client.loop.create_task(self.voice_manager.current_context.send("An error occured"))
         self.cleanup()
             
     def switch(self, state):
@@ -222,24 +222,24 @@ class Stream(State):
 
     def format_embed(self):
         data = {
-                'title': f'Reproduciendo {self.voice_manager.voice_client.source.title}',
+                'title': f'Playing {self.voice_manager.voice_client.source.title}',
                 'url': self.voice_manager.voice_client.source.url,
                 'author': {
                     "name": self.voice_manager.current_context.author.display_name
                 },
                 'fields': [
                     {
-                        "name": "Duracion",
+                        "name": "Duration",
                         "value": str(self.voice_manager.voice_client.source.duration),
                         "inline": False
                     },
                     {
-                        "name": "Canciones en lista",
+                        "name": "Songs",
                         "value": str(len(self.queue)),
                         "inline": False
                     },
                     {
-                        "name": "Volumen",
+                        "name": "Volume",
                         "value": str(self.current_volume * 100) + "%",
                         "inline": True
                     }
@@ -248,7 +248,7 @@ class Stream(State):
             }
         if len(self.queue) > 0:
             data["fields"].append({
-                "name": "Siguiente cancion en lista: ",
+                "name": "Next song: ",
                 "value": str(self.queue[len(self.queue) - 1]),
                 "inline": False
             })
@@ -258,7 +258,7 @@ class Stream(State):
         asyncio.run_coroutine_threadsafe(self.original_msg.edit(embed=self.format_embed()), self.client.loop)
 
     async def next_interim_msg(self):
-        msg = await self.voice_manager.current_context.send("Siguiente en la lista de reproduccion...")
+        msg = await self.voice_manager.current_context.send("About to play next song...")
         self.original_msg = msg
 
     def playback_finished(self, error):
@@ -268,7 +268,7 @@ class Stream(State):
         if error:
             return self.cleanup()
         if len(self.queue) == 0 and not self.song_loop:
-            await self.voice_manager.current_context.send("Fin de la lista de reproduccion")
+            await self.voice_manager.current_context.send("End of playing list")
             return self.cleanup()
         query = self.retrieve_query_for_source()
         self.last_query = query
@@ -287,26 +287,35 @@ class Stream(State):
         except discord.ClientException as e:
             logger.error("while streaming", exc_info=True)
             LoggerSaver.save_log(f"while streaming {str(e)}", WhatsappLogger())
-            await self.voice_manager.current_context.send("Error inesperado")
+            await self.voice_manager.current_context.send("Unexpected error")
             self.cleanup()
+            self.is_downloading = False
         except CustomClientException as e:
             logger.error("custom client exc", exc_info=True)
-            await self.voice_manager.current_context.send(str(e), delete_after=5.0)
+            await self.voice_manager.current_context.send(str(e), delete_after=10.0)
             LoggerSaver.save_log(str(e), WhatsappLogger())
             await self.music_loop(error=None)
+            self.is_downloading = False
         except Exception as e:
-            error_msg = "Se produjo un error reproduciendo cancion actual, intentando reproducir siguiente canción en lista"
+            error_msg = "An error occurred playing current song, trying to play the next song in the list"
             await self.voice_manager.current_context.send(error_msg, delete_after=5.0)
             await self.music_loop(error=None)
             log = "while streaming, skipping to next song"
             logger.error(log, exc_info=True)
             LoggerSaver.save_log(f"{log} {str(e)}", WhatsappLogger())
+            
         else:
             self.ffmpeg_options.clear()
 
     def cleanup(self):        
         self.queue.clear()
         self.song_loop = False
+        self.is_downloading = False
+        try: 
+            logger.info("Cleaning up source")
+            self.voice_manager.current_player.source.cleanup()
+        except:
+            pass
         super(Stream, self).cleanup()
 
 class Speak(State):
@@ -327,7 +336,7 @@ class Speak(State):
             log = "while speaking"
             logger.error(log, exc_info=True)
             LoggerSaver.save_log(f"{log} {str(e)}", WhatsappLogger())
-            await self.voice_manager.current_context.send("Error inesperado")
+            await self.voice_manager.current_context.send("Unexpected error")
             self.cleanup()
 
     def resume_playing_for_prev_state(self, error):

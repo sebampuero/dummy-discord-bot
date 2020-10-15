@@ -18,7 +18,7 @@ async def say(data, guild, text_channel, voice):
             if status == 200:
                 await voice.reproduce_from_file(member, url)
             else:
-                await text_channel.send(f"No se pudo reproducir '{text}'")
+                await text_channel.send(f"Could not play '{text}'")
     
 def get_bot_blueprint(client):
     

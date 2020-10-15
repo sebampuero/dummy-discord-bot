@@ -14,6 +14,7 @@ from spotipy.oauth2 import SpotifyClientCredentials
 from embeds.custom import VoiceEmbeds
 from enum import Enum
 from Utils.LoggerSaver import *
+import time
 """
  Implementation of the music functionality of the Bot. Handles radio streaming, youtube/spotify streaming and playback of local mp3 files. 
 """
@@ -61,7 +62,7 @@ class VoiceManager:
 
     def play(self, query, **kwargs):
         logger.info(f"In state {self.state}")
-        self.client.loop.create_task(self.state.reproduce(query, **kwargs))
+        task = self.client.loop.create_task(self.state.reproduce(query, **kwargs))
 
     def resume_previous(self):
         logger.info(f"In state {self.state}")
@@ -140,7 +141,7 @@ class Voice():
             await chat_channel.send(Constants.SALUTE) if status else \
                 await chat_channel.send(Constants.NOT_MORE_SALUTE)
         except KeyError:
-            await chat_channel.send("No tienes un saludo configurado")
+            await chat_channel.send("No greeting for you configured, use `-help salute`")
 
     async def deactivate_welcome_audio(self, chat_channel):
         await self._set_welcome_audio_status(chat_channel, False)
@@ -272,11 +273,11 @@ class Voice():
         vmanager = self.guild_to_voice_manager_map.get(ctx.guild.id)
         vc = ctx.author.voice.channel
         if not discord.opus.is_loaded():
-            return await ctx.send("Error cargando librerias de audio")
+            return await ctx.send("Error loading audio libraries")
         net_utils = NetworkUtils()
         status, content_type = await net_utils.website_check(url)
         if status != 200:
-            return await ctx.send(f"La radio {radio_name} con {url} dejo de funcionar")
+            return await ctx.send(f"Radio {radio_name} on {url} stopped working")
         await self._attempt_to_connect_to_voice(vc, vmanager)
         if not await self._is_voice_state_valid(vc, vmanager, ctx):
             return
@@ -285,7 +286,7 @@ class Voice():
         vmanager.prev_state = vmanager.state
         vmanager.change_state(vmanager.radio)
         vmanager.current_context = ctx
-        options = {'title': f'Reproduciendo radio {radio_name}'}
+        options = {'title': f'Playing radio {radio_name}'}
         msg = await ctx.send(embed=VoiceEmbeds(ctx.author,**options)) 
         vmanager.play(url, **{ "original_msg": msg, "radio_name": radio_name })
             
@@ -294,7 +295,7 @@ class Voice():
         vmanager = self.guild_to_voice_manager_map.get(ctx.guild.id)
         vc = ctx.author.voice.channel
         if not discord.opus.is_loaded():
-            return await ctx.send("Error cargando librerias de audio")
+            return await ctx.send("Error loading audio libraries")
         await self._attempt_to_connect_to_voice(vc, vmanager)
         if not await self._is_voice_state_valid(vc, vmanager, ctx):
             return
@@ -316,7 +317,7 @@ class Voice():
 
     async def _play_streaming_bulk_favs(self, query, vmanager, ctx):
         query_list = self._process_favorite_song_queries(query)
-        embed_options = {'title': f'Agregando {len(query_list)} favoritos de {ctx.author.name}'}
+        embed_options = {'title': f'Adding {len(query_list)} favorites {ctx.author.name}'}
         msg = await ctx.send(embed=VoiceEmbeds(author=ctx.author, **embed_options))
         vmanager.play(query_list, **{"original_msg": msg})
 
@@ -330,28 +331,28 @@ class Voice():
         return query_list
 
     async def _play_streaming_mp3file(self, query, vmanager, ctx):
-        embed_options = {'title': f'Agregando audio de {ctx.author.display_name}'}
+        embed_options = {'title': f'Adding {ctx.author.display_name}s audio file'}
         msg = await ctx.send(embed=VoiceEmbeds(author=ctx.author, **embed_options))
         vmanager.play(LocalMP3Query(query.filename, query.url, ctx.author.display_name), **{"original_msg": msg})
           
     async def _play_streaming_youtube(self, query, vmanager, ctx):
-        embed_options = {'title': f'Agregando a lista de reproduccion con busqueda: {" ".join(query)}'}
+        embed_options = {'title': f'Adding to playlist with search: {" ".join(query)}'}
         msg = await ctx.send(embed=VoiceEmbeds(author=ctx.author, **embed_options))
         vmanager.play(YoutubeQuery(query), **{"original_msg": msg})
 
     async def _play_streaming_soundcloud(self, query, vmanager, ctx):
-        embed_options = {'title': f'Agregando a lista de reproduccion con busqueda: {query}'}
+        embed_options = {'title': f'Adding to playlist with search: {query}'}
         msg = await ctx.send(embed=VoiceEmbeds(author=ctx.author, **embed_options))
         vmanager.play(SoundcloudQuery(query), **{"original_msg": msg})
 
     async def _play_streaming_spotify(self, query, vmanager, ctx):
         query_list = self._process_query_object_for_spotify_playlist(query)
         if len(query_list) > 0:
-            options = {'title': f'Se agregaron {len(query_list)} canciones a la lista de reproduccion'}
+            options = {'title': f'{len(query_list)} songs were added to the list'}
             msg = await ctx.send(embed=VoiceEmbeds(ctx.author,**options))
             vmanager.play(query_list, **{"original_msg": msg})
         else:
-            await ctx.send("Error leyendo la lista de spotify")
+            await ctx.send("Error reading spotify list")
 
     async def _attempt_to_connect_to_voice(self, voice_channel, vmanager):
         vc_found = False
@@ -368,7 +369,7 @@ class Voice():
             return False
         if vmanager.voice_client.channel != voice_channel:
             if ctx:
-                await ctx.send(f"No estoy en el canal {voice_channel}")
+                await ctx.send(f"I am not in this voice channel {voice_channel}")
             valid = False
         return valid
 

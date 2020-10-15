@@ -50,24 +50,24 @@ class BotBE():
 		try:
 			prices = price_range.split("-")
 			if len(prices) != 2:
-				return "Debes definir un rango de precios, ejm: 2-5 o 2.5-5.5"
+				return "You gotta define a price range, e.g.: 2-5 o 2.5-5.5"
 			if float(prices[0]) > float(prices[1]):
-				return "El rango de precios va de menor a mayor, ejm: 2-5 y no 5-2"
+				return "Bad price range, e.g.: 2-5 and not 5-2"
 			if not re.match(r"^(\d{1,2}(\.\d{1,2})?-\d{1,2}(\.\d{1,2})?)$", price_range):
-				return "Has formateado mal el rango de precio. Ejemplo: 12-15 o 12.5-15.5"
+				return "Price range was not correctly formatted. Example: 12-15 or 12.5-15.5"
 			if not "www.g2a.com" in url and not "www.amazon." in url:
-				return "Ese no es un link de G2A o Amazon cojudo"
+				return "That is not an Amazon or G2A link"
 			if currency != "USD" and currency != "EUR":
-				return "La moneda debe ser USD o EUR"
+				return "Currency must be EUR or USD"
 			self.bot_svc.set_alert(url, price_range, currency, user_id)
-			return f"Agregue tu alerta del item en {url} con rango de precios {price_range} y moneda {currency}"
+			return f"Added your alert with {url} and price range {price_range} and currency {currency}"
 		except Exception as e:
 			return Constants.COULD_NOT_DO_IT
 
 	def unset_alert(self, url, user_id):
 		try:
 			self.bot_svc.unset_alert(url, user_id)
-			return f"Listo mande a la mierda tu alarma con link {url}"
+			return f"Your alert was deleted {url}"
 		except Exception as e:
 			return Constants.COULD_NOT_DO_IT
 
@@ -166,7 +166,7 @@ class BotBE():
 			for row in alerts:
 				current_price = await self.get_store_price_for_prefix(row['url'], row['currency'])
 				price_range = str(row['price_limit'])
-				logger.warning(f"Current price {current_price} for {row} with range {price_range}")
+				#logger.warning(f"Current price {current_price} for {row} with range {price_range}")
 				lower_ = float(price_range.split("-")[0])
 				upper_ = float(price_range.split("-")[1])
 				self.bot_svc.update_last_checked_at_alert(row['id'])
@@ -196,14 +196,14 @@ class BotBE():
 	def save_playlist_for_user(self, user_id, url, name):
 		try:
 			self.bot_svc.save_playlist_for_user(user_id, url, name)
-			return "Agregado"
+			return "Added"
 		except:
 			return Constants.COULD_NOT_DO_IT
 
 	def delete_playlist_for_user(self, user_id, name):
 		try:
 			self.bot_svc.delete_playlist_for_user(user_id, name)
-			return f"Playlist {name} eliminada"
+			return f"Playlist {name} deleted"
 		except:
 			return Constants.COULD_NOT_DO_IT
 
@@ -211,7 +211,7 @@ class BotBE():
 		try:
 			song_query = str(song_query).replace("'", "").replace('"', "")
 			self.bot_svc.save_favorite_song_for_user(user_id, song_query, query_type)
-			return f"{song_query} fue guardada con exito"
+			return f"{song_query} was succesfully saved"
 		except:
 			return Constants.COULD_NOT_DO_IT
 
@@ -225,6 +225,6 @@ class BotBE():
 	def delete_fav(self, song_id, user_id):
 		try:
 			self.bot_svc.delete_favorite_song_of_user(song_id, user_id)
-			return "Listo"
+			return Constants.DONE
 		except:
 			return Constants.COULD_NOT_DO_IT

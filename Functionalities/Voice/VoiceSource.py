@@ -1,6 +1,7 @@
 import discord
 import logging
 from youtube_dl import YoutubeDL
+import youtube_dl
 from Utils.LoggerSaver import *
 from exceptions.CustomException import CustomClientException
 from Utils.TimeUtils import TimeUtils
@@ -87,7 +88,7 @@ class SoundcloudSource(StreamSource):
         the_track = soundcloud_client.get("resolve", url=url)
         track = soundcloud_client.get(f"tracks/{the_track.id}")
         if not track.streamable or track.kind != "track":
-            raise CustomClientException("Track no valida")
+            raise CustomClientException("Invalid track")
         stream = None
         for transcoding in track.media["transcodings"]:
             if transcoding["format"]["protocol"] == "progressive":
@@ -100,16 +101,27 @@ class SoundcloudSource(StreamSource):
                         return cls(json.loads(streaming_content)["url"], volume, track, **cls.ffmpeg_options)
                 except aiohttp.ClientConnectionError as e:
                     logger.error(str(e), exc_info=True)
-                    raise CustomClientException("Link posiblemente mal formateado, no se pudo obtener info del track")
+                    raise CustomClientException("Link possibly badly formatted, track info could not be obtained")
         else:
-            raise CustomClientException("Track no es streameable")
+            raise CustomClientException("Track is not streameable")
+
+def hook(d):
+    if d['status'] == 'error':
+        logger.info("Error ocurred")
+    if d['status'] == 'finished':
+        logger.info(f"Done with {d['filename']}")
+    if d['status'] == 'downloading':
+        p = d['_percent_str']
+        p = p.replace('%','')
+        logger.info(f"{d['filename']}, {d['_percent_str']}, ETA {d['_eta_str']}")
 
 class YTDLSource(StreamSource):
     ytdl_opts = {
+        'match_filter': youtube_dl.utils.match_filter_func("!is_live"),
         'quiet': True,
         'format': 'bestaudio/best',
         'noplaylist': True,
-        'cookiefile': 'cookies.txt',
+        #'cookiefile': 'cookies.txt',
         'nocheckcertificate': True,
         'ignoreerrors': False,
         'outtmpl': './music_cache/%(extractor)s-%(title)s.%(ext)s',
@@ -118,9 +130,9 @@ class YTDLSource(StreamSource):
         'nooverwrites': True,
         #'skip_download': False,
         'logtostderr': False,
-        'keepvideo': False,
         'no_warnings': True,
-        'verbose': True,
+        'socket_timeout': 5,
+        #'progress_hooks': [hook],
         'default_search': 'auto',
         'source_address': '0.0.0.0'
     }
@@ -148,7 +160,7 @@ class YTDLSource(StreamSource):
             if 'entries' in data: 
                 data = data['entries'][0]
             if data['is_live']:
-                raise CustomClientException("No hay soporte para live videos aun")
+                raise CustomClientException("I do not support live videos, send the link of the specific video")
             path = ydl.prepare_filename(data)
             data["filename_vid"] = path
             youtube_query.set_data(data)

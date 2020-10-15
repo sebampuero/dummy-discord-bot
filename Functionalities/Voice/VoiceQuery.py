@@ -13,7 +13,7 @@ class Query:
 class LocalMP3Query(Query):
 
     def __init__(self, filename, url,  author_name):
-        self.title = f"{filename} puesto por {author_name}"
+        self.title = f"{filename} by {author_name}"
         super().__init__(url)
 
     def __repr__(self):

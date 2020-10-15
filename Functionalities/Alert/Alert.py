@@ -27,7 +27,7 @@ class Alert():
         alerts_dict = self.bot_be.retrieve_user_alerts(str(ctx.author.id))
         msg = "Alertas: \n"
         for url, alert in alerts_dict.items():
-            msg += f"URL: {url}\nPrecio: {alert['price']}\nMoneda: {alert['currency']}\n"
+            msg += f"URL: {url}\Price: {alert['price']}\nCurrency: {alert['currency']}\n"
         await ctx.send(msg)
             
     async def check_alerts(self, client):

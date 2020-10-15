@@ -145,8 +145,8 @@ class tttgame(commands.Cog):
     
     @commands.command(name="challenge")
     async def challenge(self, ctx):
-        '''Reta a alguien para jugar tic tac toe con `-challenge [tag]`
-        Usa solo `-challenge` para jugar contra la AI
+        '''Challenge someone to play tic tac toe with `-challenge [tag]`
+         Use only `-challenge` to play against AI
         '''
         if not self.game_manager.game_exists(ctx.guild.id):
             if len(ctx.message.mentions) == 1:
@@ -154,28 +154,28 @@ class tttgame(commands.Cog):
             else:
                 self.game_manager.start_game_with_ai(ctx)
             self.game_manager.start_timeout(ctx)
-            await ctx.send(f"Escoge tu simbolo X o O {ctx.author.mention} escrbiendo `-symbol X` o `-symbol O`")
+            await ctx.send(f"Choose X or O {ctx.author.mention} by typing `-symbol X` or `-symbol O`")
         else:
-            await ctx.send("Ya hay un juego en progreso.")
+            await ctx.send("There is a game in progress")
 
     async def _start_ttt_game(self, ctx):
         if not self.game_manager.is_against_ai(ctx.guild.id):
             player2 = self.game_manager.get_player_two(ctx.guild.id)
             oponent = ctx.guild.get_member(player2["id"])
-            await ctx.send(f"Esperando a que {oponent.mention} acepte con `-accept`")
+            await ctx.send(f"Waiting for {oponent.mention} to accept with `-accept`")
         else:
-            await ctx.send("Iniciando el juego...")
+            await ctx.send("Starting game...")
             await ctx.send(file=File(TTTImager(ctx.guild.id).create_initial_board()))
             await self._process_next_turn(ctx)
 
     @commands.command(name="accept")
     async def accept_game(self, ctx):
-        '''Comando para aceptar cuando se ha sido retado a jugar tic tac toe
+        '''Command to accept when challenged to play tic tac toe
         '''
         if self.game_manager.game_exists(ctx.guild.id):
             player2 = self.game_manager.get_player_two(ctx.guild.id)
             if player2["id"] == ctx.author.id:
-                await ctx.send("Iniciando el juego...")
+                await ctx.send("Starting game")
                 await ctx.send(file=File(TTTImager(ctx.guild.id).create_initial_board()))
                 await self._process_next_turn(ctx)
                 self.game_manager.restart_timeout(ctx)
@@ -184,15 +184,15 @@ class tttgame(commands.Cog):
         if ttt.terminal(board):
             winner = ttt.winner(board)
             if not winner:
-                await ctx.send("Empate")
+                await ctx.send("Tie")
             elif player1["move"] == winner:
                 member = ctx.guild.get_member(player1["id"])
-                await ctx.send(f"Gana {member.mention}")
+                await ctx.send(f"{member.mention} wins")
             elif player2:
                 member = ctx.guild.get_member(player2["id"])
-                await ctx.send(f"Gana {member.mention}")
+                await ctx.send(f"{member.mention} wins")
             else:
-                await ctx.send("Te gane ctm")
+                await ctx.send("I won ctm")
             self.game_manager.delete_game(ctx.guild.id)
             return True
         return False
@@ -207,10 +207,10 @@ class tttgame(commands.Cog):
         player_turn = ttt.player(board)
         if player_turn == player1["move"]:
             member = ctx.guild.get_member(player1["id"])
-            await ctx.send(f"Es tu turno {member.mention}, juega con `-move [1-9]`")
+            await ctx.send(f"It is your turn {member.mention}, play with `-m [1-9]`")
         else:
             if self.game_manager.is_against_ai(ctx.guild.id):
-                await ctx.send("Craneando mi siguiente movimiento...")
+                await ctx.send("Thinking about my next move....")
                 next_action = await self.loop.run_in_executor(None, functools.partial(ttt.minimax, board))
                 new_board = ttt.result(board, next_action)
                 self.game_manager.set_ttt_board(ctx.guild.id, new_board)
@@ -218,11 +218,11 @@ class tttgame(commands.Cog):
                 await self._process_next_turn(ctx)
             else:
                 member = ctx.guild.get_member(player2["id"])
-                await ctx.send(f"Turno de {member.mention}, juega con `-move [1-9]`")
+                await ctx.send(f"It is {member.mention}'s turn, play with `-m [1-9]`")
 
     @commands.command(name="move", aliases=["m"])
     async def play_move(self, ctx, move:int):
-        '''Comando para hacer un moviento con `X` o `O` en tic tac toe
+        '''Command to make a move with `X` or ʻO` in tic tac toe
         '''
         if not move > 0 and not move < 10:
             return
@@ -232,7 +232,7 @@ class tttgame(commands.Cog):
             player_turn = ttt.player(board)
             if player:
                 if player["move"] != player_turn:
-                    return await ctx.send("No es tu turno")
+                    return await ctx.send("Not your turn")
                 await self._process_move(ctx, move)
                 self.game_manager.restart_timeout(ctx)
 
@@ -245,11 +245,11 @@ class tttgame(commands.Cog):
             await ctx.send(file=File(TTTImager(ctx.guild.id).create_dirty_board(new_board)))
             await self._process_next_turn(ctx)
         except CustomException.InvalidTTTMoveException:
-            await ctx.send("Ese movimiento no es valido")
+            await ctx.send("That movement is not valid")
 
     @commands.command(name="symbol")
     async def symbol_choose(self, ctx, symbol:str):
-        '''Comando para escoger `X` o `O` despues de haber iniciado un juego
+        '''Command to choose `X` or `O` after starting a game
         '''
         move = symbol.upper()
         if move != X and move != O:
@@ -265,7 +265,7 @@ class tttgame(commands.Cog):
 
     @commands.command(name="quit")
     async def stop_game(self, ctx):
-        '''Termina el juego tic tac toe
+        '''Ends the game
         '''
         if self.game_manager.game_exists(ctx.guild.id):
             player = self.game_manager.get_player_by_id(ctx.guild.id, ctx.author.id)

@@ -74,9 +74,11 @@ class ChismositoBot(commands.Bot):
             self.config = json.load(f)
 
     async def on_guild_join(self, guild):
+        logging.warning(f"Joined guild {guild.name} with id {guild.id}")
         self.voice.populate_voice_managers()
 
     async def on_guild_remove(self, guild):
+        logging.warning(f"Removed from guild {guild.name} with id {guild.id}")
         self.voice.remove_guild_from_voice_manager(guild.id)
 
     async def on_voice_state_update(self, member, before, after):
@@ -88,9 +90,9 @@ class ChismositoBot(commands.Bot):
 
 
 def main():
-    logging.basicConfig(format='%(asctime)s %(message)s', filename="output.log")
+    logging.basicConfig(format='%(asctime)s %(message)s', filename="output.log", filemode="w")
     client = ChismositoBot(command_prefix=commands.when_mentioned_or("-"),
-                    description='El bot mas pendejo de todos', case_insensitive=True)
+                    description='Dummy dummy bot', case_insensitive=True)
     for filename in os.listdir('./cogs'):
         if filename.endswith(".py"):
             client.load_extension(f'cogs.{filename[:-3]}')

@@ -2,8 +2,8 @@ import discord
 from discord.ext import commands
 
 class pricealert(commands.Cog):
-    '''Setea alerta de precios para huevadas en G2A o Amazon
-    `-set-alert [link de amazon o G2A] [Rando de precios] [Moneda(EUR o USD)]`
+    '''Sets price alerts for Amazon or G2A products
+    `-set-alert [Amazon or G2A link] [Price range] [Currency (USD or EUR)]`
     '''
     def __init__(self, client):
         self.client = client
@@ -18,7 +18,7 @@ class pricealert(commands.Cog):
 
     @commands.command(name="alerts")
     async def show_alerts(self, ctx):
-        '''Muestra las alertas guardadas
+        '''Shows saved alerts
         '''
         await self.client.alert.handle_show_alerts(ctx)
 

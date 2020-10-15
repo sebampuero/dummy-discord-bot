@@ -14,13 +14,13 @@ class TimeUtils:
 
         duration = []
         if days > 0:
-            duration.append('{} dias'.format(days))
+            duration.append('{} days'.format(days))
         if hours > 0:
-            duration.append('{} horas'.format(hours))
+            duration.append('{} hours'.format(hours))
         if minutes > 0:
-            duration.append('{} minutos'.format(minutes))
+            duration.append('{} minutes'.format(minutes))
         if seconds > 0:
-            duration.append('{} segundos'.format(seconds))
+            duration.append('{} seconds'.format(seconds))
 
         return ', '.join(duration)
 
