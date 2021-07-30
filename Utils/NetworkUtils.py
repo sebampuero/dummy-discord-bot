@@ -28,9 +28,20 @@ class NetworkUtils(): #TODO: convert this to static class
             try:
                 async with session.get(url, headers=headers, allow_redirects=True) as response:
                     return response.status, response.content_type
-            except:
-                return 0, ""
+            except Exception as e:
+                logger.error(str(e), exc_info=True)
+                return None
                 
+    @staticmethod
+    async def get_request(url, headers=None):
+        async with aiohttp.ClientSession() as session:
+            try:
+                async with session.get(url, headers=headers) as response:
+                    return await response.json(encoding="UTF-8")
+            except Exception as e:
+                logger.error("while doing get request", exc_info=True)
+                return None
+
     async def get_content_from_page(self, url, headers=None):
         headers = dict(self.base_headers, **headers) if headers else self.base_headers
         async with aiohttp.ClientSession() as session:

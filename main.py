@@ -87,6 +87,7 @@ class ChismositoBot(commands.Bot):
         if self.voice.entered_voice_channel(before, after):
             await self.voice.notify_subscribers_user_joined_voice_chat(member, after.channel)
             await self.voice.play_welcome_audio(member, after.channel)
+            await self.voice.check_chorri_entered_vc(member, before, after)
 
 
 def main():

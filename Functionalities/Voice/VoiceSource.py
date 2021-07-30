@@ -121,7 +121,7 @@ class YTDLSource(StreamSource):
         'quiet': True,
         'format': 'bestaudio/best',
         'noplaylist': True,
-        #'cookiefile': 'cookies.txt',
+        'cookiefile': 'cookies.txt',
         'nocheckcertificate': True,
         'ignoreerrors': False,
         'outtmpl': './music_cache/%(extractor)s-%(title)s.%(ext)s',

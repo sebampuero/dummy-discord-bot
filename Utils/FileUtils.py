@@ -1,4 +1,3 @@
-from Utils.LoggerSaver import *
 import os, re, os.path
 import logging
 
@@ -29,6 +28,5 @@ class FileUtils():
             except Exception:
                 log = f"Error trying to delete {filename}"
                 logger.error(log, exc_info=True)
-                LoggerSaver.save_log(log, WhatsappLogger())
                 return False
         return False

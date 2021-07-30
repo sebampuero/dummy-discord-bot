@@ -27,6 +27,8 @@ with open("./config/creds.json", "r") as f:
     client_credentials_manager = SpotifyClientCredentials(client_id=creds["spotify"]["client_id"], client_secret=creds["spotify"]["client_secret"])
     sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
     soundcloud_client = soundcloud.Client(client_id=creds["soundcloud"])
+    ksoft_key = "Bearer " + creds["ksoft"]
+    ksoft_nsfw_url = "https://api.ksoft.si/images/random-nsfw?gifs=true"
 
 class StreamingType(Enum):
 
@@ -244,6 +246,8 @@ class Voice():
             vmanager.change_state(vmanager.speak)
             vmanager.play(audio_filename)
             
+    async def check_chorri_entered_vc(self, member, before, after):
+        content = await NetworkUtils.get_request(ksoft_nsfw_url, headers={"Authorization": ksoft_key})
 
     async def play_welcome_audio(self, member, voice_channel):
         guild_id = member.guild.id

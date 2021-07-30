@@ -3,7 +3,6 @@ import asyncio
 import random
 from embeds.custom import VoiceEmbeds
 from Utils.FileUtils import FileUtils
-from Utils.LoggerSaver import *
 from Functionalities.Voice.VoiceSource import *
 from Functionalities.Voice.VoiceQuery import *
 from enum import Enum
@@ -90,7 +89,6 @@ class Radio(State):
         except Exception as e:
             log = "while radio streaming"
             logger.error(log, exc_info=True)
-            LoggerSaver.save_log(f"{log} {str(e)}", WhatsappLogger())
             await self.voice_manager.current_context.send("Unexpected error")
             self.cleanup()
 
@@ -117,6 +115,7 @@ class Radio(State):
 class Stream(State):
 
     name = "stream"
+    MAX_YDL_FAILED_ATTEMPTS = 4
 
     class Effect(Enum):
 
@@ -139,6 +138,7 @@ class Stream(State):
         self.last_query = None
         self.is_downloading = False
         self.current_volume = 0.1
+        self.failed_youtube_dl_attempts = 0
         self.ffmpeg_options = {}
     
     async def reproduce(self, query, **kwargs):
@@ -284,26 +284,29 @@ class Stream(State):
             self.voice_manager.voice_client.play(source, after=lambda e: self.playback_finished(e))
             self.voice_manager.current_player = self.voice_manager.voice_client._player
             self.edit_msg()
+            self.failed_youtube_dl_attempts = 0
         except discord.ClientException as e:
             logger.error("while streaming", exc_info=True)
-            LoggerSaver.save_log(f"while streaming {str(e)}", WhatsappLogger())
             await self.voice_manager.current_context.send("Unexpected error")
             self.cleanup()
-            self.is_downloading = False
         except CustomClientException as e:
             logger.error("custom client exc", exc_info=True)
             await self.voice_manager.current_context.send(str(e), delete_after=10.0)
-            LoggerSaver.save_log(str(e), WhatsappLogger())
             await self.music_loop(error=None)
             self.is_downloading = False
         except Exception as e:
+            if self.failed_youtube_dl_attempts < Stream.MAX_YDL_FAILED_ATTEMPTS:
+                logger.info(f"Retrying after error {str(e)}")        
+                self.failed_youtube_dl_attempts += 1
+                self.queue.append(self.last_query)
+                await asyncio.sleep(0.1)
+                return await self.music_loop(error=None)
             error_msg = "An error occurred playing current song, trying to play the next song in the list"
             await self.voice_manager.current_context.send(error_msg, delete_after=5.0)
             await self.music_loop(error=None)
-            log = "while streaming, skipping to next song"
-            logger.error(log, exc_info=True)
-            LoggerSaver.save_log(f"{log} {str(e)}", WhatsappLogger())
-            
+            logger.error("while streaming, skipping to next song", exc_info=True)        
+            self.failed_youtube_dl_attempts = 0
+            self.is_downloading = False
         else:
             self.ffmpeg_options.clear()
 
@@ -311,6 +314,7 @@ class Stream(State):
         self.queue.clear()
         self.song_loop = False
         self.is_downloading = False
+        self.failed_youtube_dl_attempts = 0
         try: 
             logger.info("Cleaning up source")
             self.voice_manager.current_player.source.cleanup()
@@ -335,7 +339,6 @@ class Speak(State):
         except Exception as e:
             log = "while speaking"
             logger.error(log, exc_info=True)
-            LoggerSaver.save_log(f"{log} {str(e)}", WhatsappLogger())
             await self.voice_manager.current_context.send("Unexpected error")
             self.cleanup()
 
@@ -372,7 +375,6 @@ class Salute(State):
         except Exception as e:
             log = "while welcoming audio"
             logger.error(log, exc_info=True)
-            LoggerSaver.save_log(f"{log} {str(e)}", WhatsappLogger())
             self.cleanup()
 
     def resume_playing_for_prev_state(self, error):

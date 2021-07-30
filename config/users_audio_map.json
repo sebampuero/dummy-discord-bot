@@ -24,7 +24,8 @@
             "active": "true",
             "audios": [
                 "./assets/audio/pastruti.mp3",
-                "./assets/audio/320244614512640002.mp3"
+                "./assets/audio/320244614512640002.mp3",
+                "./assets/audio/320244614512640004.mp3"
             ]
         },
         "744313744351559700": {
@@ -119,7 +120,7 @@
     },
     "279796600308498434": {
         "451813158290587649": {
-            "active": false,
+            "active": true,
             "audios": [
                 "./assets/audio/papu.mp3",
                 "./assets/audio/papu2.mp3"
@@ -161,6 +162,14 @@
             "active": true,
             "audios": [
                 "./assets/audio/463032412314533907.mp3"
+            ]
+        }
+    },
+    "708800320943423568": {
+        "451813158290587649": {
+            "active": true,
+            "audios": [
+                "./assets/audio/708800320943423568.mp3"
             ]
         }
     }

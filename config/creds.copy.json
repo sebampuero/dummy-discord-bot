@@ -7,5 +7,6 @@
         "account_sid": "ACCOUNT SID",
         "token": "AUTH TOKEN"
     },
-    "soundcloud": "CLIENT ID"
+    "soundcloud": "CLIENT ID",
+    "ksoft": "KSOFT KEY"
 }
