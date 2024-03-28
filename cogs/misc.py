@@ -51,20 +51,6 @@ class misc(commands.Cog):
         else:
             await ctx.send("Try again later")
 
-    @commands.command(name="random-nsfw", aliases=['rd-nsfw', 'pornaso', 'nopor'])
-    @commands.cooldown(1.0, 3.0, commands.BucketType.guild)
-    async def random_nsfw(self, ctx):
-        '''Retrieves a random nsfw gif using KSoft.Si
-        '''
-        content = await NetworkUtils.get_request(f"{self.ksoft_base_url}/images/random-nsfw?gifs=true", headers={"Authorization": self.ksoft_key})
-        if content:
-            if 'image_url' in content:
-                await ctx.send(content['image_url'])
-            else:
-                await ctx.send("Porno no disponible")
-        else:
-            await ctx.send("Try again later")
-
     @commands.command(name="random-wikihow", aliases=['rd-wiki'])
     @commands.cooldown(1.0, 3.0, commands.BucketType.guild)
     async def random_wikihow(self, ctx):
